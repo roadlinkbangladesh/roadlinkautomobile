@@ -12,8 +12,9 @@ import { initVehicleTable, renderVehicleTable, populateMakeFilter, state as tabl
 let currentVehicleId = null;
 // Active vehicle ID marked for deletion
 let deleteVehicleId = null;
-// In-memory array of base64/URL images for the active vehicle
-let activeVehicleImages = [];
+// In-memory arrays of base64/URL images for the active vehicle
+let activeExteriorImages = [];
+let activeInteriorImages = [];
 
 /**
  * Initializes the Vehicles management view panel.
@@ -37,8 +38,10 @@ export function bindVehicleEvents() {
   const btnCancelDelete = $("btn-cancel-delete");
 
   // Local Image Upload triggers
-  const btnSelectImages = $("btn-select-images");
-  const imagesFileInput = $("v-images-input");
+  const btnSelectExtImages = $("btn-select-ext-images");
+  const extImagesFileInput = $("v-ext-images-input");
+  const btnSelectIntImages = $("btn-select-int-images");
+  const intImagesFileInput = $("v-int-images-input");
 
   // Larger preview modal triggers
   const btnClosePreviewModal = $("btn-close-preview-modal");
@@ -83,13 +86,21 @@ export function bindVehicleEvents() {
   }
 
   // Local Images Events
-  if (btnSelectImages) {
-    btnSelectImages.removeEventListener("click", handleSelectImages);
-    btnSelectImages.addEventListener("click", handleSelectImages);
+  if (btnSelectExtImages) {
+    btnSelectExtImages.removeEventListener("click", handleSelectExtImages);
+    btnSelectExtImages.addEventListener("click", handleSelectExtImages);
   }
-  if (imagesFileInput) {
-    imagesFileInput.removeEventListener("change", handleImagesFileChange);
-    imagesFileInput.addEventListener("change", handleImagesFileChange);
+  if (extImagesFileInput) {
+    extImagesFileInput.removeEventListener("change", handleExtImagesFileChange);
+    extImagesFileInput.addEventListener("change", handleExtImagesFileChange);
+  }
+  if (btnSelectIntImages) {
+    btnSelectIntImages.removeEventListener("click", handleSelectIntImages);
+    btnSelectIntImages.addEventListener("click", handleSelectIntImages);
+  }
+  if (intImagesFileInput) {
+    intImagesFileInput.removeEventListener("change", handleIntImagesFileChange);
+    intImagesFileInput.addEventListener("change", handleIntImagesFileChange);
   }
 
   // Large Preview Close Event
@@ -196,27 +207,41 @@ export function openVehicleModal(vehicleId = null) {
       populateField("youtubeUrl", vehicle.youtubeUrl || "");
       populateField("auctionSheetUrl", vehicle.auctionSheetUrl || "");
       populateField("auctionSheetAvailable", !!vehicle.auctionSheetAvailable);
-      populateField("showAuctionDownload", vehicle.showAuctionDownload !== false);
       populateField("features", vehicle.features || []);
 
-      // Populate Images array
-      activeVehicleImages = [...(vehicle.images || [])];
-      // Fallback to cover/poster if images array is empty
-      if (activeVehicleImages.length === 0 && (vehicle.coverImage || vehicle.posterImage)) {
-        activeVehicleImages.push(vehicle.coverImage || vehicle.posterImage);
+      // Populate Exterior Images array
+      activeExteriorImages = [...(vehicle.exteriorImages || [])];
+      // Fallback: if exteriorImages is empty, use vehicle.images or coverImage
+      if (activeExteriorImages.length === 0) {
+        if (vehicle.images && vehicle.images.length > 0) {
+          activeExteriorImages = [...vehicle.images];
+        } else if (vehicle.coverImage || vehicle.posterImage) {
+          activeExteriorImages = [vehicle.coverImage || vehicle.posterImage];
+        }
       }
+      
+      // Populate Interior Images array
+      activeInteriorImages = [...(vehicle.interiorImages || [])];
     }
   } else {
     // Add mode
     if (modalTitle) modalTitle.textContent = "Add Vehicle";
-    activeVehicleImages = [];
+    activeExteriorImages = [];
+    activeInteriorImages = [];
     populateField("published", true);
-    populateField("showAuctionDownload", true);
   }
 
   // Render previews
   renderImagePreviews();
   modal.style.display = "flex";
+
+  // Auto scroll to top when opening (Request #3)
+  modal.scrollTop = 0;
+  const card = modal.querySelector(".modal-card");
+  if (card) {
+    card.scrollTop = 0;
+  }
+  window.scrollTo({ top: 0, behavior: "instant" });
 }
 
 /**
@@ -244,7 +269,8 @@ export function closeVehicleModal() {
     modal.style.display = "none";
   }
   currentVehicleId = null;
-  activeVehicleImages = [];
+  activeExteriorImages = [];
+  activeInteriorImages = [];
 }
 
 /**
@@ -262,7 +288,7 @@ function handleFormSubmit(e) {
     "mileage", "engineCC", "transmission", "fuel", "drive", "exteriorColor", "interiorColor",
     "steering", "doors", "seats", "purchasePrice", "price", "currency", "status", "description",
     "bodyType", "featured", "published", "negotiable", "arrivalDate", "accidentHistory", "shortDescription",
-    "youtubeUrl", "auctionSheetUrl", "auctionSheetAvailable", "showAuctionDownload", "features"
+    "youtubeUrl", "auctionSheetUrl", "auctionSheetAvailable", "features"
   ];
 
   const data = {};
@@ -339,8 +365,9 @@ function handleFormSubmit(e) {
   // Parse comma-separated features into array
   const parsedFeatures = data.features ? data.features.split(",").map(f => f.trim()).filter(Boolean) : [];
 
-  // The first image in the list becomes the cover/poster image
-  const coverImg = activeVehicleImages[0] || "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
+  // The first exterior image becomes the cover/poster image
+  const coverImg = activeExteriorImages[0] || "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
+  const combinedImages = [...activeExteriorImages, ...activeInteriorImages];
 
   if (currentVehicleId) {
     // Edit existing vehicle
@@ -377,9 +404,10 @@ function handleFormSubmit(e) {
       youtubeUrl: data.youtubeUrl || "",
       auctionSheetUrl: data.auctionSheetUrl || "",
       auctionSheetAvailable: !!data.auctionSheetAvailable,
-      showAuctionDownload: !!data.showAuctionDownload,
       features: parsedFeatures,
-      images: [...activeVehicleImages],
+      images: combinedImages,
+      exteriorImages: [...activeExteriorImages],
+      interiorImages: [...activeInteriorImages],
       coverImage: coverImg,
       posterImage: coverImg
     };
@@ -422,10 +450,11 @@ function handleFormSubmit(e) {
       youtubeUrl: data.youtubeUrl || "",
       auctionSheetUrl: data.auctionSheetUrl || "",
       auctionSheetAvailable: !!data.auctionSheetAvailable,
-      showAuctionDownload: !!data.showAuctionDownload,
       published: !!data.published,
       features: parsedFeatures,
-      images: [...activeVehicleImages],
+      images: combinedImages,
+      exteriorImages: [...activeExteriorImages],
+      interiorImages: [...activeInteriorImages],
       coverImage: coverImg,
       posterImage: coverImg,
       createdAt: new Date().toISOString(),
@@ -494,19 +523,29 @@ function confirmDeleteVehicle() {
 }
 
 /**
- * Triggers file selector click.
+ * Triggers exterior file selector click.
  */
-function handleSelectImages() {
-  const fileInput = $("v-images-input");
+function handleSelectExtImages() {
+  const fileInput = $("v-ext-images-input");
   if (fileInput) {
     fileInput.click();
   }
 }
 
 /**
- * Handles image files selection and converts them to base64.
+ * Triggers interior file selector click.
  */
-function handleImagesFileChange(e) {
+function handleSelectIntImages() {
+  const fileInput = $("v-int-images-input");
+  if (fileInput) {
+    fileInput.click();
+  }
+}
+
+/**
+ * Handles exterior image files selection and converts them to base64.
+ */
+function handleExtImagesFileChange(e) {
   const files = Array.from(e.target.files);
   if (files.length === 0) return;
 
@@ -515,11 +554,10 @@ function handleImagesFileChange(e) {
     const reader = new FileReader();
     reader.onload = function(event) {
       const base64Data = event.target.result;
-      activeVehicleImages.push(base64Data);
+      activeExteriorImages.push(base64Data);
       loadedCount++;
       if (loadedCount === files.length) {
         renderImagePreviews();
-        // Clear file input so same file can be selected again
         e.target.value = "";
       }
     };
@@ -528,29 +566,60 @@ function handleImagesFileChange(e) {
 }
 
 /**
- * Renders the preview thumbnails inside the modal form.
+ * Handles interior image files selection and converts them to base64.
+ */
+function handleIntImagesFileChange(e) {
+  const files = Array.from(e.target.files);
+  if (files.length === 0) return;
+
+  let loadedCount = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const base64Data = event.target.result;
+      activeInteriorImages.push(base64Data);
+      loadedCount++;
+      if (loadedCount === files.length) {
+        renderImagePreviews();
+        e.target.value = "";
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Renders the preview thumbnails for both Exterior and Interior categories.
  */
 function renderImagePreviews() {
-  const container = $("image-preview-container");
+  renderSpecificPreviews("ext-image-preview-container", activeExteriorImages, true);
+  renderSpecificPreviews("int-image-preview-container", activeInteriorImages, false);
+}
+
+/**
+ * Helper to render image previews for a specific array and container.
+ */
+function renderSpecificPreviews(containerId, imageArray, isExterior) {
+  const container = $(containerId);
   if (!container) return;
 
   container.innerHTML = "";
 
-  if (activeVehicleImages.length === 0) {
+  if (imageArray.length === 0) {
     container.innerHTML = `<p class="view-subtitle" style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 16px 0; margin: 0;">No images selected.</p>`;
     return;
   }
 
-  activeVehicleImages.forEach((src, index) => {
+  imageArray.forEach((src, index) => {
     const isFirst = index === 0;
-    const isLast = index === activeVehicleImages.length - 1;
+    const isLast = index === imageArray.length - 1;
 
     const card = document.createElement("div");
-    card.className = `image-preview-card ${isFirst ? "is-cover" : ""}`;
+    card.className = `image-preview-card ${isExterior && isFirst ? "is-cover" : ""}`;
 
     card.innerHTML = `
       <img src="${src}" alt="Preview ${index + 1}" referrerpolicy="no-referrer">
-      ${isFirst ? `<span class="image-preview-badge">Cover</span>` : ""}
+      ${isExterior && isFirst ? `<span class="image-preview-badge">Cover</span>` : ""}
       <div class="image-preview-actions">
         <button type="button" class="btn-img-prev" data-index="${index}" ${isFirst ? "disabled" : ""} title="Move Left">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left"><line x1="19" x2="5" y1="12" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
@@ -567,38 +636,34 @@ function renderImagePreviews() {
     container.appendChild(card);
   });
 
-  // Bind click handlers to uploader buttons inside container
+  // Bind click handlers inside the specific container
   container.querySelectorAll(".btn-img-prev").forEach(btn => {
     btn.addEventListener("click", (e) => {
       const idx = parseInt(e.currentTarget.getAttribute("data-index"), 10);
-      swapImages(idx, idx - 1);
+      const temp = imageArray[idx];
+      imageArray[idx] = imageArray[idx - 1];
+      imageArray[idx - 1] = temp;
+      renderImagePreviews();
     });
   });
 
   container.querySelectorAll(".btn-img-next").forEach(btn => {
     btn.addEventListener("click", (e) => {
       const idx = parseInt(e.currentTarget.getAttribute("data-index"), 10);
-      swapImages(idx, idx + 1);
+      const temp = imageArray[idx];
+      imageArray[idx] = imageArray[idx + 1];
+      imageArray[idx + 1] = temp;
+      renderImagePreviews();
     });
   });
 
   container.querySelectorAll(".btn-img-delete").forEach(btn => {
     btn.addEventListener("click", (e) => {
       const idx = parseInt(e.currentTarget.getAttribute("data-index"), 10);
-      activeVehicleImages.splice(idx, 1);
+      imageArray.splice(idx, 1);
       renderImagePreviews();
     });
   });
-}
-
-/**
- * Swaps two images in the active array and re-renders previews.
- */
-function swapImages(idx1, idx2) {
-  const temp = activeVehicleImages[idx1];
-  activeVehicleImages[idx1] = activeVehicleImages[idx2];
-  activeVehicleImages[idx2] = temp;
-  renderImagePreviews();
 }
 
 /**
