@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 :root {
   /* Colors */
@@ -179,13 +179,15 @@ section {
 }
 
 .logo-text {
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-family: 'Arial Narrow', 'Nimbus Sans L', sans-serif;
+  font-size: 25px;
+  font-weight: 700;
+  font-style: normal;
+  letter-spacing: 0;
   display: flex;
   flex-direction: column;
-  line-height: 1;
+  align-items: center;
+  line-height: 0.85;
 }
 
 .logo-text .brand-name {
@@ -202,14 +204,17 @@ section {
 }
 
 .logo-text .brand-subtext {
-  font-family: var(--font-sans);
-  font-size: 0.65rem;
-  font-weight: 600;
+  font-family: 'Arial Narrow', 'Nimbus Sans L', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  font-style: normal;
   color: #3A4D62; /* Logo dark slate grey */
-  letter-spacing: 0.38em;
+  letter-spacing: 0.45em; /* 4.5px spacing, which is exactly a 12:5.4 ratio (0.45 * font-size) */
+  margin-right: -0.45em; /* Compensate for the letter-spacing on the last letter 'S' to keep it perfectly centered */
   text-transform: uppercase;
-  margin-top: 2px;
+  margin-top: 1px;
   line-height: 1;
+  padding-right: 0;
 }
 
 /* Nav Menu Links */
@@ -1125,6 +1130,13 @@ section {
   padding-top: 80px;
   padding-bottom: 40px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+#main-footer .logo-img {
+  background-color: #ffffff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  box-sizing: border-box;
 }
 
 .footer-top {
@@ -2391,15 +2403,18 @@ section {
 }
 
 .panel-negotiable-badge {
-  background-color: rgba(227, 27, 35, 0.06);
+  background-color: rgba(227, 27, 35, 0.08);
   color: var(--primary-red);
-  border: 1px solid rgba(227, 27, 35, 0.2);
-  font-size: 0.7rem;
+  border: 1px solid rgba(227, 27, 35, 0.35);
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
-  padding: 3px 6px;
+  padding: 3px 7px;
   border-radius: 4px;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.2s ease;
 }
 
 /* Expected Arrival details */
@@ -2636,6 +2651,79 @@ section {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Horizontal Gallery Slider Styles */
+.gallery-slider-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.gallery-slider-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 4px;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+}
+
+.gallery-slider-track::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.gallery-slider-track .gallery-thumb {
+  flex: 0 0 180px; /* Fixed width of thumbnail on scroll */
+  width: 180px;
+  max-width: 180px;
+  height: 135px; /* Keep aspect ratio 4/3 */
+}
+
+@media (max-width: 576px) {
+  .gallery-slider-track .gallery-thumb {
+    flex: 0 0 130px;
+    width: 130px;
+    max-width: 130px;
+    height: 98px;
+  }
+}
+
+.gallery-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+  color: var(--primary-blue);
+}
+
+.gallery-arrow:hover {
+  background-color: var(--primary-blue);
+  color: white;
+  border-color: var(--primary-blue);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.btn-prev-arrow {
+  left: -18px;
+}
+
+.btn-next-arrow {
+  right: -18px;
 }
 
 
