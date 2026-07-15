@@ -346,6 +346,28 @@ function hydrateMainMedia(car) {
       extGrid.appendChild(thumb);
     });
     extSection.style.display = 'block';
+
+    // Bind exterior slider arrows
+    const btnExtPrev = document.getElementById('btn-ext-prev');
+    const btnExtNext = document.getElementById('btn-ext-next');
+    if (btnExtPrev && btnExtNext) {
+      btnExtPrev.onclick = (e) => {
+        e.stopPropagation();
+        extGrid.scrollBy({ left: -extGrid.clientWidth * 0.75, behavior: 'smooth' });
+      };
+      btnExtNext.onclick = (e) => {
+        e.stopPropagation();
+        extGrid.scrollBy({ left: extGrid.clientWidth * 0.75, behavior: 'smooth' });
+      };
+      // Toggle arrow visibility based on image count
+      if (extImages.length <= 4) {
+        btnExtPrev.style.display = 'none';
+        btnExtNext.style.display = 'none';
+      } else {
+        btnExtPrev.style.display = 'flex';
+        btnExtNext.style.display = 'flex';
+      }
+    }
   } else {
     extSection.style.display = 'none';
   }
@@ -376,6 +398,28 @@ function hydrateMainMedia(car) {
       intGrid.appendChild(thumb);
     });
     intSection.style.display = 'block';
+
+    // Bind interior slider arrows
+    const btnIntPrev = document.getElementById('btn-int-prev');
+    const btnIntNext = document.getElementById('btn-int-next');
+    if (btnIntPrev && btnIntNext) {
+      btnIntPrev.onclick = (e) => {
+        e.stopPropagation();
+        intGrid.scrollBy({ left: -intGrid.clientWidth * 0.75, behavior: 'smooth' });
+      };
+      btnIntNext.onclick = (e) => {
+        e.stopPropagation();
+        intGrid.scrollBy({ left: intGrid.clientWidth * 0.75, behavior: 'smooth' });
+      };
+      // Toggle arrow visibility based on image count
+      if (intImages.length <= 4) {
+        btnIntPrev.style.display = 'none';
+        btnIntNext.style.display = 'none';
+      } else {
+        btnIntPrev.style.display = 'flex';
+        btnIntNext.style.display = 'flex';
+      }
+    }
   } else {
     intSection.style.display = 'none';
   }
@@ -479,15 +523,7 @@ function hydrateAuctionSheet(car) {
   const section = document.getElementById('auction-sheet-section');
   if (car.auctionSheetUrl && car.auctionSheetAvailable) {
     document.getElementById('btn-view-auction').setAttribute('href', car.auctionSheetUrl);
-    
-    const downloadBtn = document.getElementById('btn-download-auction');
-    downloadBtn.setAttribute('href', car.auctionSheetUrl);
-    if (car.showAuctionDownload === false) {
-      downloadBtn.style.display = 'none';
-    } else {
-      downloadBtn.style.display = 'inline-flex';
-    }
-    
+    document.getElementById('btn-download-auction').setAttribute('href', car.auctionSheetUrl);
     section.style.display = 'block';
   } else {
     section.style.display = 'none';
@@ -617,7 +653,10 @@ function hydrateRelatedVehicles(car) {
           <div class="vehicle-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
             <div class="vehicle-price-container">
               <span class="price-label">Price (BDT)</span>
-              <span class="vehicle-price">${formatPrice(carMatch.price, carMatch.negotiable)}</span>
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <span class="vehicle-price">${formatPrice(carMatch.price, false)}</span>
+                ${carMatch.negotiable ? `<span class="panel-negotiable-badge" style="font-size: 0.6rem; padding: 2px 5px; margin-top: 1px;">Negotiable</span>` : ''}
+              </div>
             </div>
             <a href="vehicle.html?stock=${carMatch.stockNumber}" class="btn-view-details" aria-label="View specifications for ${carMatch.make} ${carMatch.model}">View Details</a>
           </div>
