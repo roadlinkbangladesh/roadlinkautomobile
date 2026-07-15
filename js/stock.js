@@ -913,13 +913,15 @@ function renderVehicleCard(car) {
   const whatsappUrl = `https://wa.me/8801311503840?text=${encodeURIComponent(whatsappMsg)}`;
 
   card.innerHTML = `
-    <div class="vehicle-img-wrapper">
-      <span class="vehicle-badge badge-category">${car.bodyType.toUpperCase()}</span>
-      ${statusBadge}
-      ${featuredBadge}
-      ${gradeBadge}
-      <img src="${car.posterImage || car.images[0]}" alt="${car.year} ${car.make} ${car.model}" class="vehicle-img" loading="lazy">
-    </div>
+    <a href="vehicle.html?stock=${car.stockNumber}" class="vehicle-img-link" aria-label="View specifications for ${car.make} ${car.model}" style="display: block; text-decoration: none; color: inherit;">
+      <div class="vehicle-img-wrapper">
+        <span class="vehicle-badge badge-category">${car.bodyType.toUpperCase()}</span>
+        ${statusBadge}
+        ${featuredBadge}
+        ${gradeBadge}
+        <img src="${car.posterImage || car.images[0]}" alt="${car.year} ${car.make} ${car.model}" class="vehicle-img" loading="lazy">
+      </div>
+    </a>
     <div class="vehicle-content">
       <div class="vehicle-meta-row">
         <span class="vehicle-year-make">${car.year} • ${car.make}</span>
@@ -972,7 +974,10 @@ function renderVehicleCard(car) {
       <div class="vehicle-footer">
         <div class="vehicle-price-container">
           <span class="price-label">Price (BDT)</span>
-          <span class="vehicle-price">${formatPrice(car.price, car.negotiable)}</span>
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <span class="vehicle-price">${formatPrice(car.price, false)}</span>
+            ${car.negotiable ? `<span class="panel-negotiable-badge" style="font-size: 0.6rem; padding: 2px 5px; margin-top: 1px;">Negotiable</span>` : ''}
+          </div>
         </div>
         <div class="card-action-row">
           <a href="vehicle.html?stock=${car.stockNumber}" class="btn-card-details" aria-label="View specifications for ${car.make} ${car.model}">Details</a>
