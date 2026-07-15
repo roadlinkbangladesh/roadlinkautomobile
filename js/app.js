@@ -143,11 +143,13 @@ function renderVehicles(category = 'all') {
     const categoryLabel = car.category.toUpperCase();
  
     card.innerHTML = `
-      <div class="vehicle-img-wrapper">
-        <span class="vehicle-badge">${categoryLabel}</span>
-        <span class="vehicle-badge auction-grade">Grade ${car.grade}</span>
-        <img src="${car.image}" alt="${car.make} ${car.model}" class="vehicle-img" loading="lazy">
-      </div>
+      <a href="vehicle.html?stock=${car.stockNumber}" class="vehicle-img-link" aria-label="View specifications for ${car.make} ${car.model}" style="display: block; text-decoration: none; color: inherit;">
+        <div class="vehicle-img-wrapper">
+          <span class="vehicle-badge">${categoryLabel}</span>
+          <span class="vehicle-badge auction-grade">Grade ${car.grade}</span>
+          <img src="${car.image}" alt="${car.make} ${car.model}" class="vehicle-img" loading="lazy">
+        </div>
+      </a>
       <div class="vehicle-content">
         <div class="vehicle-year-make">${car.year} • ${car.make}</div>
         <h3 class="vehicle-title">${car.model}</h3>
