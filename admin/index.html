@@ -601,24 +601,38 @@
             <input type="checkbox" id="v-auction-sheet-available" name="auctionSheetAvailable">
             <label for="v-auction-sheet-available">Auction Sheet is Available & Verified</label>
           </div>
-          <div class="form-group form-group-checkbox" style="margin-top: 28px;">
-            <input type="checkbox" id="v-show-auction-download" name="showAuctionDownload">
-            <label for="v-show-auction-download">Enable Auction Sheet Download Option</label>
-          </div>
 
           <!-- SECTION 6: VEHICLE IMAGES -->
           <div class="form-section-title full-width">Vehicle Images</div>
-          <div class="form-group full-width">
-            <label for="v-images-input" style="font-weight: 600; display: block; margin-bottom: 8px;">Select Images (First image is the cover image)</label>
+          
+          <!-- Exterior Images -->
+          <div class="form-group full-width" style="margin-bottom: 24px;">
+            <label for="v-ext-images-input" style="font-weight: 600; display: block; margin-bottom: 8px;">Exterior Images (First image is the main cover image)</label>
             <div class="image-uploader-area">
-              <input type="file" id="v-images-input" multiple accept="image/*" style="display: none;">
-              <button type="button" id="btn-select-images" class="btn btn-view-site" style="width: auto; justify-content: center; padding: 10px 16px; margin: 0;">
+              <input type="file" id="v-ext-images-input" multiple accept="image/*" style="display: none;">
+              <button type="button" id="btn-select-ext-images" class="btn btn-view-site" style="width: auto; justify-content: center; padding: 10px 16px; margin: 0;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload-cloud" style="margin-right: 6px;"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m15 15-3-3-3 3"/></svg>
-                Select Local Images
+                Select Exterior Images
               </button>
-              <p class="view-subtitle" style="margin-top: 6px; margin-bottom: 0;">Select one or multiple images. Click left/right arrows to reorder, delete to remove.</p>
+              <p class="view-subtitle" style="margin-top: 6px; margin-bottom: 0;">Add one or multiple exterior photos. Click left/right arrows to reorder, delete to remove.</p>
             </div>
-            <div id="image-preview-container" class="image-preview-grid">
+            <div id="ext-image-preview-container" class="image-preview-grid">
+              <!-- Dynamically populated previews -->
+            </div>
+          </div>
+
+          <!-- Interior Images -->
+          <div class="form-group full-width">
+            <label for="v-int-images-input" style="font-weight: 600; display: block; margin-bottom: 8px;">Interior Images</label>
+            <div class="image-uploader-area">
+              <input type="file" id="v-int-images-input" multiple accept="image/*" style="display: none;">
+              <button type="button" id="btn-select-int-images" class="btn btn-view-site" style="width: auto; justify-content: center; padding: 10px 16px; margin: 0;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload-cloud" style="margin-right: 6px;"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m15 15-3-3-3 3"/></svg>
+                Select Interior Images
+              </button>
+              <p class="view-subtitle" style="margin-top: 6px; margin-bottom: 0;">Add one or multiple interior photos. Click left/right arrows to reorder, delete to remove.</p>
+            </div>
+            <div id="int-image-preview-container" class="image-preview-grid">
               <!-- Dynamically populated previews -->
             </div>
           </div>
