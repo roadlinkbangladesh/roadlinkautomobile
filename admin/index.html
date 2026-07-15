@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Portal - Roadlink Automobiles</title>
+  <!-- Main Brand Stylesheet -->
+  <link rel="stylesheet" href="../css/style.css">
+  <!-- Admin Stylesheet -->
+  <link rel="stylesheet" href="./admin.css">
+  <!-- Brand Icon -->
+  <link rel="icon" type="image/png" href="../assets/logo.png">
+</head>
+<body class="admin-portal-body">
+
+  <div id="admin-app">
+    <!-- 1. LOGIN SCREEN -->
+    <div id="login-view" class="login-wrapper" style="display: none;">
+      <div class="login-card">
+        <div class="login-header">
+          <div class="logo-wrapper admin-login-logo">
+            <img src="../assets/logo.png" alt="Roadlink Automobiles Logo" class="logo-img">
+            <div class="logo-text">
+              <span class="brand-name"><span class="road">ROAD</span><span class="link">LINK</span></span>
+              <span class="brand-subtext">Automobiles</span>
+            </div>
+          </div>
+          <h1 class="login-title">Admin Portal</h1>
+          <p class="login-subtitle">Sign in to manage your inventory and website settings</p>
+        </div>
+
+        <form id="login-form" novalidate>
+          <div class="form-group">
+            <label for="username">Username</label>
+            <div class="input-wrapper">
+              <input type="text" id="username" name="username" placeholder="Enter username" autocomplete="username" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="input-wrapper">
+              <input type="password" id="password" name="password" placeholder="Enter password" autocomplete="current-password" required>
+              <button type="button" id="btn-toggle-password" class="password-toggle-btn" aria-label="Show password">
+                <!-- Eye Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye icon-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0z"/><circle cx="12" cy="12" r="3"/></svg>
+                <!-- Eye-Off Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye-off icon-eye-off" style="display: none;"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Error Alert Panel -->
+          <div id="login-error" class="login-error-alert" role="alert" style="display: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-alert-circle"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+            <span id="error-message">Invalid username or password</span>
+          </div>
+
+          <button type="submit" class="btn btn-login-submit">
+            Sign In
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 2. REUSABLE ADMIN PORTAL LAYOUT -->
+    <div id="admin-layout" class="admin-grid-layout" style="display: none;">
+      
+      <!-- SIDEBAR -->
+      <aside id="admin-sidebar" class="admin-sidebar-nav">
+        <div class="sidebar-top">
+          <div class="logo-wrapper admin-sidebar-logo">
+            <img src="../assets/logo.png" alt="Roadlink Automobiles Logo" class="logo-img">
+            <div class="logo-text">
+              <span class="brand-name"><span class="road">ROAD</span><span class="link">LINK</span></span>
+              <span class="brand-subtext">Automobiles</span>
+            </div>
+          </div>
+          <!-- Close button for mobile navigation -->
+          <button id="mobile-sidebar-close" class="btn-sidebar-close" aria-label="Close menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+          </button>
+        </div>
+
+        <nav class="sidebar-links-list">
+          <button id="nav-item-dashboard" class="sidebar-nav-link active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-dashboard"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="10" rx="1"/><rect width="7" height="5" x="3" y="14" rx="1"/></svg>
+            <span>Dashboard</span>
+          </button>
+          <button id="nav-item-vehicles" class="sidebar-nav-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-car"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/><path d="M5 12h14"/></svg>
+            <span>Vehicles</span>
+          </button>
+          <button id="nav-item-settings" class="sidebar-nav-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>Settings</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button id="btn-sidebar-logout" class="sidebar-logout-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-out"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTAINER -->
+      <div class="admin-main-wrapper">
+        
+        <!-- TOP BAR -->
+        <header class="admin-topbar">
+          <div class="topbar-left">
+            <button id="mobile-sidebar-open" class="btn-sidebar-toggle" aria-label="Open navigation menu">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+            </button>
+            <h2 id="topbar-page-title" class="topbar-title">Dashboard</h2>
+          </div>
+          <div class="topbar-right">
+            <div class="user-profile-badge">
+              <div class="user-avatar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div class="user-meta">
+                <span class="user-role">Administrator</span>
+                <span class="user-label">Roadlink Manager</span>
+              </div>
+            </div>
+            <button id="btn-topbar-logout" class="topbar-logout-icon-btn" title="Sign Out">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-out"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+            </button>
+          </div>
+        </header>
+
+        <!-- MAIN SCROLLABLE CONTENT VIEW -->
+        <main class="admin-content-area">
+          <div class="container admin-container-pad">
+            
+            <div id="dashboard-view-panel">
+              <!-- SECTION 1: METRIC CARDS -->
+              <div class="metrics-grid">
+                <!-- Total Vehicles Card -->
+                <div class="metric-card bg-card-blue">
+                  <div class="metric-icon-wrapper">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layers"><path d="m12 3-10 5 10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg>
+                  </div>
+                  <div class="metric-data">
+                    <span class="metric-lbl">Total Vehicles</span>
+                    <h3 id="stat-total" class="metric-val">--</h3>
+                  </div>
+                </div>
+
+                <!-- Available Card -->
+                <div class="metric-card bg-card-green">
+                  <div class="metric-icon-wrapper">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  </div>
+                  <div class="metric-data">
+                    <span class="metric-lbl">Available</span>
+                    <h3 id="stat-available" class="metric-val">--</h3>
+                  </div>
+                </div>
+
+                <!-- Incoming Card -->
+                <div class="metric-card bg-card-red">
+                  <div class="metric-icon-wrapper">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-anchor"><circle cx="12" cy="5" r="3"/><line x1="12" x2="12" y1="8" y2="22"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/><circle cx="12" cy="17" r="1"/></svg>
+                  </div>
+                  <div class="metric-data">
+                    <span class="metric-lbl">Incoming</span>
+                    <h3 id="stat-incoming" class="metric-val">--</h3>
+                  </div>
+                </div>
+
+                <!-- Reserved Card -->
+                <div class="metric-card bg-card-orange">
+                  <div class="metric-icon-wrapper">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bookmark"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+                  </div>
+                  <div class="metric-data">
+                    <span class="metric-lbl">Reserved</span>
+                    <h3 id="stat-reserved" class="metric-val">--</h3>
+                  </div>
+                </div>
+
+                <!-- Sold Card -->
+                <div class="metric-card bg-card-charcoal">
+                  <div class="metric-icon-wrapper">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  </div>
+                  <div class="metric-data">
+                    <span class="metric-lbl">Sold</span>
+                    <h3 id="stat-sold" class="metric-val">--</h3>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SECTION 2: WELCOME BLOCK -->
+              <div class="welcome-banner">
+                <div class="welcome-graphic">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shield-check"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                </div>
+                <div class="welcome-content">
+                  <h1 class="welcome-title">Welcome back.</h1>
+                  <p class="welcome-lead">Manage your vehicle inventory and website content from one place.</p>
+                  <div class="welcome-actions">
+                    <a href="../" target="_blank" class="btn btn-view-site">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-external-link"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+                      View Public Site
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="vehicles-view-panel" style="display: none;">
+              <div class="view-header">
+                <div class="view-header-left">
+                  <h1 class="view-title">Vehicles Inventory</h1>
+                  <p class="view-subtitle">Add, edit, or remove vehicles from your catalog.</p>
+                </div>
+                <div class="view-header-right">
+                  <button id="btn-add-vehicle" class="btn btn-login-submit" style="width: auto; padding: 10px 20px; margin-top: 0;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-right: 6px;"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                    Add Vehicle
+                  </button>
+                </div>
+              </div>
+
+              <div class="inventory-controls">
+                <div class="search-box-wrapper">
+                  <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
+                  <input type="text" id="vehicle-search" placeholder="Search ID, Make, Model, Chassis..." class="form-control-search">
+                </div>
+                <div class="filters-wrapper">
+                  <select id="vehicle-status-filter" class="form-control-select" title="Filter by Status">
+                    <option value="all">All Statuses</option>
+                    <option value="available">Available</option>
+                    <option value="incoming">Incoming</option>
+                    <option value="reserved">Reserved</option>
+                    <option value="sold">Sold</option>
+                  </select>
+                  <select id="vehicle-make-filter" class="form-control-select" title="Filter by Make">
+                    <option value="all">All Makes</option>
+                  </select>
+                  <select id="vehicle-sort" class="form-control-select" title="Sort vehicles">
+                    <option value="date-desc">Date Added (Newest)</option>
+                    <option value="date-asc">Date Added (Oldest)</option>
+                    <option value="stock-asc">Stock ID (A-Z)</option>
+                    <option value="stock-desc">Stock ID (Z-A)</option>
+                    <option value="year-desc">Year (Newest)</option>
+                    <option value="year-asc">Year (Oldest)</option>
+                    <option value="price-asc">Price (Low to High)</option>
+                    <option value="price-desc">Price (High to Low)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="inventory-table">
+                  <thead>
+                    <tr>
+                      <th>Thumbnail</th>
+                      <th class="sortable" data-sort="stock">Stock ID <span class="sort-indicator"> ↕</span></th>
+                      <th class="sortable" data-sort="year">Vehicle Name <span class="sort-indicator"> ↕</span></th>
+                      <th class="sortable" data-sort="price">Price <span class="sort-indicator"> ↕</span></th>
+                      <th>Status</th>
+                      <th class="text-right" style="text-align: right; padding-right: 24px;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="vehicle-table-body">
+                    <!-- Dynamic rows via vehicles.js / vehicle-table.js -->
+                  </tbody>
+                </table>
+                <div id="vehicle-empty-state" class="table-empty-state" style="display: none;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                  <h3>No vehicles found</h3>
+                  <p>Try refining your search keyword or selected filters.</p>
+                </div>
+                <!-- Pagination Footer Row -->
+                <div id="vehicle-pagination" class="table-pagination-row" style="display: none;">
+                  <div class="pagination-info" id="pagination-info">
+                    Showing 0-0 of 0 vehicles
+                  </div>
+                  <div class="pagination-buttons">
+                    <button id="btn-prev-page" class="btn-pagination" title="Previous Page">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-left"><polyline points="15 18 9 12 15 6"/></svg>
+                      Prev
+                    </button>
+                    <span id="pagination-current-page" style="font-weight: 600; font-size: 0.85rem; color: var(--text-dark); display: inline-flex; align-items: center; padding: 0 8px;">
+                      Page 1 of 1
+                    </span>
+                    <button id="btn-next-page" class="btn-pagination" title="Next Page">
+                      Next
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SYSTEM SETTINGS PANEL -->
+            <div id="settings-view-panel" style="display: none;">
+              <div class="view-header">
+                <div class="view-header-left">
+                  <h1 class="view-title">System Settings</h1>
+                  <p class="view-subtitle">Configure showroom profile, contact details, social links, SEO, and administrator credentials.</p>
+                </div>
+              </div>
+
+              <form id="settings-form" novalidate>
+                <div class="settings-grid">
+                  <!-- CARD 1: Showroom Profile -->
+                  <div class="settings-section-card">
+                    <h3 class="settings-section-title">Showroom & Company Profile</h3>
+                    <div class="form-group">
+                      <label for="set-company-name">Company Name *</label>
+                      <input type="text" id="set-company-name" required placeholder="e.g. Roadlink Automobiles">
+                    </div>
+                    <div class="form-group">
+                      <label for="set-address">Showroom Location Address *</label>
+                      <input type="text" id="set-address" required placeholder="Showroom location">
+                    </div>
+                    <div class="form-group">
+                      <label for="set-phone">Inquiry Phone *</label>
+                      <input type="text" id="set-phone" required placeholder="e.g. +880 1311-503840">
+                    </div>
+                    <div class="form-group">
+                      <label for="set-whatsapp">WhatsApp Contact Number *</label>
+                      <input type="text" id="set-whatsapp" required placeholder="e.g. 8801311503840" style="font-family: var(--font-mono);">
+                    </div>
+                    <div class="form-group">
+                      <label for="set-email">Inquiry Email *</label>
+                      <input type="email" id="set-email" required placeholder="e.g. roadlinkbangladesh@gmail.com">
+                    </div>
+                  </div>
+
+                  <!-- CARD 2: Social Media & SEO -->
+                  <div class="settings-section-card">
+                    <h3 class="settings-section-title">Marketing & SEO Preferences</h3>
+                    <div class="form-group">
+                      <label for="set-facebook">Facebook Page Link</label>
+                      <input type="url" id="set-facebook" placeholder="https://www.facebook.com/roadlinkautomobiles">
+                    </div>
+                    <div class="form-group">
+                      <label for="set-youtube">YouTube Channel Link</label>
+                      <input type="url" id="set-youtube" placeholder="https://www.youtube.com/@roadlinkautomobiles9168">
+                    </div>
+                    <div class="form-group">
+                      <label for="set-seo-suffix">SEO Meta Title Brand Suffix</label>
+                      <input type="text" id="set-seo-suffix" placeholder="e.g. Roadlink Automobiles">
+                    </div>
+                    <div class="form-group">
+                      <label for="set-seo-keywords">Default Site SEO Keywords</label>
+                      <textarea id="set-seo-keywords" rows="3" placeholder="Keywords..."></textarea>
+                    </div>
+                    <div class="form-group">
+                      <label for="set-seo-desc">Default Site Meta Description</label>
+                      <textarea id="set-seo-desc" rows="3" placeholder="Meta description..."></textarea>
+                    </div>
+                  </div>
+
+                  <!-- CARD 3: Administrative Security -->
+                  <div class="settings-section-card" style="grid-column: span 2;">
+                    <h3 class="settings-section-title">Administrator Security</h3>
+                    <p class="view-subtitle" style="margin-bottom: 12px;">Fill out the fields below to update your administrator portal password.</p>
+                    <div class="form-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                      <div class="form-group">
+                        <label for="set-curr-pass">Current Password</label>
+                        <input type="password" id="set-curr-pass" placeholder="Enter current password">
+                      </div>
+                      <div class="form-group">
+                        <label for="set-new-pass">New Password</label>
+                        <input type="password" id="set-new-pass" placeholder="Enter new password">
+                      </div>
+                      <div class="form-group">
+                        <label for="set-conf-pass">Confirm New Password</label>
+                        <input type="password" id="set-conf-pass" placeholder="Confirm new password">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="settings-alert-success" class="form-info-alert" style="display: none; background-color: rgba(37, 211, 102, 0.08); border-color: rgba(37, 211, 102, 0.2); color: var(--whatsapp-green-hover); margin-top: 20px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  <span>Settings updated and persistent globally across Roadlink Automobiles!</span>
+                </div>
+
+                <div id="settings-alert-error" class="form-error-alert" style="display: none; margin-top: 20px; padding: 12px 16px;">
+                  Please correct the error specified.
+                </div>
+
+                <div class="modal-footer-row" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-color); justify-content: space-between;">
+                  <button type="button" id="btn-reset-settings" class="btn btn-view-site" style="margin-bottom: 0; width: auto; color: var(--primary-red);">
+                    Reset to Default Values
+                  </button>
+                  <button type="submit" id="btn-save-settings" class="btn btn-login-submit" style="width: auto; margin-top: 0; padding: 12px 30px;">
+                    Save System Settings
+                  </button>
+                </div>
+              </form>
+            </div>
+
+          </div>
+        </main>
+        
+      </div>
+
+    </div>
+  </div>
+
+  <!-- VEHICLE EDIT/ADD MODAL -->
+  <div id="vehicle-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-large">
+      <div class="modal-header-row">
+        <h3 id="vehicle-modal-title" class="modal-title-left">Add Vehicle</h3>
+        <button id="btn-close-vehicle-modal" class="btn-modal-close" aria-label="Close Modal">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="vehicle-form" novalidate>
+        <div class="form-grid">
+          
+          <!-- SECTION 1: VEHICLE INFORMATION -->
+          <div class="form-section-title full-width">Vehicle Information</div>
+          <div class="form-group">
+            <label for="v-stock">Stock ID *</label>
+            <input type="text" id="v-stock" name="stockNumber" required placeholder="e.g. RL-1001">
+          </div>
+          <div class="form-group">
+            <label for="v-make">Make *</label>
+            <input type="text" id="v-make" name="make" required placeholder="e.g. Toyota">
+          </div>
+          <div class="form-group">
+            <label for="v-model">Model *</label>
+            <input type="text" id="v-model" name="model" required placeholder="e.g. Prius">
+          </div>
+          <div class="form-group">
+            <label for="v-grade">Grade</label>
+            <input type="text" id="v-grade" name="grade" placeholder="e.g. G, S, 4.5">
+          </div>
+          <div class="form-group">
+            <label for="v-year">Year *</label>
+            <input type="number" id="v-year" name="year" required min="1900" max="2100" placeholder="e.g. 2020">
+          </div>
+          <div class="form-group">
+            <label for="v-chassis">Chassis Number</label>
+            <input type="text" id="v-chassis" name="chassisNumber" placeholder="e.g. ZVW51-0123456">
+          </div>
+          <div class="form-group">
+            <label for="v-registration">Registration (optional)</label>
+            <input type="text" id="v-registration" name="registration" placeholder="e.g. Dhaka Metro G-12-3456">
+          </div>
+          <div class="form-group">
+            <label for="v-body-type">Body Style</label>
+            <select id="v-body-type" name="bodyType">
+              <option value="">Select Body Style</option>
+              <option value="Sedan">Sedan</option>
+              <option value="SUV">SUV</option>
+              <option value="Hatchback">Hatchback</option>
+              <option value="Van">Van</option>
+              <option value="Wagon">Wagon</option>
+              <option value="Pickup">Pickup</option>
+              <option value="Crossover">Crossover</option>
+              <option value="Coupe">Coupe</option>
+              <option value="Convertible">Convertible</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group form-group-checkbox">
+            <input type="checkbox" id="v-featured" name="featured">
+            <label for="v-featured">Mark as Featured Vehicle</label>
+          </div>
+          <div class="form-group form-group-checkbox">
+            <input type="checkbox" id="v-published" name="published">
+            <label for="v-published">Publish to Public Portal</label>
+          </div>
+
+          <!-- SECTION 2: SPECIFICATIONS -->
+          <div class="form-section-title full-width">Specifications</div>
+          <div class="form-group">
+            <label for="v-mileage">Mileage (km)</label>
+            <input type="number" id="v-mileage" name="mileage" min="0" placeholder="e.g. 35000">
+          </div>
+          <div class="form-group">
+            <label for="v-engine">Engine Capacity (cc)</label>
+            <input type="number" id="v-engine" name="engineCC" min="0" placeholder="e.g. 1500 (0 for Electric)">
+          </div>
+          <div class="form-group">
+            <label for="v-transmission">Transmission</label>
+            <select id="v-transmission" name="transmission">
+              <option value="">Select Transmission</option>
+              <option value="Automatic">Automatic</option>
+              <option value="Manual">Manual</option>
+              <option value="CVT">CVT</option>
+              <option value="DCT">DCT</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="v-fuel">Fuel Type</label>
+            <input type="text" id="v-fuel" name="fuel" placeholder="e.g. Hybrid, Petrol, Octane, Electric">
+          </div>
+          <div class="form-group">
+            <label for="v-drive">Drive Type</label>
+            <input type="text" id="v-drive" name="drive" placeholder="e.g. 2WD, 4WD, AWD">
+          </div>
+          <div class="form-group">
+            <label for="v-ext-color">Exterior Color</label>
+            <input type="text" id="v-ext-color" name="exteriorColor" placeholder="e.g. Pearl White">
+          </div>
+          <div class="form-group">
+            <label for="v-int-color">Interior Color</label>
+            <input type="text" id="v-int-color" name="interiorColor" placeholder="e.g. Beige Velvet">
+          </div>
+          <div class="form-group">
+            <label for="v-steering">Steering</label>
+            <select id="v-steering" name="steering">
+              <option value="">Select Steering</option>
+              <option value="RHD">Right Hand Drive (RHD)</option>
+              <option value="LHD">Left Hand Drive (LHD)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="v-doors">Doors</label>
+            <input type="number" id="v-doors" name="doors" min="1" max="10" placeholder="e.g. 4 or 5">
+          </div>
+          <div class="form-group">
+            <label for="v-seats">Seats</label>
+            <input type="number" id="v-seats" name="seats" min="1" max="100" placeholder="e.g. 5 or 7">
+          </div>
+          <div class="form-group">
+            <label for="v-accident">Accident History</label>
+            <input type="text" id="v-accident" name="accidentHistory" placeholder="e.g. None, Repaired">
+          </div>
+          <div class="form-group full-width">
+            <label for="v-features">Key Highlights & Features (comma-separated)</label>
+            <input type="text" id="v-features" name="features" placeholder="e.g. Pre-Crash Safety, Lane Assist, Keyless Entry, Back Camera, EV Mode">
+          </div>
+
+          <!-- SECTION 3: PRICING -->
+          <div class="form-section-title full-width">Pricing</div>
+          <div class="form-group">
+            <label for="v-purchase-price">Purchase Price (optional)</label>
+            <input type="number" id="v-purchase-price" name="purchasePrice" min="0" placeholder="e.g. 1800000">
+          </div>
+          <div class="form-group">
+            <label for="v-selling-price">Selling Price *</label>
+            <input type="number" id="v-selling-price" name="price" required min="0" placeholder="e.g. 2500000">
+          </div>
+          <div class="form-group">
+            <label for="v-currency">Currency</label>
+            <select id="v-currency" name="currency">
+              <option value="BDT">BDT (৳)</option>
+              <option value="USD">USD ($)</option>
+              <option value="JPY">JPY (¥)</option>
+            </select>
+          </div>
+          <div class="form-group form-group-checkbox" style="margin-top: 28px;">
+            <input type="checkbox" id="v-negotiable" name="negotiable">
+            <label for="v-negotiable">Price is Negotiable</label>
+          </div>
+
+          <!-- SECTION 4: STATUS -->
+          <div class="form-section-title full-width">Status</div>
+          <div class="form-group">
+            <label for="v-status">Status *</label>
+            <select id="v-status" name="status" required>
+              <option value="available">Available</option>
+              <option value="incoming">Incoming</option>
+              <option value="reserved">Reserved</option>
+              <option value="sold">Sold</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="v-arrival">Expected Arrival (for Incoming status)</label>
+            <input type="text" id="v-arrival" name="arrivalDate" placeholder="e.g. 2026-08-15 or Mid August 2026">
+          </div>
+
+          <!-- SECTION 5: DESCRIPTION -->
+          <div class="form-section-title full-width">Description</div>
+          <div class="form-group full-width">
+            <label for="v-short-desc">Short Description / Subtitle</label>
+            <input type="text" id="v-short-desc" name="shortDescription" placeholder="e.g. Impeccably clean and highly efficient hybrid sedan with genuine auction certification.">
+          </div>
+          <div class="form-group full-width">
+            <label for="v-desc">Full Detailed Narrative Description</label>
+            <textarea id="v-desc" name="description" rows="4" placeholder="Enter vehicle description..."></textarea>
+          </div>
+
+          <!-- SECTION 5.5: MEDIA & ATTACHMENTS -->
+          <div class="form-section-title full-width">Media & Verification</div>
+          <div class="form-group">
+            <label for="v-youtube-url">YouTube Walkaround Video URL</label>
+            <input type="url" id="v-youtube-url" name="youtubeUrl" placeholder="e.g. https://www.youtube.com/watch?v=...">
+          </div>
+          <div class="form-group">
+            <label for="v-auction-sheet-url">Auction Sheet Document URL</label>
+            <input type="text" id="v-auction-sheet-url" name="auctionSheetUrl" placeholder="e.g. https://roadlinkautomobiles.com/sheets/axio-auction-sheet.pdf">
+          </div>
+          <div class="form-group form-group-checkbox" style="margin-top: 28px;">
+            <input type="checkbox" id="v-auction-sheet-available" name="auctionSheetAvailable">
+            <label for="v-auction-sheet-available">Auction Sheet is Available & Verified</label>
+          </div>
+          <div class="form-group form-group-checkbox" style="margin-top: 28px;">
+            <input type="checkbox" id="v-show-auction-download" name="showAuctionDownload">
+            <label for="v-show-auction-download">Enable Auction Sheet Download Option</label>
+          </div>
+
+          <!-- SECTION 6: VEHICLE IMAGES -->
+          <div class="form-section-title full-width">Vehicle Images</div>
+          <div class="form-group full-width">
+            <label for="v-images-input" style="font-weight: 600; display: block; margin-bottom: 8px;">Select Images (First image is the cover image)</label>
+            <div class="image-uploader-area">
+              <input type="file" id="v-images-input" multiple accept="image/*" style="display: none;">
+              <button type="button" id="btn-select-images" class="btn btn-view-site" style="width: auto; justify-content: center; padding: 10px 16px; margin: 0;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload-cloud" style="margin-right: 6px;"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m15 15-3-3-3 3"/></svg>
+                Select Local Images
+              </button>
+              <p class="view-subtitle" style="margin-top: 6px; margin-bottom: 0;">Select one or multiple images. Click left/right arrows to reorder, delete to remove.</p>
+            </div>
+            <div id="image-preview-container" class="image-preview-grid">
+              <!-- Dynamically populated previews -->
+            </div>
+          </div>
+
+        </div>
+        <div id="v-validation-error" class="form-error-alert" style="display: none;">
+          Please fill out all required (*) fields.
+        </div>
+        <div class="modal-footer-row">
+          <button type="button" id="btn-cancel-vehicle-modal" class="btn btn-view-site" style="margin-bottom: 0;">Cancel</button>
+          <button type="submit" id="btn-save-vehicle" class="btn btn-login-submit" style="width: auto; margin-top: 0; padding: 10px 24px;">Save Vehicle</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DELETE CONFIRMATION MODAL -->
+  <div id="delete-confirm-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-icon delete-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+      </div>
+      <h3 class="modal-title" style="margin: 0 0 12px 0;">Delete Vehicle</h3>
+      <p class="modal-desc">Are you sure you want to permanently delete this vehicle? This action cannot be undone.</p>
+      <div class="modal-footer-row-stacked">
+        <button id="btn-confirm-delete" class="btn-danger">Yes, Delete Vehicle</button>
+        <button id="btn-cancel-delete" class="btn btn-view-site" style="justify-content: center; width: 100%; border-radius: var(--radius-sm); margin-bottom: 0;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMAGE PREVIEW MODAL -->
+  <div id="image-preview-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card" style="max-width: 650px; padding: 24px; text-align: center; position: relative;">
+      <button id="btn-close-preview-modal" class="btn-modal-close" style="position: absolute; right: 16px; top: 16px;" aria-label="Close Preview">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+      </button>
+      <h3 id="preview-modal-title" style="font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: var(--primary-blue); margin-bottom: 16px; margin-top: 0; text-align: left;">Vehicle Cover Image</h3>
+      <div style="background-color: var(--bg-light); border-radius: var(--radius-sm); border: 1px solid var(--border-color); overflow: hidden; display: flex; align-items: center; justify-content: center; min-height: 250px; max-height: 480px;">
+        <img id="preview-modal-img" src="" alt="Vehicle Preview" style="width: 100%; height: auto; max-height: 480px; object-fit: contain;" referrerpolicy="no-referrer">
+      </div>
+    </div>
+  </div>
+
+  <!-- Core JavaScript Module -->
+  <script type="module" src="./admin.js"></script>
+  <!-- Live Environment Switcher Badge -->
+  <script type="module" src="../js/portal-switcher.js"></script>
+</body>
+</html>
