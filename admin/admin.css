@@ -223,6 +223,10 @@
 .admin-sidebar-logo .logo-img {
   width: 38px;
   height: 38px;
+  background-color: #ffffff;
+  padding: 4px;
+  border-radius: 4px;
+  box-sizing: border-box;
 }
 
 .admin-sidebar-logo .brand-name {
