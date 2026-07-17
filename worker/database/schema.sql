@@ -23,7 +23,8 @@ CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 
 CREATE TABLE IF NOT EXISTS settings (
-    id INTEGER PRIMARY KEY CHECK(id=1),
+
+    id INTEGER PRIMARY KEY CHECK(id = 1),
     company_name TEXT NOT NULL,
     phone TEXT,
     whatsapp TEXT,
@@ -31,10 +32,11 @@ CREATE TABLE IF NOT EXISTS settings (
     address TEXT,
     facebook TEXT,
     youtube TEXT,
-    session_timeout_minutes INTEGER NOT NULL DEFAULT 30
-        CHECK(session_timeout_minutes BETWEEN 5 AND 1440),
-    archive_retention_days INTEGER NOT NULL DEFAULT 180
-        CHECK(archive_retention_days BETWEEN 1 AND 3650),
+    display_timezone TEXT NOT NULL DEFAULT 'Asia/Dhaka',
+    display_locale TEXT NOT NULL DEFAULT 'en-BD',
+    default_currency TEXT NOT NULL DEFAULT 'BDT',
+    session_timeout_minutes INTEGER NOT NULL DEFAULT 30 CHECK(session_timeout_minutes BETWEEN 5 AND 1440),
+    archive_retention_days INTEGER NOT NULL DEFAULT 180 CHECK(archive_retention_days BETWEEN 1 AND 3650),
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
