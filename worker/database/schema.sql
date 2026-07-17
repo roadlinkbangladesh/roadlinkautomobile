@@ -38,7 +38,10 @@ CREATE TABLE IF NOT EXISTS settings (
     session_timeout_minutes INTEGER NOT NULL DEFAULT 30 CHECK(session_timeout_minutes BETWEEN 5 AND 1440),
     archive_retention_days INTEGER NOT NULL DEFAULT 180 CHECK(archive_retention_days BETWEEN 1 AND 3650),
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    seo_title_suffix TEXT,
+    seo_default_keywords TEXT,
+    seo_default_description TEXT
 );
 
 CREATE TABLE IF NOT EXISTS vehicles (
