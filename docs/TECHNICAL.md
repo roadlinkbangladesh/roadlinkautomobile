@@ -142,31 +142,13 @@ The rendering layer should remain unchanged.
 
 # 4. Technology Stack
 
-## Current
+The Roadlink Automobiles platform is hosted entirely on the Cloudflare ecosystem:
 
-Frontend
-
-- HTML5
-- CSS3
-- Vanilla JavaScript (ES Modules)
-
-Data
-
-- Mock JavaScript objects
-
-Deployment
-
-- Static website
-
----
-
-## Planned & Finalized Backend Platform
-
-- **Source Code Repository**: GitHub
-- **Frontend Hosting**: Cloudflare Pages (Frontend remains a fully static website)
-- **Backend API**: Cloudflare Workers
-- **Relational Database**: Cloudflare D1 (SQLite)
-- **Vehicle Image Storage**: Cloudflare R2
+- **Source Control**: GitHub, acting as the sole source of truth.
+- **Frontend Hosting**: Cloudflare Pages, serving the public and admin portals as a fully static website.
+- **Backend API Layer**: Cloudflare Workers, running a lightweight, serverless REST API.
+- **Relational Database**: Cloudflare D1 (SQLite) for structured transactional records.
+- **Media Asset Storage**: Cloudflare R2 (Object Storage) for storing exterior, interior, and auction images.
 
 ## Database Migrations Policy
 - Database schema changes after initial deployment must be introduced through migration scripts rather than directly modifying the original schema. This ensures zero data loss, auditability, and reproducible environments.
@@ -175,53 +157,30 @@ Deployment
 
 # 5. Project Architecture
 
-Current architecture
+The application is structured into clearly separated layers to maintain modularity and ease of maintenance:
 
 ```
-Homepage
+Frontend (Cloudflare Pages)
 
-index.html
-        │
-        │
-Stock Listing
-stock.html
-        │
-        │
-stock.js
-        │
-        │
-Vehicle Cards
-        │
-        │
-vehicle.html
-        │
-        │
-vehicle.js
+       ↓
+
+Cloudflare Worker API
+
+       ↓
+
+Cloudflare D1 + Cloudflare R2
 ```
 
-Future architecture
+The frontend communicates only with the Worker API. It remains a fully static website and never communicates directly with D1 or R2.
 
-```
-Browser
-
-↓
-
-UI Layer
-
-↓
-
-Vehicle Service
-
-↓
-
-REST API
-
-↓
-
-Database
-```
-
-Only the Vehicle Service layer should change when backend integration begins.
+The backend Cloudflare Worker is responsible for:
+- **Authentication**: Verifying session states and managing signed JWT session tokens.
+- **Authorization**: Enforcing role-based access control (`admin` vs `manager`).
+- **Validation**: Performing authoritative data validation, checking business rules, and verifying input schemas before write actions.
+- **Business Logic**: Executing operations such as inventory archiving, dynamic cover image derivation, and timezone mappings.
+- **Database Access**: Performing parameterized CRUD operations on the Cloudflare D1 (SQLite) instance.
+- **Image Storage**: Interacting with Cloudflare R2 to store, retrieve, or purge binary image assets.
+- **Audit Logging**: Writing chronological tracking records to the `activity_logs` table for administrative and security-relevant changes.
 
 ---
 
@@ -469,7 +428,7 @@ Every vehicle should follow the same schema.
     price,               // Number: List price in BDT (e.g. 2150000)
     negotiable,          // Boolean: Whether the price is negotiable (e.g. false)
 
-    status,              // String: 'available' | 'incoming' | 'reserved' | 'sold' | 'draft'
+    status,              // String: 'available' | 'incoming' | 'reserved' | 'sold'
 
     featured,            // Boolean: Whether highlighted on home page
     displayOrder,        // Number: Sort ranking order on home/stock views
@@ -522,9 +481,9 @@ No page should assume additional fields outside this schema without updating thi
 
 1. **Vehicle Metadata & Status Storage**:
    - Core vehicle attributes are stored as column fields in the **`vehicles`** table in Cloudflare D1.
-   - **Business Status (`status`)**: Limited strictly to `'available'`, `'incoming'`, `'reserved'`, and `'sold'`. The legacy `'draft'` status is removed.
-   - **Publication Status (`is_published`)**: Handled independently of the business status via the `is_published` boolean/integer column.
-   - **`arrivalDate`** remains a free-text field (e.g., `"Mid August 2026"`). No arrival status enum or complex state logic is used.
+   - **Business Status (`status`)**: Limited strictly to `'available'`, `'incoming'`, `'reserved'`, and `'sold'`. The legacy `'draft'` status is completely removed.
+   - **Publication Status (`is_published`) / Vehicle Publishing**: Vehicles are controlled by a publish flag (`is_published`). No draft status exists. Published vehicles appear on the public website. Unpublished vehicles remain visible only in the admin portal.
+   - **Arrival Information (`arrivalDate`)**: Arrival date is stored as free text. No arrival status enumeration is used. The frontend determines presentation from the presence or absence of arrival information.
 
 2. **Vehicle Lifecycle (`archived_at`) & Soft Deletes**:
    - Vehicles are never permanently deleted immediately. Deleting a vehicle archives it.
@@ -554,12 +513,18 @@ No page should assume additional fields outside this schema without updating thi
      - `image_url`: Full asset URL in Cloudflare R2 storage.
      - `image_type`: A string categorizing the asset type, strictly limited to: `'exterior'`, `'interior'`, or `'auction'`.
      - `display_order`: An integer defining the sort order.
-   - **No Separate Cover/Poster Image**: There is no separate poster image or dedicated database cover image field.
-   - **Dynamic Cover Image**: The cover image is derived dynamically as **the first exterior image ordered by display_order** (lowest value). The backend maps these normalized image records into the vehicle data model returned to the frontend.
+   - **No Dedicated Cover Image field**: No image type such as `'cover'` or `'thumbnail'` is stored in the database.
+   - **Dynamic Cover Image**: The cover image is derived dynamically as **the first exterior image ordered by display_order** (lowest value). The frontend determines presentation and ordering dynamically, and the backend maps these normalized image records into the vehicle data model returned to the frontend.
 
 5. **Time Handling & Timezones**:
    - **Backend/Database**: All timestamps are stored strictly in Coordinated Universal Time (UTC).
-   - **Frontend**: The static frontend website displays dates and times formatted for the **Asia/Dhaka (UTC+6)** timezone. Day-to-day business operations are evaluated using Dhaka local time, while data storage remains purely UTC.
+   - **Frontend**: The static frontend website displays dates and times formatted for the **Asia/Dhaka (UTC+6)** timezone. The display timezone is configurable from the Settings page. Day-to-day business operations are evaluated using Dhaka local time, while data storage remains purely UTC.
+
+6. **Validation Layers**:
+   - **Database Layer**: Responsible for data integrity only (e.g., foreign keys, non-null constraints, unique indices).
+   - **Worker API Layer**: Responsible for authoritative validation, core business rules, and security validation.
+   - **Frontend Layer**: Responsible for user experience validation (e.g., immediate feedback, format formatting, field presence checks).
+   - *The Cloudflare Worker backend is always the absolute source of truth.*
 
 ---
 
@@ -721,19 +686,35 @@ The database uses exactly these five relational tables inside Cloudflare D1. No 
 
 ## 18.3 Session Management & User Roles
 - **Supported User Roles**:
-  - `admin`: Full system access, including viewing and modifying security/global configurations.
-  - `manager`: Inventory management only. Permissions are intentionally limited. Managers are prohibited from modifying settings.
+  - `admin`: Full system access, user management, settings/security management, and inventory management.
+  - `manager`: Inventory management only. Permissions are intentionally limited. Managers are prohibited from modifying settings, managing users, or adjusting security parameters.
 - **Sliding Session Expiration**: Active sessions are renewed dynamically on user interaction, extending the JWT expiration sliding window.
 - **Configurable Session Timeout**: The session timeout length is configurable and stored in the `settings` table as a key-value pair (e.g., `session_timeout_minutes`).
-- **Authorization Constraints**: The configuration of the timeout value is **NOT** editable from the frontend. Only users with the `admin` role can modify security configurations directly via backend authenticated API commands.
-- **Audit Compliance**: All administrative state actions (stock edits, configuration adjustments, login attempts) are recorded in the `activity_logs` table.
+- **Authorization Constraints**: The configuration of the timeout value is **NOT** editable from the frontend manager views. Only users with the `admin` role can modify security configurations directly via backend authenticated API commands.
+- **Audit Compliance**: All administrative state actions are recorded in the `activity_logs` table.
 
-## 18.4 Core Security Principles
+## 18.4 Core Security Principles & Rules
 - **Security-First Coding**: Build secure interfaces by default with principle of least privilege.
 - **Never Trust Client Inputs**: All data validation occurs within the Cloudflare Worker. Client-side checks are for user interface polish only.
-- **SQL Parameterization**: SQL queries must always be parameterized. Dynamic string concatenation is forbidden.
-- **Secrets Isolation**: Cloudflare Secrets are used for sensitive configuration (salts, JWT keys). Secrets must never be committed to Git.
-- **Audit Logging**: Mandatory audit logging is required in the `activity_logs` table for all administrative state modifications (adding/editing/deleting cars, configuration edits, user logins).
+- **SQL Parameterization**: SQL queries must always be parameterized. Dynamic string concatenation is strictly forbidden to prevent SQL injection.
+- **Secrets Isolation**: Cloudflare Secrets (e.g., `JWT_SECRET`) are used for sensitive configurations (salts, JWT keys). Secrets must never be committed to Git.
+- **Passwords Storage**: Passwords must never be reversible and are stored strictly as Argon2 password hashes.
+- **Never Expose Internal Errors**: Catch all exceptions gracefully and never leak database stack traces or system internals to the client.
+
+## 18.5 Administrative Activity Logging
+- **Mandatory Audit Trail**: The backend Cloudflare Worker must write chronological audit records to the `activity_logs` table for all key administrative actions.
+- **Logged Events Examples**:
+  - Login
+  - Logout
+  - Vehicle created
+  - Vehicle updated
+  - Vehicle deleted
+  - Vehicle published
+  - Vehicle unpublished
+  - Settings updated
+  - User created
+  - User updated
+- **Log Retention & Purging**: Old activity logs are automatically purged after the configured retention period. The retention timeframe is stored dynamically as a setting in the `settings` table (e.g., `log_retention_days`) and can only be updated by an `admin` user.
 
 ---
 
@@ -765,23 +746,44 @@ Illustrative endpoints
 
 ```
 GET     /vehicles
-
 GET     /vehicles/{stock}
-
 POST    /vehicles
-
 PUT     /vehicles/{stock}
-
 DELETE  /vehicles/{stock}
-
 POST    /upload/image
-
 POST    /login
-
 POST    /logout
 ```
 
 These endpoints are conceptual and may evolve during backend design.
+
+### Consistent API Response Structure
+
+Every backend REST API endpoint must return a consistent JSON response payload:
+
+- **Success Responses**:
+  ```json
+  {
+      "success": true,
+      "message": "Action completed successfully.",
+      "data": { }
+  }
+  ```
+- **Validation Error Responses**:
+  ```json
+  {
+      "success": false,
+      "message": "Input validation failed.",
+      "errors": { }
+  }
+  ```
+- **Server Error Responses**:
+  ```json
+  {
+      "success": false,
+      "message": "An unexpected error occurred."
+  }
+  ```
 
 ---
 
@@ -866,56 +868,50 @@ Future work should primarily focus on expanding the system through new modules r
 
 ---
 
-# 23. Future Roadmap
+# 23. Project Workflow & Future Roadmap
 
-## Phase 1
+## 23.1 Development & Deployment Workflow
+- **Source of Truth**: GitHub is the single, authoritative source of truth for all source files.
+- **Continuous Deployment**: Cloudflare Pages and Workers are configured to deploy automatically whenever code is merged or pushed to the `main` branch.
+- **Unified Codebase**: Both frontend assets and backend Cloudflare Worker API files remain housed within the same single repository, simplifying version control.
+- **Branch Strategy**: Active production deployments are served directly from the `main` branch.
 
-- Public Website
-- Vehicle Listings
-- Vehicle Details
-- SEO
-- Responsive UI
+## 23.2 Roadmap Phases
 
-Status
+### Phase 1: Public Static Presentation Layer
+- Renders vehicle cards, filter sidebar, detail specifications, responsive image sliders, YouTube walking tours, and direct phone/WhatsApp click-to-contact handlers.
+- **Status**: Completed.
 
-Completed.
+### Phase 2: Administrative Portal
+- Provides authorized vehicle CRUD managers, dynamic reordering list controls, secure visual dropzones for media uploads, settings configurations, and transaction audits.
+- **Status**: Completed.
 
----
-
-## Phase 2
-
-- Admin Dashboard
-- Vehicle CRUD
-- Image Management
-- Media Upload
-- Dashboard Statistics
-
-Status
-
-Planned.
+### Phase 3: REST API & Cloud Database
+- Integrates Cloudflare Workers (lightweight API endpoints), Cloudflare D1 (structured SQLite relations), Cloudflare R2 (media uploads), and secure JWT cookies.
+- **Status**: Planned / Active Integration.
 
 ---
 
-## Phase 3
+# 24. Scope Boundaries & Future Enhancements
 
-- REST API
-- Database
-- Authentication
-- Cloud Storage
-- Contact Management
-- Analytics
+The current architecture is intentionally structured to be lightweight and manageable for a single dealership owner. To maintain high performance and avoid over-engineering, several complex features are explicitly excluded from Version 1 of the platform.
 
-Status
+### Planned Version 1 Exclusions
+The following enhancements are identified for future phases and are **NOT** within the scope of the initial platform launch:
+- **In-App SEO Management**: Modifying page metadata/structured tags directly from the administrator dashboard.
+- **Multi-Tenant / Federated Administrators**: Granular custom sub-role creation or complex user organization charts.
+- **Self-Service Password Reset**: Automated email validation loops (password resets are handled directly by database administrators or settings resets).
+- **Two-Factor Authentication (2FA)**: Time-based OTP tokens or SMS verification steps.
+- **Bulk Vehicle Import/Export**: Uploading spreadsheets (CSV, XLSX) to synchronize inventory records in bulk.
+- **Advanced Dashboard Analytics**: Sophisticated tracking of traffic metrics, view counts, or lead conversion rates.
+- **Public Search API**: Exposing vehicle search listings for external syndication, scrapers, or third-party marketplaces.
+- **Multilingual Support**: Providing automated translations or secondary localization keys.
 
-Planned.
-
----
-
-# 24. Conclusion
-
-The Roadlink Automobiles project is intentionally designed around a stable presentation layer with a replaceable data layer. This approach minimizes future migration effort, allowing the website to evolve from a static prototype into a fully integrated inventory management platform without requiring major changes to the user interface.
-
-Future development should prioritize expanding functionality through new modules while preserving the existing frontend architecture.
+## 24.1 Documentation Synchronicity Policy
+- **Architectural Single Source of Truth**: Any architectural decision or engineering rule affecting this codebase must be documented directly in this technical file (`TECHNICAL.md`).
+- **Validation Schema Rules**: Detailed input and validation rules are maintained separately in `docs/validation-rules.md`.
+- **API Spec Records**: REST API documentation is maintained in specialized endpoints documentation.
+- All documents must remain synchronized with the active production implementation.
 
 ---
 
@@ -1159,3 +1155,109 @@ Three distinct dimensions represent a vehicle's operational state:
 ### Consequences
 - Clear, highly maintainable operational lifecycle.
 - Eliminates logical collision where a draft vehicle had to share the same status list as sold or incoming.
+
+- Public API Security Policy
+
+Purpose
+
+The public API exists solely to support the public Roadlink Automobiles website. It is not intended to be a general-purpose or third-party API.
+
+API Classification
+
+The backend consists of two categories of APIs:
+
+Public APIs
+
+Public APIs are read-only and provide only the information required for rendering the public website.
+
+Characteristics:
+
+- No authentication required.
+- Read-only.
+- Return only published content.
+- Return only fields intended for public display.
+- No administrative functionality.
+- No user information.
+- No audit information.
+- No internal configuration.
+- No sensitive business data.
+
+Administrative APIs
+
+Administrative APIs are accessible only to authenticated users with appropriate authorization.
+
+Requirements:
+
+- JWT authentication.
+- Role-based authorization.
+- Input validation.
+- Audit logging where applicable.
+- Secure coding practices.
+- Principle of least privilege.
+
+---
+
+Principle of Least Data
+
+All API responses must expose only the minimum data required for the specific use case.
+
+Rules
+
+- "SELECT *" is prohibited.
+- Every SQL query must explicitly list the required columns.
+- Every API response must expose only the fields required by the consuming client.
+- Database rows must never be returned directly.
+
+This protects against accidental disclosure of newly added database columns and reduces unnecessary data exposure.
+
+---
+
+Public Settings Exposure
+
+The "settings" table contains both public and administrative configuration.
+
+Public APIs may expose only information intended for website visitors, such as:
+
+- Company name
+- Address
+- Phone number
+- WhatsApp number
+- Email address
+- Social media links
+- SEO defaults
+- Other explicitly designated public settings
+
+Administrative configuration must never be exposed through public APIs, including but not limited to:
+
+- Session timeout
+- Display timezone
+- Log retention period
+- Security configuration
+- Password policy
+- Authentication settings
+- Any future operational or security-related settings
+
+---
+
+Vehicle Data Exposure
+
+Public vehicle endpoints must return only information required for displaying inventory on the public website.
+
+They must never expose internal fields such as:
+
+- Database primary keys
+- Publish flags
+- Internal remarks
+- Administrative metadata
+- Archive information
+- Audit information
+- Future procurement or operational data
+- Any field not explicitly required by the public website
+
+---
+
+Secure-by-Default Principle
+
+Unless explicitly documented as a public endpoint, every API endpoint is considered administrative and must require authentication and authorization.
+
+New endpoints must default to protected access unless a documented architectural decision states otherwise.
