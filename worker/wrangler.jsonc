@@ -11,14 +11,14 @@
     {
       "binding": "DB",
       "database_name": "roadlink-production",
-      "database_id": "YOUR_DATABASE_ID"
+      "database_id": "ed50a1f9-4614-4854-9394-80feb145aca2"
     }
   ],
 
   "r2_buckets": [
     {
       "binding": "VEHICLE_IMAGES",
-      "bucket_name": "YOUR_BUCKET_NAME"
+      "bucket_name": "roadlink-images"
     }
   ]
 }
