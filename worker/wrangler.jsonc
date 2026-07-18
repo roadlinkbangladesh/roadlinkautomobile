@@ -17,7 +17,7 @@
 
   "r2_buckets": [
     {
-      "binding": "VEHICLE_IMAGES",
+      "binding": "IMAGES",
       "bucket_name": "roadlink-images"
     }
   ]
