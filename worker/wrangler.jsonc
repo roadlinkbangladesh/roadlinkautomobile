@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  "name": "roadlink-api",
+
+  "main": "src/index.js",
+
+  "compatibility_date": "2026-07-18",
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "roadlink-production",
+      "database_id": "YOUR_DATABASE_ID"
+    }
+  ],
+
+  "r2_buckets": [
+    {
+      "binding": "VEHICLE_IMAGES",
+      "bucket_name": "YOUR_BUCKET_NAME"
+    }
+  ]
+}
