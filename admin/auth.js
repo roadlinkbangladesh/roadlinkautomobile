@@ -20,13 +20,16 @@ export function getToken() {
  * @param {boolean} rememberMe 
  */
 export function saveToken(token, rememberMe) {
+  // Ensure only one storage contains the token
+  sessionStorage.removeItem("token");
+  localStorage.removeItem("token");
+
   if (rememberMe) {
     localStorage.setItem("token", token);
   } else {
     sessionStorage.setItem("token", token);
   }
 }
-
 /**
  * Removes the token from BOTH sessionStorage and localStorage.
  */
