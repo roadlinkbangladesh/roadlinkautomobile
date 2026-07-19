@@ -1,5 +1,11 @@
 import { HTTP_STATUS } from "../config/constants.js";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "https://roadlinkautomobile.pages.dev",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
 /**
  * Standard JSON response
  */
