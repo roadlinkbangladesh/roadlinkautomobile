@@ -1,10 +1,8 @@
-import {
-    badRequest,
-    unauthorized,
-    serverError,
-    success
-} from "../../utils/response.js";
+import { badRequest, unauthorized, serverError, success } from "../../utils/response.js";
 import { verifyPassword } from "../../utils/password.js";
+import { createToken } from "../../utils/jwt.js";
+import { JWT } from "../../config/constants.js";
+
 export async function login(request, env) {
 
     try {
@@ -47,10 +45,23 @@ export async function login(request, env) {
             );
         }
         
+        const token = await createToken(
+            {
+                id: user.id,
+                username: user.username,
+                role: user.role
+            },
+            env.JWT_SECRET,
+            JWT.EXPIRES_IN
+        );
+        
         return success({
-            id: user.id,
-            username: user.username,
-            role: user.role
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                role: user.role
+            }
         });
         
     } catch (error) {
