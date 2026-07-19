@@ -1,4 +1,9 @@
-import { badRequest, unauthorized, success, serverError } from "../../utils/response.js";
+import {
+    badRequest,
+    unauthorized,
+    serverError,
+    success
+} from "../../utils/response.js";
 
 export async function login(request, env) {
 
@@ -15,8 +20,26 @@ export async function login(request, env) {
             );
         }
 
+        const user = await env.DB
+            .prepare(`
+                SELECT *
+                FROM users
+                WHERE username = ?
+                LIMIT 1
+            `)
+            .bind(username)
+            .first();
+
+        if (!user) {
+            return unauthorized(
+                "Invalid username or password."
+            );
+        }
+
         return success({
-            username
+            id: user.id,
+            username: user.username,
+            role: user.role
         });
 
     } catch (error) {
