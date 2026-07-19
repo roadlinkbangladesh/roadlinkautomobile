@@ -940,6 +940,74 @@
   .user-meta {
     display: none; /* Hide subtitle names to save horizontal space on mobile topbars */
   }
+
+  .admin-container-pad {
+    padding: 16px !important;
+  }
+
+  /* Mobile Inventory Table Controls */
+  .inventory-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .filters-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .search-box-wrapper {
+    width: 100%;
+    max-width: 100% !important;
+  }
+
+  .form-control-select {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  /* Settings Mobile Layout */
+  .settings-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px;
+  }
+
+  .settings-section-card {
+    padding: 16px !important;
+    width: 100%;
+  }
+
+  .settings-section-card input,
+  .settings-section-card textarea,
+  .settings-section-card select {
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  /* Modal Form Grid & Footer Responsiveness */
+  .form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+  .form-group.full-width {
+    grid-column: span 1 !important;
+  }
+  .modal-large {
+    padding: 20px !important;
+  }
+  .modal-footer-row {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .modal-footer-row .btn {
+    width: 100% !important;
+    margin: 0 !important;
+  }
 }
 
 /* 6. VEHICLES INVENTORY VIEW */
@@ -1254,6 +1322,129 @@
   .form-group.full-width {
     grid-column: span 1;
   }
+
+  /* Change inventory table to gorgeous card layout on mobile */
+  .table-responsive {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+  }
+  
+  .inventory-table {
+    display: block;
+    width: 100%;
+  }
+  
+  .inventory-table thead {
+    display: none; /* Hide headers */
+  }
+  
+  .inventory-table tbody {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    width: 100%;
+  }
+  
+  .inventory-table tr {
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    gap: 12px;
+  }
+  
+  .inventory-table tr:hover td {
+    background-color: transparent;
+  }
+  
+  .inventory-table td {
+    display: flex;
+    align-items: center;
+    padding: 0 !important;
+    border: none !important;
+    width: 100% !important;
+  }
+
+  /* Specific TD alignments to look like a clean card */
+  /* TD 1: Thumbnail */
+  .inventory-table td:nth-child(1) {
+    display: flex;
+    justify-content: center;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding-bottom: 12px !important;
+  }
+  
+  .inventory-table td:nth-child(1) .thumb-img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+  }
+
+  /* TD 2: Stock ID */
+  .inventory-table td:nth-child(2) {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  .inventory-table td:nth-child(2)::before {
+    content: "Stock No: ";
+    font-weight: 600;
+    margin-right: 6px;
+    color: var(--text-dark);
+  }
+
+  /* TD 3: Vehicle Name */
+  .inventory-table td:nth-child(3) {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-blue);
+  }
+
+  /* TD 4: Price */
+  .inventory-table td:nth-child(4) {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--primary-red) !important;
+  }
+  .inventory-table td:nth-child(4)::before {
+    content: "Price: ";
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-right: 6px;
+  }
+
+  /* TD 5: Status */
+  .inventory-table td:nth-child(5) {
+    display: flex;
+    justify-content: flex-start;
+  }
+  
+  /* TD 6: Actions */
+  .inventory-table td:nth-child(6) {
+    border-top: 1px solid var(--border-color) !important;
+    padding-top: 12px !important;
+    margin-top: 4px;
+  }
+  
+  .inventory-table .action-buttons {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  
+  .inventory-table .action-buttons .btn-action-edit,
+  .inventory-table .action-buttons .btn-action-delete {
+    width: 100%;
+    justify-content: center;
+    padding: 10px;
+  }
 }
 
 /* Form Section Titles and Image Manager */
@@ -1402,6 +1593,25 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+.settings-card-full {
+  grid-column: span 2;
+}
+.settings-security-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 991px) {
+  .settings-card-full {
+    grid-column: span 1;
+  }
+}
+@media (max-width: 768px) {
+  .settings-security-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
 }
 .settings-section-title {
   font-family: var(--font-display);
@@ -1573,6 +1783,14 @@
   margin: 0 !important;
   cursor: pointer;
   accent-color: var(--primary-blue);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.spinner-icon {
+  animation: spin 1s linear infinite;
 }
 
 
