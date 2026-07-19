@@ -1,3 +1,4 @@
+import { $ } from "./utils.js";
 export function showDashboardView() {
   const loginView = $("login-view");
   const adminLayout = $("admin-layout");
