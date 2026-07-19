@@ -14,11 +14,17 @@ import { initSettingsView } from "./settings.js";
  * Initialize core application
  */
 async function init() {
+  // Always bind event handlers first
+  bindLoginEvents(showDashboardView);
+  bindLogoutEvents(showLoginView);
+  bindNavigationEvents();
+  bindSidebarEvents();
+
   if (isAuthenticated()) {
     showDashboardView();
-  
+
     const valid = await validateSession();
-  
+
     if (!valid) {
       showLoginView();
       return;
@@ -26,15 +32,6 @@ async function init() {
   } else {
     showLoginView();
   }
-  // Bind authentication handlers
-  bindLoginEvents(showDashboardView);
-  bindLogoutEvents(showLoginView);
-
-  // Bind navigation tab switching
-  bindNavigationEvents();
-
-  // Bind responsive sidebar navigation interactions
-  bindSidebarEvents();
 }
 
 /**
