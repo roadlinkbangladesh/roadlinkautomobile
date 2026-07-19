@@ -7,30 +7,34 @@ const routes = {
     [`POST:${API.AUTH}/login`]: login
 };
 
-import { hashPassword, verifyPassword } from "./utils/password.js";
-
 export default {
-    async fetch() {
+    async fetch(request, env) {
+        try {
+            const url = new URL(request.url);
+            const routeKey = `${request.method}:${url.pathname}`;
 
-        const password = "admin123";
+            if (url.pathname === "/") {
+                return success(
+                    {
+                        application: APP.NAME,
+                        version: APP.VERSION
+                    },
+                    "Roadlink API is running."
+                );
+            }
 
-        const hash = await hashPassword(password);
+            const handler = routes[routeKey];
 
-        const valid = await verifyPassword(
-            "admin123",
-            hash
-        );
+            if (!handler) {
+                return notFound("API endpoint not found.");
+            }
 
-        const invalid = await verifyPassword(
-            "wrongpassword",
-            hash
-        );
+            return await handler(request, env);
 
-        return Response.json({
-            hash,
-            valid,
-            invalid
-        });
+        } catch (error) {
+            console.error(error);
+
+            return serverError();
+        }
     }
 };
-
