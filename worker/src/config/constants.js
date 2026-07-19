@@ -101,5 +101,6 @@ export const PASSWORD = Object.freeze({
 
 export const JWT = {
     ALGORITHM: "HS256",
-    EXPIRES_IN: 60 * 60 * 8 // 8 hours
+    SESSION_EXPIRES_IN: 60 * 60 * 8,         // 8 hours
+    REMEMBER_ME_EXPIRES_IN: 60 * 60 * 24 * 30 // 30 days
 };
