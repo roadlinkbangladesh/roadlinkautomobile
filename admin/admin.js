@@ -5,7 +5,7 @@
 
 import { getAllVehicles } from "../js/inventory.js";
 import { $ } from "./utils.js";
-import { isAuthenticated, bindLoginEvents, bindLogoutEvents } from "./auth.js";
+import { isAuthenticated, bindLoginEvents, bindLogoutEvents, validateSession } from "./auth.js";
 import { initDashboard } from "./dashboard.js";
 import { initVehiclesView } from "./vehicles.js";
 import { initSettingsView } from "./settings.js";
@@ -13,13 +13,19 @@ import { initSettingsView } from "./settings.js";
 /**
  * Initialize core application
  */
-function init() {
+async function init() {
   if (isAuthenticated()) {
     showDashboardView();
+  
+    const valid = await validateSession();
+  
+    if (!valid) {
+      showLoginView();
+      return;
+    }
   } else {
     showLoginView();
   }
-
   // Bind authentication handlers
   bindLoginEvents(showDashboardView);
   bindLogoutEvents(showLoginView);
