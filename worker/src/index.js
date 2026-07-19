@@ -12,11 +12,20 @@ import { hashPassword, verifyPassword } from "./utils/password.js";
 export default {
     async fetch() {
 
-        const salt = crypto.getRandomValues(new Uint8Array(16));
+        const encoder = new TextEncoder();
+
+        const key = await crypto.subtle.importKey(
+            "raw",
+            encoder.encode("admin123"),
+            "PBKDF2",
+            false,
+            ["deriveBits"]
+        );
 
         return Response.json({
             success: true,
-            saltLength: salt.length
+            type: key.type,
+            algorithm: key.algorithm.name
         });
 
     }
