@@ -1,4 +1,4 @@
-import { success, notFound, serverError } from "./utils/response.js";
+import { preflight, notFound, serverError } from "./utils/response.js";
 import { API } from "./config/constants.js";
 import { login } from "./routes/auth/login.js";
 import { getSettings, updateSettings } from "./routes/admin/settings.js";
