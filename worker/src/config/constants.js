@@ -87,3 +87,14 @@ export const LOG_ACTIONS = Object.freeze({
 
     UPDATE_SETTINGS: "UPDATE_SETTINGS"
 });
+
+export const PASSWORD = Object.freeze({
+    ALGORITHM: "PBKDF2",
+    HASH: "SHA-256",
+
+    ITERATIONS: 600000,
+
+    SALT_LENGTH: 16,
+
+    KEY_LENGTH: 32
+});
