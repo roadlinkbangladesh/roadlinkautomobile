@@ -4,7 +4,10 @@ import {
     serverError
 } from "../../utils/response.js";
 
-import { verifyToken } from "../../utils/jwt.js";
+import {
+    verifyToken
+} from "../../utils/jwt.js";
+
 
 export async function getSettings(request, env) {
 
@@ -24,9 +27,7 @@ export async function getSettings(request, env) {
         );
 
         if (!user) {
-            return unauthorized(
-                "Invalid or expired token."
-            );
+            return unauthorized("Invalid or expired token.");
         }
 
         return success({});
@@ -41,11 +42,17 @@ export async function getSettings(request, env) {
 
 }
 
+
 export async function updateSettings(request, env) {
-    return Response.json({
-        success: false,
-        message: "Not implemented."
-    }, {
-        status: 501
-    });
+
+    return Response.json(
+        {
+            success: false,
+            message: "Not implemented."
+        },
+        {
+            status: 501
+        }
+    );
+
 }
