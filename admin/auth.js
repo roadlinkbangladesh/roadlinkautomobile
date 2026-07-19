@@ -75,9 +75,7 @@ export async function login(username, password, rememberMe) {
  * @param {Function} onLoginSuccess - Callback function executed upon successful login
  */
 export function bindLoginEvents(onLoginSuccess) {
-  console.log("bindLoginEvents called");//temporary
   const loginForm = $("login-form");
-  console.log("loginForm =", loginForm);//temporary
   const usernameInput = $("username");
   const passwordInput = $("password");
   const btnTogglePassword = $("btn-toggle-password");
@@ -106,7 +104,10 @@ export function bindLoginEvents(onLoginSuccess) {
 
   // 2. Form Submission Handler
   loginForm.addEventListener("submit", async (e) => {
+    console.log("1. Submit event fired");//temporary
     e.preventDefault();
+    console.log("2. Default submission prevented");//temporary
+
     if (loginErrorPanel) loginErrorPanel.style.display = "none";
 
     const username = usernameInput.value.trim();
