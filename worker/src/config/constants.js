@@ -92,7 +92,7 @@ export const PASSWORD = Object.freeze({
     ALGORITHM: "PBKDF2",
     HASH: "SHA-256",
 
-    ITERATIONS: 600000,
+    ITERATIONS: 95000,
 
     SALT_LENGTH: 16,
 
