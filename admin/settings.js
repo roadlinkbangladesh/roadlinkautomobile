@@ -26,7 +26,7 @@ export function initSettingsView() {
 async function loadSettings() {
   const token = getToken();
   if (!token) {
-    redirectToLogin();
+    showLoginView();
     return;
   }
 
