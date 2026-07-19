@@ -1,12 +1,8 @@
 /**
  * Roadlink Automobiles - Admin Configuration
- * Stores configuration keys and temporary credentials for Phase 1.
+ * Contains backend configuration and URLs.
  */
 
-export const ADMIN_SESSION_KEY = "roadlink_admin_authenticated";
+// Base URL for the backend API endpoints (empty string uses current origin / relative paths)
+export const API_BASE_URL = "https://roadlink-api.roadlinkbangladesh.workers.dev";
 
-// Temporary credentials (to be replaced with an API integration in Phase 3)
-export const ADMIN_CREDENTIALS = {
-  username: "admin",
-  password: "roadlink123"
-};
