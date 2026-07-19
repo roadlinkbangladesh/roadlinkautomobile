@@ -98,3 +98,8 @@ export const PASSWORD = Object.freeze({
 
     KEY_LENGTH: 32
 });
+
+export const JWT = {
+    ALGORITHM: "HS256",
+    EXPIRES_IN: 60 * 60 * 8 // 8 hours
+};
