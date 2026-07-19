@@ -3,40 +3,74 @@
  * Handles login, logout, password visibility, and session state.
  */
 
-import { ADMIN_SESSION_KEY, ADMIN_CREDENTIALS } from "./config.js";
 import { $ } from "./utils.js";
 
 /**
- * Checks if the current administrator session is authenticated.
+ * Returns the token from sessionStorage if available.
+ * Otherwise returns the token from localStorage.
+ * @returns {string|null} JWT Token or null
+ */
+export function getToken() {
+  return sessionStorage.getItem("token") || localStorage.getItem("token") || null;
+}
+
+/**
+ * Saves the token according to rememberMe.
+ * @param {string} token 
+ * @param {boolean} rememberMe 
+ */
+export function saveToken(token, rememberMe) {
+  if (rememberMe) {
+    localStorage.setItem("token", token);
+  } else {
+    sessionStorage.setItem("token", token);
+  }
+}
+
+/**
+ * Removes the token from BOTH sessionStorage and localStorage.
+ */
+export function clearToken() {
+  sessionStorage.removeItem("token");
+  localStorage.removeItem("token");
+}
+
+/**
+ * Checks if the current administrator is authenticated.
  * @returns {boolean} True if authenticated, false otherwise
  */
 export function isAuthenticated() {
-  return sessionStorage.getItem(ADMIN_SESSION_KEY) === "true";
+  return getToken() !== null;
 }
 
 /**
- * Validates the administrator credentials.
+ * Performs backend authentication request.
  * @param {string} username 
  * @param {string} password 
- * @returns {boolean} True if valid, false otherwise
+ * @param {boolean} rememberMe 
+ * @returns {Promise<Object>} API response payload
  */
-export function validateCredentials(username, password) {
-  const currentPassword = localStorage.getItem("roadlink_admin_password") || ADMIN_CREDENTIALS.password;
-  return username === ADMIN_CREDENTIALS.username && password === currentPassword;
-}
+export async function login(username, password, rememberMe) {
+  try {
+    const response = await fetch("/api/v1/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username, password, rememberMe }),
+    });
 
-/**
- * Sets the authenticated session.
- */
-export function setAuthenticatedSession() {
-  sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
-}
-
-/**
- * Clears the authenticated session.
- */
-export function clearAuthenticatedSession() {
-  sessionStorage.removeItem(ADMIN_SESSION_KEY);
+    const result = await response.json();
+    return {
+      status: response.status,
+      ...result,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || "An unexpected error occurred."
+    };
+  }
 }
 
 /**
@@ -72,23 +106,43 @@ export function bindLoginEvents(onLoginSuccess) {
   });
 
   // 2. Form Submission Handler
-  loginForm.addEventListener("submit", (e) => {
+  loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (loginErrorPanel) loginErrorPanel.style.display = "none";
 
     const username = usernameInput.value.trim();
     const password = passwordInput.value;
+    const rememberMeCheckbox = $("rememberMe");
+    const rememberMe = rememberMeCheckbox ? rememberMeCheckbox.checked : false;
 
     if (!username || !password) {
       showError("Please enter both username and password.");
       return;
     }
 
-    if (validateCredentials(username, password)) {
-      setAuthenticatedSession();
-      if (onLoginSuccess) onLoginSuccess();
-    } else {
-      showError("Invalid username or password");
+    // Disable button or show loading state
+    const submitBtn = loginForm.querySelector("button[type='submit']");
+    const originalText = submitBtn ? submitBtn.textContent : "Sign In";
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Signing in...";
+    }
+
+    try {
+      const res = await login(username, password, rememberMe);
+      if (res.success && res.data && res.data.token) {
+        saveToken(res.data.token, rememberMe);
+        if (onLoginSuccess) onLoginSuccess();
+      } else {
+        showError(res.message || "Invalid username or password");
+      }
+    } catch (err) {
+      showError("Connection failed. Please try again.");
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
     }
   });
 
@@ -110,7 +164,7 @@ export function bindLogoutEvents(onLogoutSuccess) {
   const btnTopbarLogout = $("btn-topbar-logout");
 
   const handleLogout = () => {
-    clearAuthenticatedSession();
+    clearToken();
     if (onLogoutSuccess) onLogoutSuccess();
   };
 
