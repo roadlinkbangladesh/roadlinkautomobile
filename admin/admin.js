@@ -144,3 +144,13 @@ if (document.readyState === "loading") {
 } else {
   init();
 }
+
+function showDashboardView() {
+  const loginView = $("login-view");
+  const adminLayout = $("admin-layout");
+
+  if (loginView) loginView.style.display = "none";
+  if (adminLayout) adminLayout.style.display = "grid";
+
+  switchView("dashboard");
+}
