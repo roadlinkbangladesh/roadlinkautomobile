@@ -14,7 +14,7 @@ export default {
 
         const encoder = new TextEncoder();
 
-        const key = await crypto.subtle.importKey(
+        const keyMaterial = await crypto.subtle.importKey(
             "raw",
             encoder.encode("admin123"),
             "PBKDF2",
@@ -22,10 +22,24 @@ export default {
             ["deriveBits"]
         );
 
+        const salt = crypto.getRandomValues(
+            new Uint8Array(16)
+        );
+
+        const derived = await crypto.subtle.deriveBits(
+            {
+                name: "PBKDF2",
+                hash: "SHA-256",
+                salt,
+                iterations: 600000
+            },
+            keyMaterial,
+            32 * 8
+        );
+
         return Response.json({
             success: true,
-            type: key.type,
-            algorithm: key.algorithm.name
+            bytes: new Uint8Array(derived).length
         });
 
     }
