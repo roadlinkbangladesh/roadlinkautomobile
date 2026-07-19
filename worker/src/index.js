@@ -1,5 +1,5 @@
-import { API } from "./config/constants.js";
 import { success, notFound, serverError } from "./utils/response.js";
+import { API, APP } from "./config/constants.js";
 
 import { login } from "./routes/auth/login.js";
 
@@ -16,8 +16,8 @@ export default {
             if (url.pathname === "/") {
                 return success(
                     {
-                        application: "Roadlink API",
-                        version: "1.0.0"
+                        application: APP.NAME,
+                        version: APP.VERSION
                     },
                     "Roadlink API is running."
                 );
