@@ -24,7 +24,8 @@ function json(status, success, data = null, message = null) {
     }
 
     return Response.json(body, {
-        status
+        status,
+        headers: corsHeaders
     });
 
 }
@@ -135,4 +136,13 @@ export function serverError(message = "Internal server error.") {
         null,
         message
     );
+}
+/**
+ * CORS preflight response
+ */
+export function preflight() {
+    return new Response(null, {
+        status: 204,
+        headers: corsHeaders
+    });
 }
