@@ -4,7 +4,7 @@ import {
     serverError,
     success
 } from "../../utils/response.js";
-
+import { verifyPassword } from "../../utils/password.js";
 export async function login(request, env) {
 
     try {
@@ -29,19 +29,30 @@ export async function login(request, env) {
             `)
             .bind(username)
             .first();
-
+        
         if (!user) {
             return unauthorized(
                 "Invalid username or password."
             );
         }
-
+        
+        const validPassword = await verifyPassword(
+            password,
+            user.password_hash
+        );
+        
+        if (!validPassword) {
+            return unauthorized(
+                "Invalid username or password."
+            );
+        }
+        
         return success({
             id: user.id,
             username: user.username,
             role: user.role
         });
-
+        
     } catch (error) {
 
         console.error(error);
