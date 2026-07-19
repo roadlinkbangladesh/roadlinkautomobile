@@ -334,7 +334,7 @@ section {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(10, 15, 30, 0.65); /* Elegant dark semi-transparent overlay */
+  background: rgba(10, 15, 30, 0.78); /* Premium dark semi-transparent overlay */
   z-index: 2;
   pointer-events: none;
 }
@@ -343,7 +343,7 @@ section {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: brightness(0.4) contrast(1.1) saturate(0.85); /* Slightly lighter original brightness when combined with overlay */
+  filter: brightness(0.25) contrast(1.1) saturate(0.8); /* Reverted to premium dark level */
 }
 
 /* Dynamic glow elements in bg */
