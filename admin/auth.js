@@ -3,7 +3,7 @@
  * Handles login, logout, password visibility, and session state.
  */
 
-import { $ } from "./utils.js";
+import { $, apiFetch } from "./utils.js";
 
 /**
  * Returns the token from sessionStorage if available.
@@ -52,11 +52,8 @@ export function isAuthenticated() {
  */
 export async function login(username, password, rememberMe) {
   try {
-    const response = await fetch("/api/v1/auth/login", {
+    const response = await apiFetch("/api/v1/auth/login", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({ username, password, rememberMe }),
     });
 
