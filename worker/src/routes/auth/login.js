@@ -52,7 +52,7 @@ export async function login(request, env) {
                 role: user.role
             },
             env.JWT_SECRET,
-            JWT.EXPIRES_IN
+            JWT.SESSION_EXPIRES_IN
         );
         
         return success({
