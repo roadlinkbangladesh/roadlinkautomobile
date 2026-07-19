@@ -16,6 +16,12 @@ const routes = {
 
 export default {
     async fetch(request, env, ctx) {
+
+        // Handle CORS preflight requests
+        if (request.method === "OPTIONS") {
+            return preflight(env);
+        }
+        
         try {
             const url = new URL(request.url);
             const key = `${request.method}:${url.pathname}`;
