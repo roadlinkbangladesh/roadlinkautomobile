@@ -1,5 +1,5 @@
 import { success, notFound, serverError } from "./utils/response.js";
-import { API, APP } from "./config/constants.js";
+import { API } from "./config/constants.js";
 
 import { login } from "./routes/auth/login.js";
 
@@ -7,51 +7,23 @@ const routes = {
     [`POST:${API.AUTH}/login`]: login
 };
 
-import { hashPassword, verifyPassword } from "./utils/password.js";
-
 export default {
-    async fetch() {
+    async fetch(request, env, ctx) {
         try {
+            const url = new URL(request.url);
+            const key = `${request.method}:${url.pathname}`;
 
-            const encoder = new TextEncoder();
+            const handler = routes[key];
 
-            const keyMaterial = await crypto.subtle.importKey(
-                "raw",
-                encoder.encode("admin123"),
-                "PBKDF2",
-                false,
-                ["deriveBits"]
-            );
+            if (!handler) {
+                return notFound();
+            }
 
-            const salt = crypto.getRandomValues(new Uint8Array(16));
+            return await handler(request, env, ctx);
 
-            const derived = await crypto.subtle.deriveBits(
-                {
-                    name: "PBKDF2",
-                    hash: "SHA-256",
-                    salt,
-                    iterations: PASSWORD.ITERATIONS
-                },
-                keyMaterial,
-                32 * 8
-            );
-
-            return Response.json({
-                success: true,
-                bytes: new Uint8Array(derived).length
-            });
-
-        } catch (err) {
-
-            return Response.json({
-                success: false,
-                name: err.name,
-                message: err.message,
-                stack: err.stack
-            }, {
-                status: 500
-            });
-
+        } catch (error) {
+            console.error(error);
+            return serverError();
         }
     }
 };
