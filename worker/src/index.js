@@ -1,21 +1,40 @@
-import { success, notFound } from "./utils/response.js";
-import { API, APP } from "./config/constants.js";
+import { API } from "./config/constants.js";
+import { success, notFound, serverError } from "./utils/response.js";
+
+import { login } from "./routes/auth/login.js";
+
+const routes = {
+    [`POST:${API.AUTH}/login`]: login
+};
 
 export default {
     async fetch(request, env) {
-        const url = new URL(request.url);
+        try {
+            const url = new URL(request.url);
+            const routeKey = `${request.method}:${url.pathname}`;
 
-        if (url.pathname === "/") {
-            return success({
-                application: APP.NAME,
-                version: APP.VERSION
-            }, "Roadlink API is running.");
+            if (url.pathname === "/") {
+                return success(
+                    {
+                        application: "Roadlink API",
+                        version: "1.0.0"
+                    },
+                    "Roadlink API is running."
+                );
+            }
+
+            const handler = routes[routeKey];
+
+            if (!handler) {
+                return notFound("API endpoint not found.");
+            }
+
+            return await handler(request, env);
+
+        } catch (error) {
+            console.error(error);
+
+            return serverError();
         }
-
-        if (url.pathname.startsWith(API.PREFIX)) {
-            return notFound("API endpoint not found.");
-        }
-
-        return notFound("Resource not found.");
     }
 };
