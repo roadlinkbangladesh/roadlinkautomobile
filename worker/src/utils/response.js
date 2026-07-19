@@ -1,6 +1,6 @@
 import { HTTP_STATUS } from "../config/constants.js";
 
-const corsHeaders = {
+const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "https://roadlinkautomobile.pages.dev",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
@@ -25,7 +25,7 @@ function json(status, success, data = null, message = null) {
 
     return Response.json(body, {
         status,
-        headers: corsHeaders
+        headers: CORS_HEADERS
     });
 
 }
@@ -143,6 +143,6 @@ export function serverError(message = "Internal server error.") {
 export function preflight() {
     return new Response(null, {
         status: 204,
-        headers: corsHeaders
+        headers: CORS_HEADERS
     });
 }
