@@ -7,23 +7,16 @@ const routes = {
     [`POST:${API.AUTH}/login`]: login
 };
 
+import { hashPassword } from "./utils/password.js";
+
 export default {
-    async fetch(request, env, ctx) {
-        try {
-            const url = new URL(request.url);
-            const key = `${request.method}:${url.pathname}`;
+    async fetch() {
 
-            const handler = routes[key];
+        const hash = await hashPassword("roadlink123");
 
-            if (!handler) {
-                return notFound();
-            }
+        return Response.json({
+            hash
+        });
 
-            return await handler(request, env, ctx);
-
-        } catch (error) {
-            console.error(error);
-            return serverError();
-        }
     }
 };
