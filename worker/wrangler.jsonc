@@ -22,7 +22,7 @@
       "binding": "IMAGES",
       "bucket_name": "roadlink-images"
     }
-  ]
+  ],
   
   "observability": {
     "enabled": true,
