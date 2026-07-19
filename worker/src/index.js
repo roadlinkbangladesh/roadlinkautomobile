@@ -1,10 +1,11 @@
 import { success, notFound, serverError } from "./utils/response.js";
 import { API } from "./config/constants.js";
-
+import { profile } from "./routes/admin/profile.js";
 import { login } from "./routes/auth/login.js";
 
 const routes = {
-    [`POST:${API.AUTH}/login`]: login
+    [`POST:${API.AUTH}/login`]: login,
+    [`GET:${API.ADMIN}/profile`]: profile,
 };
 
 export default {
