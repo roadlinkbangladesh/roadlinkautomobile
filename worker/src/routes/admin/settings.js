@@ -40,3 +40,12 @@ export async function getSettings(request, env) {
     }
 
 }
+
+export async function updateSettings(request, env) {
+    return Response.json({
+        success: false,
+        message: "Not implemented."
+    }, {
+        status: 501
+    });
+}
