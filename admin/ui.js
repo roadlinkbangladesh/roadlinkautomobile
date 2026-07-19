@@ -1,4 +1,4 @@
-function showDashboardView() {
+export function showDashboardView() {
   const loginView = $("login-view");
   const adminLayout = $("admin-layout");
 
@@ -8,7 +8,7 @@ function showDashboardView() {
   switchView("dashboard");
 }
 
-function showLoginView() {
+export function showLoginView() {
   const loginView = $("login-view");
   const adminLayout = $("admin-layout");
   const usernameInput = $("username");
