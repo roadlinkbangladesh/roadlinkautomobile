@@ -9,7 +9,7 @@ import { isAuthenticated, bindLoginEvents, bindLogoutEvents, validateSession } f
 import { initDashboard } from "./dashboard.js";
 import { initVehiclesView } from "./vehicles.js";
 import { initSettingsView } from "./settings.js";
-import { showDashboardView, showLoginView } from "./ui.js";
+import { showLoginView } from "./ui.js";
 
 /**
  * Initialize core application
