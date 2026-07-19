@@ -81,3 +81,13 @@ export const LOG_ACTIONS = Object.freeze({
 
     UPDATE_SETTINGS: "UPDATE_SETTINGS"
 });
+
+export const API = Object.freeze({
+    PREFIX: "/api/v1",
+
+    AUTH: "/api/v1/auth",
+
+    ADMIN: "/api/v1/admin",
+
+    PUBLIC: "/api/v1/public"
+});
