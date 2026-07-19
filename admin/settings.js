@@ -4,6 +4,7 @@
  */
 
 import { getToken, clearToken } from "./auth.js";
+import { showLoginView } from "./ui.js";
 import { $, apiFetch } from "./utils.js";
 
 let settingsEventsBound = false;
@@ -48,7 +49,7 @@ async function loadSettings() {
 
     if (response.status === 401) {
       clearToken();
-      redirectToLogin();
+      showLoginView();
       return;
     }
 
@@ -168,12 +169,3 @@ function bindSettingsEvents() {
 }
 
 /**
- * Clears authentication state and redirects back to Login screen.
- */
-function redirectToLogin() {
-  clearToken();
-  const loginView = $("login-view");
-  const adminLayout = $("admin-layout");
-  if (loginView) loginView.style.display = "flex";
-  if (adminLayout) adminLayout.style.display = "none";
-}
