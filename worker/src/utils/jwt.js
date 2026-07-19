@@ -94,3 +94,55 @@ export async function createToken(payload, secret, expiresIn) {
 
 }
 
+async function verify(data, signature, secret) {
+
+    const key = await importKey(secret);
+
+    return crypto.subtle.verify(
+        "HMAC",
+        key,
+        base64UrlDecode(signature),
+        new TextEncoder().encode(data)
+    );
+
+}
+
+export async function verifyToken(token, secret) {
+
+    if (!token) {
+        return null;
+    }
+
+    const parts = token.split(".");
+
+    if (parts.length !== 3) {
+        return null;
+    }
+
+    const [header, payload, signature] = parts;
+
+    const valid = await verify(
+        `${header}.${payload}`,
+        signature,
+        secret
+    );
+
+    if (!valid) {
+        return null;
+    }
+
+    const data = JSON.parse(
+        new TextDecoder().decode(
+            base64UrlDecode(payload)
+        )
+    );
+
+    const now = Math.floor(Date.now() / 1000);
+
+    if (data.exp < now) {
+        return null;
+    }
+
+    return data;
+
+}
