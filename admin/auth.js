@@ -75,7 +75,9 @@ export async function login(username, password, rememberMe) {
  * @param {Function} onLoginSuccess - Callback function executed upon successful login
  */
 export function bindLoginEvents(onLoginSuccess) {
+  console.log("bindLoginEvents called");//temporary
   const loginForm = $("login-form");
+  console.log("loginForm =", loginForm);//temporary
   const usernameInput = $("username");
   const passwordInput = $("password");
   const btnTogglePassword = $("btn-toggle-password");
