@@ -6,12 +6,13 @@ import { JWT } from "../../config/constants.js";
 export async function login(request, env) {
 
     try {
-
+        
         const body = await request.json();
-
+        
         const username = body.username?.trim();
         const password = body.password;
-
+        const rememberMe = body.rememberMe === true;
+        
         if (!username || !password) {
             return badRequest(
                 "Username and password are required."
@@ -45,6 +46,13 @@ export async function login(request, env) {
             );
         }
         
+        // Determine token lifetime based on Remember Me selection
+        
+        const expiresIn = rememberMe
+            ? JWT.REMEMBER_ME_EXPIRES_IN
+            : JWT.SESSION_EXPIRES_IN;
+        
+        // Generate JWT
         const token = await createToken(
             {
                 id: user.id,
@@ -52,7 +60,7 @@ export async function login(request, env) {
                 role: user.role
             },
             env.JWT_SECRET,
-            JWT.SESSION_EXPIRES_IN
+            expiresIn
         );
         
         return success({
