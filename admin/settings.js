@@ -4,7 +4,7 @@
  */
 
 import { getToken, clearToken } from "./auth.js";
-import { $ } from "./utils.js";
+import { $, apiFetch } from "./utils.js";
 
 let settingsEventsBound = false;
 
@@ -42,12 +42,8 @@ async function loadSettings() {
   }
 
   try {
-    const response = await fetch("/api/v1/admin/settings", {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
-      }
+    const response = await apiFetch("/api/v1/admin/settings", {
+      method: "GET"
     });
 
     if (response.status === 401) {
