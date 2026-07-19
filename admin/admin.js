@@ -14,6 +14,7 @@ import { initSettingsView } from "./settings.js";
  * Initialize core application
  */
 async function init() {
+  console.log("init() started");
   if (isAuthenticated()) {
     showDashboardView();
   
