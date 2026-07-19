@@ -1,13 +1,4 @@
 import { $ } from "./utils.js";
-export function showDashboardView() {
-  const loginView = $("login-view");
-  const adminLayout = $("admin-layout");
-
-  if (loginView) loginView.style.display = "none";
-  if (adminLayout) adminLayout.style.display = "grid";
-
-  switchView("dashboard");
-}
 
 export function showLoginView() {
   const loginView = $("login-view");
