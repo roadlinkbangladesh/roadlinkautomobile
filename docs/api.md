@@ -215,3 +215,15 @@ localStorage.removeItem("token");
 | POST /api/v1/auth/login | ✅ Complete |
 | GET /api/v1/admin/settings | ✅ Complete |
 | PUT /api/v1/admin/settings | ⏳ Planned |
+
+## Frontend Configuration
+
+The frontend must never hardcode API URLs.
+
+All backend communication must use:
+
+admin/config.js
+
+through the shared apiFetch() helper in:
+
+admin/utils.js
