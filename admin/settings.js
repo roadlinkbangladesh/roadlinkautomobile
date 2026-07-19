@@ -167,5 +167,3 @@ function bindSettingsEvents() {
     btnSave.disabled = true;
   }
 }
-
-/**
