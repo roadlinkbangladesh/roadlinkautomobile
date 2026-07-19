@@ -19,8 +19,6 @@ export function showLoginView() {
     passwordInput.value = "";
     passwordInput.type = "password";
   }
-  console.log("Username after clear:", usernameInput.value); //testing
-  console.log("Password after clear:", passwordInput.value); //testing
   if (loginErrorPanel) {
     loginErrorPanel.style.display = "none";
   }
