@@ -30,9 +30,17 @@ export async function getSettings(request, env) {
             return unauthorized("Invalid or expired token.");
         }
 
-        return success({});
-
-    } catch (error) {
+        const settings = await env.DB
+            .prepare(`
+                SELECT *
+                FROM settings
+                LIMIT 1
+            `)
+            .first();
+        
+        return success(settings);
+        
+        } catch (error) {
 
         console.error(error);
 
