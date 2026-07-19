@@ -173,3 +173,29 @@ export function bindLogoutEvents(onLogoutSuccess) {
     btnTopbarLogout.addEventListener("click", handleLogout);
   }
 }
+
+/**
+ * Verifies that the stored token is still valid.
+ * If invalid, clears the session.
+ *
+ * @returns {Promise<boolean>}
+ */
+export async function validateSession() {
+  if (!isAuthenticated()) {
+    return false;
+  }
+
+  try {
+    const response = await apiFetch("/api/v1/admin/settings");
+
+    if (response.status === 401) {
+      clearToken();
+      return false;
+    }
+
+    return response.ok;
+  } catch {
+    clearToken();
+    return false;
+  }
+}
