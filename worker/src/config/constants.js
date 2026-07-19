@@ -15,7 +15,13 @@ export const APP = Object.freeze({
 });
 
 export const API = Object.freeze({
-    PREFIX: "/api/v1"
+    PREFIX: "/api/v1",
+
+    AUTH: "/api/v1/auth",
+
+    ADMIN: "/api/v1/admin",
+
+    PUBLIC: "/api/v1/public"
 });
 
 export const USER_ROLES = Object.freeze({
@@ -80,14 +86,4 @@ export const LOG_ACTIONS = Object.freeze({
     UNPUBLISH_VEHICLE: "UNPUBLISH_VEHICLE",
 
     UPDATE_SETTINGS: "UPDATE_SETTINGS"
-});
-
-export const API = Object.freeze({
-    PREFIX: "/api/v1",
-
-    AUTH: "/api/v1/auth",
-
-    ADMIN: "/api/v1/admin",
-
-    PUBLIC: "/api/v1/public"
 });
