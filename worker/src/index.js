@@ -30,7 +30,7 @@ export default {
                     name: "PBKDF2",
                     hash: "SHA-256",
                     salt,
-                    iterations: 600000
+                    iterations: PASSWORD.ITERATIONS
                 },
                 keyMaterial,
                 32 * 8
