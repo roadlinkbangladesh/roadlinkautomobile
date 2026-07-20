@@ -192,12 +192,13 @@ export async function validateSession() {
   try {
     const response = await apiFetch("/api/v1/admin/settings");
 
-    if (response.status === 401) {
-      clearToken();
-      return false;
-    }
+  if (!response.ok) {
+    return false;
+  }
 
+  return true;
     return response.ok;
+  
   } catch {
     clearToken();
     return false;
