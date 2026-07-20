@@ -9,7 +9,10 @@ import { isAuthenticated, bindLoginEvents, bindLogoutEvents, validateSession, cl
 import { initDashboard } from "./dashboard.js";
 import { initVehiclesView } from "./vehicles.js";
 import { initSettingsView } from "./settings.js";
+import { initUsersView } from "./users.js";
+import { initChangePasswordView } from "./change-password.js";
 import { showLoginView } from "./ui.js";
+import { navigationController } from "./navigation.js";
 
 /**
  * Initialize core application
@@ -18,7 +21,43 @@ async function init() {
   // Always bind event handlers first
   bindLoginEvents(showDashboardView);
   bindLogoutEvents(showLoginView);
-  bindNavigationEvents();
+  
+  // Register all modules with centralized Navigation Controller
+  navigationController.registerModule("dashboard", {
+    panelId: "dashboard-view-panel",
+    btnId: "nav-item-dashboard",
+    title: "Dashboard",
+    init: () => initDashboard()
+  });
+
+  navigationController.registerModule("vehicles", {
+    panelId: "vehicles-view-panel",
+    btnId: "nav-item-vehicles",
+    title: "Vehicles Inventory",
+    init: () => initVehiclesView()
+  });
+
+  navigationController.registerModule("settings", {
+    panelId: "settings-view-panel",
+    btnId: "nav-item-settings",
+    title: "System Settings",
+    init: () => initSettingsView()
+  });
+
+  navigationController.registerModule("users", {
+    panelId: "users-view-panel",
+    btnId: "nav-item-users",
+    title: "User Management",
+    init: () => initUsersView()
+  });
+
+  navigationController.registerModule("change-password", {
+    panelId: "change-password-view-panel",
+    btnId: "nav-item-change-password",
+    title: "Change Password",
+    init: () => initChangePasswordView()
+  });
+
   bindSidebarEvents();
 
   setUnauthorizedHandler(() => {
@@ -41,67 +80,7 @@ async function init() {
 }
 
 /**
- * Displays the Login screen view
- */
-
-/**
- * Handles switching active views in the admin workspace.
- * @param {string} viewName - "dashboard", "vehicles", or "settings"
- */
-function switchView(viewName) {
-  const pageTitle = $("topbar-page-title");
-  const sidebar = $("admin-sidebar");
-  
-  // Define panel bindings, buttons, page titles and their loaders
-  const views = {
-    dashboard: { panel: $("dashboard-view-panel"), btn: $("nav-item-dashboard"), title: "Dashboard", init: () => initDashboard(getAllVehicles()) },
-    vehicles: { panel: $("vehicles-view-panel"), btn: $("nav-item-vehicles"), title: "Vehicles Inventory", init: () => initVehiclesView() },
-    settings: { panel: $("settings-view-panel"), btn: $("nav-item-settings"), title: "System Settings", init: () => initSettingsView() }
-  };
-
-  // Switch display states and trigger loaders
-  Object.keys(views).forEach(key => {
-    const item = views[key];
-    if (key === viewName) {
-      if (item.panel) item.panel.style.display = "block";
-      if (item.btn) item.btn.classList.add("active");
-      if (pageTitle) pageTitle.textContent = item.title;
-      if (item.init) {
-        try {
-          item.init();
-        } catch (err) {
-          console.error(`Failed to initialize view: ${key}`, err);
-        }
-      }
-    } else {
-      if (item.panel) item.panel.style.display = "none";
-      if (item.btn) item.btn.classList.remove("active");
-    }
-  });
-
-  // Close mobile navigation drawer if open
-  if (sidebar) sidebar.classList.remove("drawer-open");
-}
-
-/**
- * Displays the main Admin Dashboard view
- */
-
-/**
- * Handles toggling between views (Dashboard vs Vehicles)
- */
-function bindNavigationEvents() {
-  const btnDashboard = $("nav-item-dashboard");
-  const btnVehicles = $("nav-item-vehicles");
-  const btnSettings = $("nav-item-settings");
-
-  if (btnDashboard) btnDashboard.addEventListener("click", () => switchView("dashboard"));
-  if (btnVehicles) btnVehicles.addEventListener("click", () => switchView("vehicles"));
-  if (btnSettings) btnSettings.addEventListener("click", () => switchView("settings"));
-}
-
-/**
- * Binds sidebar navigation and responsive drawer events
+ * Binds responsive sidebar drawer events (non-nav toggle controls)
  */
 function bindSidebarEvents() {
   const sidebar = $("admin-sidebar");
@@ -157,5 +136,5 @@ function showDashboardView() {
   if (loginView) loginView.style.display = "none";
   if (adminLayout) adminLayout.style.display = "grid";
 
-  switchView("dashboard");
+  navigationController.init();
 }
