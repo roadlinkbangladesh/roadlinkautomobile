@@ -47,12 +47,6 @@ async function loadSettings() {
       method: "GET"
     });
 
-    if (response.status === 401) {
-      clearToken();
-      showLoginView();
-      return;
-    }
-
     if (!response.ok) {
       throw new Error(`Server returned HTTP ${response.status}`);
     }
