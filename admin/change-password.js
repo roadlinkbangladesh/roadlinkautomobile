@@ -3,8 +3,9 @@
  * Manages validation, form states, password toggling, and mock submission hooks.
  */
 
-import { $ } from "./utils.js";
+import { $ , apiFetch } from "./utils.js";
 import { navigationController } from "./navigation.js";
+import { validatePasswordComplexity } from "./password-validator.js";
 
 let cpEventsBound = false;
 
@@ -126,9 +127,12 @@ function bindChangePasswordEvents() {
       if (!newPass || !newPass.value) {
         showFieldError("cp-new-error", "New password is required.");
         hasError = true;
-      } else if (newPass.value.length < 6) {
-        showFieldError("cp-new-error", "New password must be at least 6 characters long.");
-        hasError = true;
+      } else {
+        const checkResult = validatePasswordComplexity(newPass.value);
+        if (!checkResult.isValid) {
+          showFieldError("cp-new-error", checkResult.message);
+          hasError = true;
+        }
       }
 
       if (!confPass || !confPass.value) {
@@ -136,6 +140,11 @@ function bindChangePasswordEvents() {
         hasError = true;
       } else if (newPass && confPass && newPass.value !== confPass.value) {
         showFieldError("cp-conf-error", "Passwords do not match.");
+        hasError = true;
+      }
+
+      if (newPass && currPass && newPass.value === currPass.value) {
+        showFieldError("cp-new-error", "New password cannot be the same as current password.");
         hasError = true;
       }
 
@@ -147,37 +156,49 @@ function bindChangePasswordEvents() {
         return;
       }
 
-      // API Simulated submission
+      // API submission
+      const saveBtn = $("btn-save-change-password");
       try {
-        console.log("Simulating password alteration backend query...");
-        // This is a placeholder for actual integration:
-        // const response = await apiFetch("/api/v1/admin/change-password", {
-        //   method: "PUT",
-        //   body: JSON.stringify({ currentPassword: currPass.value, newPassword: newPass.value })
-        // });
-        // if (!response.ok) throw new Error("Incorrect current password.");
-
-        // Visual simulation of network delay
-        const saveBtn = $("btn-save-change-password");
         if (saveBtn) {
           saveBtn.disabled = true;
           saveBtn.textContent = "Updating...";
         }
 
+        const response = await apiFetch("/api/v1/admin/users/change-password", {
+          method: "PUT",
+          body: JSON.stringify({
+            currentPassword: currPass.value,
+            newPassword: newPass.value
+          })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || "Failed to update password.");
+        }
+
+        if (successAlert) successAlert.style.display = "flex";
+        form.reset();
+
+        // Clear mustChangePassword session restrictions on successful change
+        sessionStorage.removeItem("mustChangePassword");
+
+        // Stagger navigation slightly so user sees success alert
         setTimeout(() => {
-          if (saveBtn) {
-            saveBtn.disabled = false;
-            saveBtn.textContent = "Save Password";
-          }
-          if (successAlert) successAlert.style.display = "flex";
-          form.reset();
-        }, 800);
+          navigationController.navigateTo("dashboard");
+        }, 1500);
 
       } catch (err) {
         console.error(err);
         if (errorAlert) {
           errorAlert.style.display = "flex";
           if (errorAlertText) errorAlertText.textContent = err.message || "An unexpected error occurred.";
+        }
+      } finally {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = "Save Password";
         }
       }
     });
