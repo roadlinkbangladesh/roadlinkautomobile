@@ -41,6 +41,8 @@ function $(id) {
   return document.getElementById(id);
 }
 
+let tableEventsBound = false;
+
 /**
  * Initializes table event listeners and populates initial select choices.
  */
@@ -61,75 +63,79 @@ export function initVehicleTable() {
   // Render make choices from the actual vehicles
   populateMakeFilter();
 
-  // Binds search change event (instant typing)
-  if (searchInput) {
-    searchInput.addEventListener("input", () => {
-      state.search = searchInput.value;
-      state.currentPage = 1;
-      saveState();
-      renderVehicleTable();
-    });
-  }
-
-  // Binds status filter change event
-  if (statusFilter) {
-    statusFilter.addEventListener("change", () => {
-      state.statusFilter = statusFilter.value;
-      state.currentPage = 1;
-      saveState();
-      renderVehicleTable();
-    });
-  }
-
-  // Binds make filter change event
-  if (makeFilter) {
-    makeFilter.addEventListener("change", () => {
-      state.makeFilter = makeFilter.value;
-      state.currentPage = 1;
-      saveState();
-      renderVehicleTable();
-    });
-  }
-
-  // Binds sort select change event
-  if (sortSelect) {
-    sortSelect.addEventListener("change", () => {
-      state.sort = sortSelect.value;
-      state.currentPage = 1;
-      saveState();
-      renderVehicleTable();
-    });
-  }
-
-  // Binds pagination button click events
-  if (btnPrev) {
-    btnPrev.addEventListener("click", () => {
-      if (state.currentPage > 1) {
-        state.currentPage--;
+  if (!tableEventsBound) {
+    // Binds search change event (instant typing)
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        state.search = searchInput.value;
+        state.currentPage = 1;
         saveState();
         renderVehicleTable();
-      }
-    });
-  }
+      });
+    }
 
-  if (btnNext) {
-    btnNext.addEventListener("click", () => {
-      state.currentPage++;
-      saveState();
-      renderVehicleTable();
-    });
-  }
+    // Binds status filter change event
+    if (statusFilter) {
+      statusFilter.addEventListener("change", () => {
+        state.statusFilter = statusFilter.value;
+        state.currentPage = 1;
+        saveState();
+        renderVehicleTable();
+      });
+    }
 
-  // Binds clickable table headers for instant sort
-  const sortableHeaders = document.querySelectorAll(".inventory-table th.sortable");
-  sortableHeaders.forEach(th => {
-    th.addEventListener("click", () => {
-      const sortKey = th.getAttribute("data-sort");
-      if (sortKey) {
-        handleHeaderClick(sortKey);
-      }
+    // Binds make filter change event
+    if (makeFilter) {
+      makeFilter.addEventListener("change", () => {
+        state.makeFilter = makeFilter.value;
+        state.currentPage = 1;
+        saveState();
+        renderVehicleTable();
+      });
+    }
+
+    // Binds sort select change event
+    if (sortSelect) {
+      sortSelect.addEventListener("change", () => {
+        state.sort = sortSelect.value;
+        state.currentPage = 1;
+        saveState();
+        renderVehicleTable();
+      });
+    }
+
+    // Binds pagination button click events
+    if (btnPrev) {
+      btnPrev.addEventListener("click", () => {
+        if (state.currentPage > 1) {
+          state.currentPage--;
+          saveState();
+          renderVehicleTable();
+        }
+      });
+    }
+
+    if (btnNext) {
+      btnNext.addEventListener("click", () => {
+        state.currentPage++;
+        saveState();
+        renderVehicleTable();
+      });
+    }
+
+    // Binds clickable table headers for instant sort
+    const sortableHeaders = document.querySelectorAll(".inventory-table th.sortable");
+    sortableHeaders.forEach(th => {
+      th.addEventListener("click", () => {
+        const sortKey = th.getAttribute("data-sort");
+        if (sortKey) {
+          handleHeaderClick(sortKey);
+        }
+      });
     });
-  });
+
+    tableEventsBound = true;
+  }
 
   // Render initial table contents
   renderVehicleTable();
