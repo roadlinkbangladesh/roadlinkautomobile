@@ -24,7 +24,7 @@ export function $(id) {
  */
 export async function apiFetch(endpoint, options = {}) {
   const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-  
+
   const headers = {
     "Content-Type": "application/json",
     ...(options.headers || {})
@@ -35,13 +35,18 @@ export async function apiFetch(endpoint, options = {}) {
   }
 
   const url = `${API_BASE_URL}${endpoint}`;
-  
-  return fetch(url, {
+
+  const response = await fetch(url, {
     ...options,
     headers
   });
-}
 
+  if (response.status === 401) {
+    handleUnauthorized();
+  }
+
+  return response;
+}
 /**
  * Registers a global callback that is invoked whenever
  * the API returns HTTP 401 Unauthorized.
