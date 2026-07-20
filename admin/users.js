@@ -224,7 +224,6 @@ function bindUsersEvents() {
       const idVal = $("user-id").value;
       const displayNameVal = $("u-display-name").value.trim();
       const usernameVal = $("u-username").value.trim();
-      const passwordVal = $("u-password").value;
       const roleVal = $("u-role").value;
       const statusVal = parseInt($$("u-status").value);
 
@@ -250,21 +249,6 @@ function bindUsersEvents() {
         hasError = true;
       }
 
-      // Password complexity check ONLY for creation
-      const isEdit = !!idVal;
-      if (!isEdit) {
-        if (!passwordVal) {
-          showFieldError("u-password-error", "Password is required.");
-          hasError = true;
-        } else {
-          const pwdCheck = validatePasswordComplexity(passwordVal);
-          if (!pwdCheck.isValid) {
-            showFieldError("u-password-error", pwdCheck.message);
-            hasError = true;
-          }
-        }
-      }
-
       if (hasError) {
         formErrorAlert.style.display = "block";
         formErrorAlert.textContent = "Please resolve the indicated field errors.";
@@ -277,6 +261,8 @@ function bindUsersEvents() {
       saveBtn.disabled = true;
       saveBtn.textContent = "Saving...";
 
+      const isEdit = !!idVal;
+
       try {
         const url = isEdit ? `/api/v1/admin/users/${idVal}` : "/api/v1/admin/users";
         const method = isEdit ? "PUT" : "POST";
@@ -286,10 +272,6 @@ function bindUsersEvents() {
           role: roleVal,
           is_active: statusVal === 1
         };
-
-        if (!isEdit) {
-          body.password = passwordVal;
-        }
 
         const response = await apiFetch(url, {
           method,
@@ -301,6 +283,23 @@ function bindUsersEvents() {
         if (response.ok && result.success) {
           hideUserModal();
           await fetchUsers();
+
+          // Show temporary password modal on successful new user creation
+          if (!isEdit && result.data?.temporaryPassword) {
+            const titleEl = $("pwd-reset-title");
+            const descEl = $("pwd-reset-desc");
+            if (titleEl) titleEl.textContent = "User Account Created";
+            if (descEl) {
+              descEl.innerHTML = `The administrative account for user <strong id="reset-user-username-label"></strong> has been created. A temporary password has been generated:`;
+            }
+
+            const createdUser = result.data.user || {};
+            $("reset-user-username-label").textContent = `${createdUser.display_name || displayNameVal} (@${createdUser.username || usernameVal})`;
+            $("reset-temp-password-text").textContent = result.data.temporaryPassword;
+
+            const pwdResetModal = $("password-reset-result-modal");
+            if (pwdResetModal) pwdResetModal.style.display = "flex";
+          }
         } else {
           formErrorAlert.style.display = "block";
           formErrorAlert.textContent = result.message || "An error occurred while saving the user.";
@@ -440,6 +439,10 @@ function showUserFormModal(userId = null) {
     f.textContent = "";
   });
 
+  // Always hide password fields since passwords are now auto-generated on creation or reset separately
+  if (passwordGroup) passwordGroup.style.display = "none";
+  if (passwordInput) passwordInput.required = false;
+
   if (userId) {
     // Edit Mode
     const user = usersList.find(u => u.id === parseInt(userId));
@@ -453,10 +456,6 @@ function showUserFormModal(userId = null) {
     usernameInput.style.backgroundColor = "var(--bg-light)";
     usernameInput.style.cursor = "not-allowed";
 
-    // Hide password fields on edit since pwd resets are separate
-    passwordGroup.style.display = "none";
-    passwordInput.required = false;
-
     roleInput.value = user.role || "manager";
     statusInput.value = user.is_active === 1 || user.is_active === true ? "1" : "0";
   } else {
@@ -466,9 +465,6 @@ function showUserFormModal(userId = null) {
     usernameInput.readOnly = false;
     usernameInput.style.backgroundColor = "";
     usernameInput.style.cursor = "";
-
-    passwordGroup.style.display = "block";
-    passwordInput.required = true;
 
     roleInput.value = "manager";
     statusInput.value = "1";
@@ -488,6 +484,14 @@ async function executePasswordReset(user) {
     const result = await response.json();
 
     if (response.ok && result.success && result.data?.temporaryPassword) {
+      // Dynamic restore of password-reset title and description text
+      const titleEl = $("pwd-reset-title");
+      const descEl = $("pwd-reset-desc");
+      if (titleEl) titleEl.textContent = "Password Reset Successful";
+      if (descEl) {
+        descEl.innerHTML = `The password for user <strong id="reset-user-username-label"></strong> has been reset. A temporary password has been generated:`;
+      }
+
       // Display generated temporary password
       $("reset-user-username-label").textContent = `${user.display_name} (@${user.username})`;
       $("reset-temp-password-text").textContent = result.data.temporaryPassword;
