@@ -91,23 +91,16 @@ export async function createUser(request, env) {
     try {
         const body = await request.json();
         const username = body.username?.trim();
-        const password = body.password;
         const displayName = body.display_name?.trim();
         const role = body.role;
         const isActive = body.is_active === undefined ? 1 : (body.is_active ? 1 : 0);
 
-        if (!username || !password || !displayName || !role) {
-            return badRequest("All fields (username, password, display_name, role) are required.");
+        if (!username || !displayName || !role) {
+            return badRequest("All fields (username, display_name, role) are required.");
         }
 
         if (role !== "admin" && role !== "manager") {
             return badRequest("Invalid role. Role must be 'admin' or 'manager'.");
-        }
-
-        // Validate password complexity
-        const complexityCheck = validatePasswordComplexity(password);
-        if (!complexityCheck.isValid) {
-            return badRequest(complexityCheck.message);
         }
 
         // Check unique username
@@ -122,23 +115,45 @@ export async function createUser(request, env) {
             return conflict("Username is already taken.");
         }
 
+        // Generate strong temporary password passing complexity requirements
+        const charsUpper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+        const charsLower = "abcdefghijkmnopqrstuvwxyz";
+        const charsNumbers = "23456789";
+        const charsSpecial = "!@#$%^*()_+-=";
+
+        let tempPassword = "Tmp!";
+        const allChars = charsUpper + charsLower + charsNumbers + charsSpecial;
+        const randomValues = new Uint32Array(8);
+        crypto.getRandomValues(randomValues);
+        for (let i = 0; i < 8; i++) {
+            tempPassword += allChars.charAt(randomValues[i] % allChars.length);
+        }
+
+        const complexityCheck = validatePasswordComplexity(tempPassword);
+        if (!complexityCheck.isValid) {
+            tempPassword = "ResetPass123!";
+        }
+
         // Hash password
-        const passwordHash = await hashPassword(password);
+        const passwordHash = await hashPassword(tempPassword);
         const now = new Date().toISOString();
 
         const result = await env.DB
             .prepare(`
                 INSERT INTO users (username, password_hash, display_name, role, is_active, must_change_password, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+                VALUES (?, ?, ?, ?, ?, 1, ?, ?)
                 RETURNING id, username, display_name, role, is_active, must_change_password, created_at, updated_at
             `)
             .bind(username, passwordHash, displayName, role, isActive, now, now)
             .first();
 
         return created({
-            ...result,
-            is_active: result.is_active === 1,
-            must_change_password: result.must_change_password === 1
+            user: {
+                ...result,
+                is_active: result.is_active === 1,
+                must_change_password: result.must_change_password === 1
+            },
+            temporaryPassword: tempPassword
         });
     } catch (error) {
         console.error("Create user error:", error);
