@@ -16,12 +16,17 @@ let deleteVehicleId = null;
 let activeExteriorImages = [];
 let activeInteriorImages = [];
 
+let vehiclesEventsBound = false;
+
 /**
  * Initializes the Vehicles management view panel.
  */
 export function initVehiclesView() {
   initVehicleTable();
-  bindVehicleEvents();
+  if (!vehiclesEventsBound) {
+    bindVehicleEvents();
+    vehiclesEventsBound = true;
+  }
 }
 
 /**
