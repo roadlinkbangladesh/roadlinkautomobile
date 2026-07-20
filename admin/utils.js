@@ -3,6 +3,8 @@
  * Small shared helpers for DOM selection and manipulation.
  */
 
+let unauthorizedHandler = null;
+
 import { API_BASE_URL } from "./config.js";
 
 /**
@@ -40,3 +42,21 @@ export async function apiFetch(endpoint, options = {}) {
   });
 }
 
+/**
+ * Registers a global callback that is invoked whenever
+ * the API returns HTTP 401 Unauthorized.
+ *
+ * @param {Function} handler
+ */
+export function setUnauthorizedHandler(handler) {
+  unauthorizedHandler = handler;
+}
+
+/**
+ * Invokes the registered unauthorized handler.
+ */
+export function handleUnauthorized() {
+  if (typeof unauthorizedHandler === "function") {
+    unauthorizedHandler();
+  }
+}
