@@ -4,8 +4,8 @@
  */
 
 import { getAllVehicles } from "../js/inventory.js";
-import { $ } from "./utils.js";
-import { isAuthenticated, bindLoginEvents, bindLogoutEvents, validateSession } from "./auth.js";
+import { $, setUnauthorizedHandler } from "./utils.js";
+import { isAuthenticated, bindLoginEvents, bindLogoutEvents, validateSession, clearToken } from "./auth.js";
 import { initDashboard } from "./dashboard.js";
 import { initVehiclesView } from "./vehicles.js";
 import { initSettingsView } from "./settings.js";
@@ -20,6 +20,11 @@ async function init() {
   bindLogoutEvents(showLoginView);
   bindNavigationEvents();
   bindSidebarEvents();
+
+  setUnauthorizedHandler(() => {
+    clearToken();
+    showLoginView();
+  });
 
   if (isAuthenticated()) {
     showDashboardView();
