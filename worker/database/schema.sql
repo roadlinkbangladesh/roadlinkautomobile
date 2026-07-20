@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS users (
     is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1)),
     last_login_at TEXT,
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    must_change_password INTEGER NOT NULL DEFAULT 0 CHECK(must_change_password IN (0,1))
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
