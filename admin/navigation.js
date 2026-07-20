@@ -22,8 +22,12 @@ class NavigationController {
   init() {
     this.bindSidebarEvents();
     
+    const mustChange = sessionStorage.getItem("mustChangePassword") === "true";
     let savedModule = sessionStorage.getItem(this.storageKey);
-    if (!savedModule || !this.modules[savedModule]) {
+    
+    if (mustChange) {
+      savedModule = "change-password";
+    } else if (!savedModule || !this.modules[savedModule]) {
       savedModule = "dashboard";
     }
     
@@ -35,7 +39,10 @@ class NavigationController {
    * @param {string} name - Registered module key
    */
   navigateTo(name) {
-    if (!this.modules[name]) {
+    const mustChange = sessionStorage.getItem("mustChangePassword") === "true";
+    if (mustChange) {
+      name = "change-password";
+    } else if (!this.modules[name]) {
       name = "dashboard";
     }
 
