@@ -50,7 +50,19 @@ export default {
             let params = {};
 
             // Find matching route by scanning keys and converting parameters to regex patterns
-            for (const routeKey of Object.keys(routes)) {
+            // Sort keys so that routes without parameter placeholders (no ":") are processed first
+            const sortedRouteKeys = Object.keys(routes).sort((a, b) => {
+                const aPath = a.split(":").slice(1).join(":");
+                const bPath = b.split(":").slice(1).join(":");
+                const aHasPlaceholder = aPath.includes(":");
+                const bHasPlaceholder = bPath.includes(":");
+                
+                if (aHasPlaceholder && !bHasPlaceholder) return 1;
+                if (!aHasPlaceholder && bHasPlaceholder) return -1;
+                return 0;
+            });
+
+            for (const routeKey of sortedRouteKeys) {
                 const parts = routeKey.split(":");
                 const routeMethod = parts[0];
                 // Joint in case the route path contains colons, though usually it's just path
