@@ -132,6 +132,7 @@ export function bindLoginEvents(onLoginSuccess) {
     try {
       const res = await login(username, password, rememberMe);
       if (res.success && res.data && res.data.token) {
+        localStorage.setItem("rememberMe", rememberMe);
         saveToken(res.data.token, rememberMe);
         if (onLoginSuccess) onLoginSuccess();
       } else {
