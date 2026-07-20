@@ -65,6 +65,7 @@ export async function login(request, env) {
         
         return success({
             token,
+            mustChangePassword: user.must_change_password === 1 || user.must_change_password === true,
             user: {
                 id: user.id,
                 username: user.username,
