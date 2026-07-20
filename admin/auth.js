@@ -36,6 +36,8 @@ export function saveToken(token, rememberMe) {
 export function clearToken() {
   sessionStorage.removeItem("token");
   localStorage.removeItem("token");
+  sessionStorage.removeItem("mustChangePassword");
+  sessionStorage.removeItem("currentUser");
 }
 
 /**
@@ -134,6 +136,19 @@ export function bindLoginEvents(onLoginSuccess) {
       if (res.success && res.data && res.data.token) {
         localStorage.setItem("rememberMe", rememberMe);
         saveToken(res.data.token, rememberMe);
+        
+        if (res.data.mustChangePassword) {
+          sessionStorage.setItem("mustChangePassword", "true");
+        } else {
+          sessionStorage.removeItem("mustChangePassword");
+        }
+
+        if (res.data.user) {
+          sessionStorage.setItem("currentUser", JSON.stringify(res.data.user));
+        } else {
+          sessionStorage.removeItem("currentUser");
+        }
+
         if (onLoginSuccess) onLoginSuccess();
       } else {
         showError(res.message || "Invalid username or password");
