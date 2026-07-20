@@ -334,7 +334,7 @@ section {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.75); /* Neutral pure black semi-transparent overlay */
+  background: rgba(0, 0, 0, 0.7); /* Neutral pure black semi-transparent overlay */
   z-index: 2;
   pointer-events: none;
 }
