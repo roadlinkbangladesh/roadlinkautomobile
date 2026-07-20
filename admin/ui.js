@@ -23,6 +23,14 @@ export function showLoginView() {
     loginErrorPanel.style.display = "none";
   }
 
+  //Reset Remember Me Option based on memory
+  const rememberMeCheckbox = $("rememberMe");
+
+  if (rememberMeCheckbox) {
+    rememberMeCheckbox.checked =
+      localStorage.getItem("rememberMe") === "true";
+  }
+
   // Ensure toggled eye icon state resets
   const btnTogglePassword = $("btn-toggle-password");
   if (btnTogglePassword) {
