@@ -4,6 +4,7 @@
  */
 
 import { $ } from "./utils.js";
+import { getAllVehicles } from "../js/inventory.js";
 
 /**
  * Calculates vehicle statistics based on their status fields.
@@ -44,9 +45,9 @@ export function renderDashboardStatistics(stats) {
 
 /**
  * Initializes and updates the dashboard metrics.
- * @param {Array} vehicles - Array of vehicle data objects
  */
-export function initDashboard(vehicles) {
+export function initDashboard() {
+  const vehicles = getAllVehicles();
   const stats = calculateVehicleStatistics(vehicles);
   renderDashboardStatistics(stats);
 }
