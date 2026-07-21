@@ -10,7 +10,7 @@
 --   • Initial administrator account
 --
 -- NOTE:
--- Replace PASSWORD_NOT_SET with a valid Argon2 password hash before first login.
+-- Replace PASSWORD_NOT_SET with a valid PBKDF2 password hash before first login.
 -- =============================================================================
 
 PRAGMA foreign_keys = ON;
@@ -88,6 +88,34 @@ VALUES (
 );
 
 -- =============================================================================
+-- ROLES & PERMISSIONS
+-- =============================================================================
+
+INSERT OR IGNORE INTO roles (id, name, description, created_at, updated_at) VALUES 
+(1, 'Admin', 'Super Administrator with full access to all system modules, settings, user, and role management.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(2, 'Manager', 'Store Manager with operational permissions to manage vehicles and view dashboard and settings.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+
+INSERT OR IGNORE INTO role_permissions (role_id, permission_key) VALUES 
+(1, 'dashboard.view'),
+(1, 'vehicles.view'),
+(1, 'vehicles.create'),
+(1, 'vehicles.edit'),
+(1, 'vehicles.delete'),
+(1, 'vehicles.publish'),
+(1, 'settings.view'),
+(1, 'settings.edit'),
+(1, 'users.manage'),
+(1, 'roles.manage'),
+(1, 'reports.accounting.view'),
+
+(2, 'dashboard.view'),
+(2, 'vehicles.view'),
+(2, 'vehicles.create'),
+(2, 'vehicles.edit'),
+(2, 'vehicles.publish'),
+(2, 'settings.view');
+
+-- =============================================================================
 -- DEFAULT ADMINISTRATOR
 -- =============================================================================
 
@@ -99,7 +127,7 @@ INSERT OR IGNORE INTO users (
 
     display_name,
 
-    role,
+    role_id,
 
     is_active,
 
@@ -118,7 +146,7 @@ VALUES (
 
     'Administrator',
 
-    'admin',
+    1,
 
     1,
 
