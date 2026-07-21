@@ -41,6 +41,36 @@ export function clearToken() {
 }
 
 /**
+ * Retrieves the currently logged-in user object from session storage.
+ * @returns {Object|null}
+ */
+export function getCurrentUser() {
+  const userStr = sessionStorage.getItem("currentUser");
+  if (!userStr) return null;
+  try {
+    return JSON.parse(userStr);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Checks if the current user possesses a specific permission key.
+ * @param {string} permissionKey 
+ * @returns {boolean}
+ */
+export function hasPermission(permissionKey) {
+  const user = getCurrentUser();
+  if (!user) return false;
+  
+  if (Array.isArray(user.permissions)) {
+    return user.permissions.includes(permissionKey);
+  }
+  
+  return false;
+}
+
+/**
  * Checks if the current administrator is authenticated.
  * @returns {boolean} True if authenticated, false otherwise
  */
