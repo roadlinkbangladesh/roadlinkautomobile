@@ -92,7 +92,7 @@ VALUES (
 -- =============================================================================
 
 INSERT OR IGNORE INTO roles (id, name, description, created_at, updated_at) VALUES 
-(1, 'Admin', 'Super Administrator with full access to all system modules, settings, user, and role management.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+(1, 'Super Administrator', 'Super Administrator with full access to all system modules, settings, user, and role management.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 (2, 'Manager', 'Store Manager with operational permissions to manage vehicles and view dashboard and settings.', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 INSERT OR IGNORE INTO role_permissions (role_id, permission_key) VALUES 
