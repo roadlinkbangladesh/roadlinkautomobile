@@ -378,8 +378,35 @@ export function renderVehicleTable() {
 
     const canEdit = hasPermission("vehicles.edit");
     const canDelete = hasPermission("vehicles.delete");
+    const canPublish = hasPermission("vehicles.publish");
+
+    const isPublished = v.published !== false && v.isPublished !== false;
+    const publishedText = isPublished ? "Published" : "Draft";
+    const publishedStyle = isPublished
+      ? "background-color: rgba(37, 211, 102, 0.08); color: #25d366; border: 1px solid rgba(37, 211, 102, 0.2);"
+      : "background-color: rgba(100, 116, 139, 0.08); color: #64748b; border: 1px solid rgba(100, 116, 139, 0.2);";
 
     let actionButtonsHtml = "";
+    if (canEdit) {
+      actionButtonsHtml += `
+        <div style="display: inline-block;">
+          <select class="status-select-inline" data-id="${v.id}" style="padding: 4px 8px; font-size: 0.8rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); background: var(--bg-white); cursor: pointer; color: var(--text-dark); font-weight: 500;">
+            <option value="available" ${v.status === 'available' ? 'selected' : ''}>Available</option>
+            <option value="incoming" ${v.status === 'incoming' ? 'selected' : ''}>Incoming</option>
+            <option value="reserved" ${v.status === 'reserved' || v.status === 'pending' ? 'selected' : ''}>Reserved</option>
+            <option value="sold" ${v.status === 'sold' ? 'selected' : ''}>Sold</option>
+          </select>
+        </div>
+      `;
+    }
+    if (canPublish) {
+      actionButtonsHtml += `
+        <button class="btn-action-publish btn btn-view-site" data-id="${v.id}" style="padding: 4px 8px; font-size: 0.8rem; border-radius: var(--radius-sm); background: var(--bg-white); border: 1.5px solid var(--border-color); margin: 0; color: var(--text-dark); display: inline-flex; align-items: center; gap: 4px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          ${isPublished ? 'Unpublish' : 'Publish'}
+        </button>
+      `;
+    }
     if (canEdit) {
       actionButtonsHtml += `
         <button class="btn-action-edit" data-id="${v.id}">
@@ -396,7 +423,7 @@ export function renderVehicleTable() {
         </button>
       `;
     }
-    if (!canEdit && !canDelete) {
+    if (!canEdit && !canDelete && !canPublish) {
       actionButtonsHtml = `<span style="color: var(--text-muted); font-size: 0.85rem;">View Only</span>`;
     }
 
@@ -413,7 +440,12 @@ export function renderVehicleTable() {
         </span>
       </td>
       <td>
-        <div class="action-buttons">
+        <span class="badge" style="padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; ${publishedStyle}">
+          ${publishedText}
+        </span>
+      </td>
+      <td>
+        <div class="action-buttons" style="gap: 8px; align-items: center;">
           ${actionButtonsHtml}
         </div>
       </td>
@@ -452,4 +484,23 @@ function updatePaginationDOM(totalItems, totalPages) {
   if (btnNext) {
     btnNext.disabled = state.currentPage >= totalPages;
   }
+}
+
+/**
+ * Resets all vehicle table filters, search inputs, and page state.
+ */
+export function resetFilters() {
+  state.search = "";
+  state.statusFilter = "all";
+  state.makeFilter = "all";
+  state.currentPage = 1;
+  saveState();
+
+  const searchInput = $("vehicle-search");
+  const statusFilter = $("vehicle-status-filter");
+  const makeFilter = $("vehicle-make-filter");
+  
+  if (searchInput) searchInput.value = "";
+  if (statusFilter) statusFilter.value = "all";
+  if (makeFilter) makeFilter.value = "all";
 }
