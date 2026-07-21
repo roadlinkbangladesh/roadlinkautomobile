@@ -74,7 +74,7 @@ function renderUsersTable() {
     return (
       (u.username && u.username.toLowerCase().includes(q)) ||
       (u.display_name && u.display_name.toLowerCase().includes(q)) ||
-      (u.role && u.role.toLowerCase().includes(q))
+      (u.role_name && u.role_name.toLowerCase().includes(q))
     );
   });
 
@@ -109,7 +109,7 @@ function renderUsersTable() {
     row.innerHTML = `
       <td style="font-weight: 600; font-family: var(--font-display);">${u.display_name}</td>
       <td style="font-weight: 700; font-family: var(--font-mono); font-size: 0.85rem; color: var(--primary-blue);">${u.username}</td>
-      <td style="font-weight: 500; text-transform: capitalize;">${u.role}</td>
+      <td style="font-weight: 500; text-transform: capitalize;">${u.role_name || "User"}</td>
       <td>
         <span class="badge" style="padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; ${statusStyle}">
           ${statusText}
@@ -224,7 +224,7 @@ function bindUsersEvents() {
       const idVal = $("user-id").value;
       const displayNameVal = $("u-display-name").value.trim();
       const usernameVal = $("u-username").value.trim();
-      const roleVal = $("u-role").value;
+      const roleIdVal = parseInt($("u-role-id").value, 10);
       const statusVal = parseInt($$("u-status").value);
 
       const formErrorAlert = $("u-form-error");
@@ -269,7 +269,7 @@ function bindUsersEvents() {
         const body = {
           display_name: displayNameVal,
           username: usernameVal,
-          role: roleVal,
+          role_id: roleIdVal,
           is_active: statusVal === 1
         };
 
@@ -418,7 +418,7 @@ function showFieldError(id, message) {
 /**
  * Displays the Add/Edit form modal, pre-populating fields if an ID is provided.
  */
-function showUserFormModal(userId = null) {
+export async function showUserFormModal(userId = null) {
   const modal = $("user-modal");
   const modalTitle = $("user-modal-title");
   const form = $("user-form");
@@ -428,8 +428,25 @@ function showUserFormModal(userId = null) {
   const usernameInput = $("u-username");
   const passwordGroup = $("u-password-group");
   const passwordInput = $("u-password");
-  const roleInput = $("u-role");
+  const roleSelect = $("u-role-id");
   const statusInput = $("u-status");
+
+  // Fetch dynamic roles list first
+  try {
+    const rResponse = await apiFetch("/api/v1/admin/roles");
+    const rResult = await rResponse.json();
+    if (rResponse.ok && rResult.success && Array.isArray(rResult.data) && roleSelect) {
+      roleSelect.innerHTML = "";
+      rResult.data.forEach(role => {
+        const opt = document.createElement("option");
+        opt.value = role.id;
+        opt.textContent = role.name;
+        roleSelect.appendChild(opt);
+      });
+    }
+  } catch (err) {
+    console.error("Failed to populate roles dropdown:", err);
+  }
 
   // Reset errors and form
   if (form) form.reset();
@@ -456,7 +473,9 @@ function showUserFormModal(userId = null) {
     usernameInput.style.backgroundColor = "var(--bg-light)";
     usernameInput.style.cursor = "not-allowed";
 
-    roleInput.value = user.role || "manager";
+    if (roleSelect) {
+      roleSelect.value = user.role_id || "";
+    }
     statusInput.value = user.is_active === 1 || user.is_active === true ? "1" : "0";
   } else {
     // Add Mode
@@ -466,7 +485,6 @@ function showUserFormModal(userId = null) {
     usernameInput.style.backgroundColor = "";
     usernameInput.style.cursor = "";
 
-    roleInput.value = "manager";
     statusInput.value = "1";
   }
 
