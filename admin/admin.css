@@ -117,6 +117,14 @@
   box-shadow: 0 0 0 3px rgba(27, 54, 93, 0.15);
 }
 
+input:disabled, select:disabled, textarea:disabled {
+  background-color: var(--bg-light) !important;
+  color: var(--text-muted) !important;
+  border-color: var(--border-color) !important;
+  cursor: not-allowed !important;
+  opacity: 0.8;
+}
+
 .password-toggle-btn {
   position: absolute;
   right: 12px;
@@ -1792,5 +1800,18 @@
 .spinner-icon {
   animation: spin 1s linear infinite;
 }
+
+/* Responsive grid for Vehicle Details modal */
+.details-grid-responsive {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+@media (min-width: 768px) {
+  .details-grid-responsive {
+    grid-template-columns: 1.1fr 0.9fr !important;
+  }
+}
+
 
 

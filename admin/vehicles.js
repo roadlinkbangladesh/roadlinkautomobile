@@ -146,6 +146,44 @@ export function bindVehicleEvents() {
     btnClosePreviewModal.removeEventListener("click", closeImagePreviewModal);
     btnClosePreviewModal.addEventListener("click", closeImagePreviewModal);
   }
+
+  // Close details modal
+  const btnCloseDetailsModal = $("btn-close-details-modal");
+  const btnCloseDetails = $("btn-close-details");
+  if (btnCloseDetailsModal) {
+    btnCloseDetailsModal.removeEventListener("click", closeVehicleDetailsModal);
+    btnCloseDetailsModal.addEventListener("click", closeVehicleDetailsModal);
+  }
+  if (btnCloseDetails) {
+    btnCloseDetails.removeEventListener("click", closeVehicleDetailsModal);
+    btnCloseDetails.addEventListener("click", closeVehicleDetailsModal);
+  }
+
+  // Edit from details modal
+  const btnDetailsEdit = $("btn-details-edit");
+  if (btnDetailsEdit) {
+    btnDetailsEdit.removeEventListener("click", handleDetailsEditClick);
+    btnDetailsEdit.addEventListener("click", handleDetailsEditClick);
+  }
+
+  // Delete from details modal
+  const btnDetailsDelete = $("btn-details-delete");
+  if (btnDetailsDelete) {
+    btnDetailsDelete.removeEventListener("click", handleDetailsDeleteClick);
+    btnDetailsDelete.addEventListener("click", handleDetailsDeleteClick);
+  }
+
+  // Quick actions change listeners
+  const quickStatusSelect = $("details-quick-status");
+  if (quickStatusSelect) {
+    quickStatusSelect.removeEventListener("change", handleQuickStatusChange);
+    quickStatusSelect.addEventListener("change", handleQuickStatusChange);
+  }
+  const quickPublishSelect = $("details-quick-publish");
+  if (quickPublishSelect) {
+    quickPublishSelect.removeEventListener("change", handleQuickPublishChange);
+    quickPublishSelect.addEventListener("change", handleQuickPublishChange);
+  }
 }
 
 /**
@@ -164,13 +202,17 @@ function handleAddClick() {
  */
 function handleTableActions(e) {
   const thumbImg = e.target.closest(".thumb-img");
+  const viewBtn = e.target.closest(".btn-action-view");
   const editBtn = e.target.closest(".btn-action-edit");
   const deleteBtn = e.target.closest(".btn-action-delete");
   const statusBtn = e.target.closest(".btn-action-status");
 
   if (thumbImg) {
     const vehicleId = thumbImg.getAttribute("data-id");
-    openImagePreviewModal(vehicleId);
+    openVehicleDetailsModal(vehicleId);
+  } else if (viewBtn) {
+    const vehicleId = viewBtn.getAttribute("data-id");
+    openVehicleDetailsModal(vehicleId);
   } else if (editBtn) {
     if (!hasPermission("vehicles.edit")) {
       alert("Access Denied. You do not have permission to edit vehicles.");
@@ -968,4 +1010,390 @@ function handleStatusFormSubmit(e) {
   }
 
   closeStatusModal();
+}
+
+/**
+ * --- READ-ONLY VEHICLE DETAILS MODAL LOGIC ---
+ */
+let activeDetailsVehicleId = null;
+
+/**
+ * Opens and renders the details modal for a vehicle in read-only mode.
+ */
+export function openVehicleDetailsModal(vehicleId) {
+  if (!hasPermission("vehicles.view")) {
+    alert("Access Denied. You do not have permission to view vehicle details.");
+    return;
+  }
+
+  const vehicle = getAllVehicles().find(v => v.id === vehicleId);
+  if (!vehicle) return;
+
+  activeDetailsVehicleId = vehicleId;
+
+  const modal = $("vehicle-details-modal");
+  if (!modal) return;
+
+  // Render Title
+  const titleEl = $("details-modal-title");
+  if (titleEl) {
+    titleEl.textContent = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${vehicle.grade ? `(${vehicle.grade})` : ""}`.trim();
+  }
+
+  // Render Badges
+  updateDetailsModalBadges(vehicle);
+
+  // Render Cover image / main image
+  const mainImg = $("details-modal-main-img");
+  const coverSrc = vehicle.coverImage || vehicle.posterImage || (vehicle.images && vehicle.images[0]) || "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
+  if (mainImg) {
+    mainImg.src = coverSrc;
+  }
+
+  // Render Thumbnails Strip
+  const thumbnailsEl = $("details-modal-thumbnails");
+  if (thumbnailsEl) {
+    thumbnailsEl.innerHTML = "";
+
+    // Gather all unique images
+    const allImages = [];
+    if (vehicle.coverImage) allImages.push(vehicle.coverImage);
+    if (vehicle.posterImage) allImages.push(vehicle.posterImage);
+    if (Array.isArray(vehicle.images)) {
+      vehicle.images.forEach(img => { if (img) allImages.push(img); });
+    }
+    if (Array.isArray(vehicle.exteriorImages)) {
+      vehicle.exteriorImages.forEach(img => { if (img) allImages.push(img); });
+    }
+    if (Array.isArray(vehicle.interiorImages)) {
+      vehicle.interiorImages.forEach(img => { if (img) allImages.push(img); });
+    }
+
+    const uniqueImages = Array.from(new Set(allImages)).filter(Boolean);
+
+    if (uniqueImages.length > 1) {
+      uniqueImages.forEach((imgSrc) => {
+        const thumb = document.createElement("img");
+        thumb.src = imgSrc;
+        thumb.referrerPolicy = "no-referrer";
+        thumb.style.cssText = "width: 64px; height: 48px; object-fit: cover; border-radius: var(--radius-sm); border: 2px solid var(--border-color); cursor: pointer; flex-shrink: 0; transition: border-color 0.2s;";
+        if (imgSrc === coverSrc) {
+          thumb.style.borderColor = "var(--primary-blue)";
+        }
+        thumb.onerror = function() {
+          this.onerror = null;
+          this.src = "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
+        };
+        thumb.addEventListener("click", () => {
+          if (mainImg) mainImg.src = imgSrc;
+          thumbnailsEl.querySelectorAll("img").forEach(t => t.style.borderColor = "var(--border-color)");
+          thumb.style.borderColor = "var(--primary-blue)";
+        });
+        thumbnailsEl.appendChild(thumb);
+      });
+      thumbnailsEl.style.display = "flex";
+    } else {
+      thumbnailsEl.style.display = "none";
+    }
+  }
+
+  // Specifications
+  const specsContainer = $("details-specs-container");
+  if (specsContainer) {
+    specsContainer.innerHTML = "";
+
+    const hasEditOrDelete = hasPermission("vehicles.edit") || hasPermission("vehicles.create") || hasPermission("vehicles.delete");
+
+    const specsList = [
+      { label: "Stock ID", val: vehicle.stockNumber },
+      { label: "Chassis No.", val: vehicle.chassisNumber || "N/A" },
+      { label: "Registration", val: vehicle.registration || "N/A" },
+      { label: "Year", val: vehicle.year },
+      { label: "Mileage", val: vehicle.mileage !== undefined && vehicle.mileage !== "" ? `${vehicle.mileage.toLocaleString()} km` : "N/A" },
+      { label: "Engine CC", val: vehicle.engineCC !== undefined && vehicle.engineCC !== "" ? `${vehicle.engineCC} cc` : "N/A" },
+      { label: "Transmission", val: vehicle.transmission || "N/A" },
+      { label: "Fuel Type", val: vehicle.fuel || "N/A" },
+      { label: "Drive Type", val: vehicle.drive || "N/A" },
+      { label: "Body Type", val: vehicle.bodyType || "N/A" },
+      { label: "Exterior Color", val: vehicle.exteriorColor || "N/A" },
+      { label: "Interior Color", val: vehicle.interiorColor || "N/A" },
+      { label: "Steering", val: vehicle.steering || "N/A" },
+      { label: "Doors", val: vehicle.doors || "N/A" },
+      { label: "Seats", val: vehicle.seats || "N/A" },
+      { label: "Arrival Date", val: vehicle.arrivalDate || "N/A" },
+      { label: "Accident History", val: vehicle.accidentHistory || "N/A" },
+      { 
+        label: "Sale Price", 
+        val: `${new Intl.NumberFormat('en-BD', { style: 'currency', currency: vehicle.currency || 'BDT', minimumFractionDigits: 0 }).format(vehicle.price).replace("BDT", "৳").replace("USD", "$").replace("JPY", "¥")}` 
+      }
+    ];
+
+    if (hasEditOrDelete) {
+      specsList.push({
+        label: "Purchase Price",
+        val: vehicle.purchasePrice !== undefined && vehicle.purchasePrice !== "" ? `${new Intl.NumberFormat('en-BD', { style: 'currency', currency: vehicle.currency || 'BDT', minimumFractionDigits: 0 }).format(vehicle.purchasePrice).replace("BDT", "৳").replace("USD", "$").replace("JPY", "¥")}` : "N/A",
+        highlight: true
+      });
+    }
+
+    specsList.forEach(item => {
+      const row = document.createElement("div");
+      row.style.cssText = "display: flex; flex-direction: column; gap: 2px;";
+      
+      const labelSpan = document.createElement("span");
+      labelSpan.style.cssText = "font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;";
+      labelSpan.textContent = item.label;
+
+      const valSpan = document.createElement("span");
+      valSpan.style.cssText = "font-size: 0.85rem; font-weight: 600; color: var(--text-dark);";
+      valSpan.textContent = item.val;
+
+      if (item.highlight) {
+        valSpan.style.color = "var(--primary-red)";
+      }
+
+      row.appendChild(labelSpan);
+      row.appendChild(valSpan);
+      specsContainer.appendChild(row);
+    });
+  }
+
+  // Features
+  const featuresSection = $("details-features-section");
+  const featuresContainer = $("details-features-container");
+  if (featuresSection && featuresContainer) {
+    if (Array.isArray(vehicle.features) && vehicle.features.length > 0) {
+      featuresSection.style.display = "block";
+      featuresContainer.innerHTML = "";
+      vehicle.features.forEach(feat => {
+        const chip = document.createElement("span");
+        chip.style.cssText = "padding: 4px 10px; background: rgba(27, 54, 93, 0.05); color: var(--primary-blue); font-size: 0.75rem; font-weight: 600; border-radius: var(--radius-sm); border: 1px solid rgba(27, 54, 93, 0.1);";
+        chip.textContent = feat;
+        featuresContainer.appendChild(chip);
+      });
+    } else {
+      featuresSection.style.display = "none";
+    }
+  }
+
+  // Short description
+  const shortDescSection = $("details-short-desc-container");
+  const shortDescText = $("details-modal-short-desc");
+  if (shortDescSection && shortDescText) {
+    if (vehicle.shortDescription) {
+      shortDescSection.style.display = "block";
+      shortDescText.textContent = vehicle.shortDescription;
+    } else {
+      shortDescSection.style.display = "none";
+    }
+  }
+
+  // Full description
+  const descSection = $("details-desc-container");
+  const descText = $("details-modal-desc");
+  if (descSection && descText) {
+    if (vehicle.description) {
+      descSection.style.display = "block";
+      descText.textContent = vehicle.description;
+    } else {
+      descSection.style.display = "none";
+    }
+  }
+
+  // Quick Actions / Status controls
+  const actionsPanel = $("details-actions-panel");
+  const statusCtrl = $("details-status-control");
+  const publishCtrl = $("details-publish-control");
+  const quickStatusSelect = $("details-quick-status");
+  const quickPublishSelect = $("details-quick-publish");
+
+  const canEdit = hasPermission("vehicles.edit");
+  const canPublish = hasPermission("vehicles.publish");
+
+  if (actionsPanel) {
+    if (canEdit || canPublish) {
+      actionsPanel.style.display = "flex";
+
+      if (canEdit && statusCtrl && quickStatusSelect) {
+        statusCtrl.style.display = "flex";
+        quickStatusSelect.value = vehicle.status;
+      } else if (statusCtrl) {
+        statusCtrl.style.display = "none";
+      }
+
+      if (canPublish && publishCtrl && quickPublishSelect) {
+        publishCtrl.style.display = "flex";
+        quickPublishSelect.value = vehicle.published !== false ? "published" : "draft";
+      } else if (publishCtrl) {
+        publishCtrl.style.display = "none";
+      }
+    } else {
+      actionsPanel.style.display = "none";
+    }
+  }
+
+  // Footer Buttons
+  const editBtn = $("btn-details-edit");
+  const deleteBtn = $("btn-details-delete");
+
+  if (editBtn) {
+    editBtn.style.display = canEdit ? "inline-flex" : "none";
+  }
+  if (deleteBtn) {
+    deleteBtn.style.display = hasPermission("vehicles.delete") ? "inline-flex" : "none";
+  }
+
+  modal.style.display = "flex";
+  modal.scrollTop = 0;
+}
+
+/**
+ * Closes the details modal and resets state.
+ */
+export function closeVehicleDetailsModal() {
+  const modal = $("vehicle-details-modal");
+  if (modal) {
+    modal.style.display = "none";
+  }
+  activeDetailsVehicleId = null;
+  // Hide feedback toast if showing
+  const feedback = $("details-quick-save-feedback");
+  if (feedback) feedback.style.display = "none";
+}
+
+/**
+ * Handles transition from Details to Edit modal.
+ */
+function handleDetailsEditClick() {
+  if (activeDetailsVehicleId) {
+    const idToEdit = activeDetailsVehicleId;
+    closeVehicleDetailsModal();
+    openVehicleModal(idToEdit);
+  }
+}
+
+/**
+ * Handles transition from Details to Delete confirmation.
+ */
+function handleDetailsDeleteClick() {
+  if (activeDetailsVehicleId) {
+    const idToDelete = activeDetailsVehicleId;
+    closeVehicleDetailsModal();
+    openDeleteConfirmation(idToDelete);
+  }
+}
+
+/**
+ * Instantly updates vehicle status from details modal controls.
+ */
+function handleQuickStatusChange(e) {
+  if (!activeDetailsVehicleId) return;
+  const newStatus = e.target.value;
+  updateVehicle(activeDetailsVehicleId, { status: newStatus });
+  
+  showQuickSaveFeedback();
+  renderVehicleTable();
+  initDashboard();
+
+  const vehicle = getAllVehicles().find(v => v.id === activeDetailsVehicleId);
+  if (vehicle) {
+    updateDetailsModalBadges(vehicle);
+  }
+}
+
+/**
+ * Instantly updates vehicle publication state from details modal controls.
+ */
+function handleQuickPublishChange(e) {
+  if (!activeDetailsVehicleId) return;
+  const pubValue = e.target.value === "published";
+  updateVehicle(activeDetailsVehicleId, { published: pubValue, isPublished: pubValue });
+
+  showQuickSaveFeedback();
+  renderVehicleTable();
+  initDashboard();
+
+  const vehicle = getAllVehicles().find(v => v.id === activeDetailsVehicleId);
+  if (vehicle) {
+    updateDetailsModalBadges(vehicle);
+  }
+}
+
+/**
+ * Shows temporary confirmation indicator for quick action updates.
+ */
+function showQuickSaveFeedback() {
+  const feedback = $("details-quick-save-feedback");
+  if (feedback) {
+    feedback.style.display = "inline-flex";
+    setTimeout(() => {
+      feedback.style.display = "none";
+    }, 2000);
+  }
+}
+
+/**
+ * Dynamically re-renders the badge row on updates without closing the modal.
+ */
+function updateDetailsModalBadges(vehicle) {
+  const badgesEl = $("details-modal-badges");
+  if (!badgesEl) return;
+  badgesEl.innerHTML = "";
+
+  // Status Badge
+  let statusBg = "rgba(100, 116, 139, 0.08)";
+  let statusColor = "#64748b";
+  let statusBorder = "1px solid rgba(100, 116, 139, 0.2)";
+  if (vehicle.status === "available") {
+    statusBg = "rgba(37, 211, 102, 0.08)";
+    statusColor = "#25d366";
+    statusBorder = "1px solid rgba(37, 211, 102, 0.2)";
+  } else if (vehicle.status === "incoming") {
+    statusBg = "rgba(227, 27, 35, 0.08)";
+    statusColor = "#e31b23";
+    statusBorder = "1px solid rgba(227, 27, 35, 0.2)";
+  } else if (vehicle.status === "reserved" || vehicle.status === "pending") {
+    statusBg = "rgba(249, 115, 22, 0.08)";
+    statusColor = "#f97316";
+    statusBorder = "1px solid rgba(249, 115, 22, 0.2)";
+  } else if (vehicle.status === "sold") {
+    statusBg = "rgba(15, 23, 42, 0.08)";
+    statusColor = "#0f172a";
+    statusBorder = "1px solid rgba(15, 23, 42, 0.2)";
+  }
+
+  const statusBadge = document.createElement("span");
+  statusBadge.className = "badge";
+  statusBadge.style.cssText = `padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; background: ${statusBg}; color: ${statusColor}; border: ${statusBorder};`;
+  statusBadge.textContent = vehicle.status === "pending" ? "RESERVED" : vehicle.status.toUpperCase();
+  badgesEl.appendChild(statusBadge);
+
+  // Publication Badge
+  const isPublished = vehicle.published !== false && vehicle.isPublished !== false;
+  const pubBg = isPublished ? "rgba(37, 211, 102, 0.08)" : "rgba(100, 116, 139, 0.08)";
+  const pubColor = isPublished ? "#25d366" : "#64748b";
+  const pubBorder = isPublished ? "1px solid rgba(37, 211, 102, 0.2)" : "1px solid rgba(100, 116, 139, 0.2)";
+  const pubBadge = document.createElement("span");
+  pubBadge.className = "badge";
+  pubBadge.style.cssText = `padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; background: ${pubBg}; color: ${pubColor}; border: ${pubBorder};`;
+  pubBadge.textContent = isPublished ? "PUBLISHED" : "DRAFT";
+  badgesEl.appendChild(pubBadge);
+
+  // Featured Badge
+  if (vehicle.featured) {
+    const featBadge = document.createElement("span");
+    featBadge.className = "badge";
+    featBadge.style.cssText = `padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; background: rgba(249, 115, 22, 0.08); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.2);`;
+    featBadge.textContent = "FEATURED";
+    badgesEl.appendChild(featBadge);
+  }
+
+  // Negotiable Badge
+  if (vehicle.negotiable) {
+    const negBadge = document.createElement("span");
+    negBadge.className = "badge";
+    negBadge.style.cssText = `padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; background: rgba(27, 54, 93, 0.08); color: var(--primary-blue); border: 1px solid rgba(27, 54, 93, 0.2);`;
+    negBadge.textContent = "NEGOTIABLE";
+    badgesEl.appendChild(negBadge);
+  }
 }

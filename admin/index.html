@@ -914,6 +914,119 @@
     </div>
   </div>
 
+  <!-- VEHICLE READ-ONLY DETAILS MODAL -->
+  <div id="vehicle-details-modal" class="modal-overlay" style="display: none; z-index: 2100;">
+    <div class="modal-card modal-large" style="max-width: 900px !important; padding: 28px; display: flex; flex-direction: column; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header-row" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <h3 id="details-modal-title" class="modal-title-left" style="font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; margin: 0; color: var(--primary-blue);">Vehicle Details</h3>
+          <div id="details-modal-badges" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <!-- Dynamic badges -->
+          </div>
+        </div>
+        <button id="btn-close-details-modal" class="btn-modal-close" aria-label="Close Modal" type="button" style="background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; padding: 4px; transition: color 0.2s;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Scrollable content -->
+      <div style="flex: 1; overflow-y: auto; padding-right: 4px; margin-bottom: 20px;">
+        <div style="display: grid; grid-template-columns: 1fr; gap: 24px; width: 100%;" class="details-grid-responsive">
+          
+          <!-- IMAGE GALLERY SECTION -->
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="width: 100%; height: 380px; background: #f8fafc; border: 1.5px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;">
+              <img id="details-modal-main-img" src="" alt="Vehicle Image" style="width: 100%; height: 100%; object-fit: cover;" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800';">
+            </div>
+            <!-- Thumbnails strip -->
+            <div id="details-modal-thumbnails" style="display: flex; gap: 8px; overflow-x: auto; padding: 4px 0; max-width: 100%;">
+              <!-- Dynamic thumbnails -->
+            </div>
+          </div>
+
+          <!-- DETAILS GRID SECTION -->
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            
+            <!-- Specs Grid -->
+            <div style="background: var(--bg-light); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 18px;">
+              <h4 style="font-family: var(--font-display); font-weight: 700; font-size: 1rem; color: var(--primary-blue); margin-top: 0; margin-bottom: 14px; border-bottom: 1px solid rgba(27, 54, 93, 0.1); padding-bottom: 8px;">Specifications</h4>
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 16px;" id="details-specs-container">
+                <!-- Dynamic specifications rows -->
+              </div>
+            </div>
+
+            <!-- Features Chips -->
+            <div id="details-features-section" style="display: none;">
+              <h4 style="font-family: var(--font-display); font-weight: 700; font-size: 1rem; color: var(--primary-blue); margin-top: 0; margin-bottom: 12px;">Features & Equipment</h4>
+              <div id="details-features-container" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                <!-- Dynamic feature chips -->
+              </div>
+            </div>
+
+            <!-- Descriptions -->
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div id="details-short-desc-container" style="display: none;">
+                <h5 style="font-weight: 700; font-size: 0.9rem; color: var(--primary-blue); margin: 0 0 4px 0;">Short Highlight</h5>
+                <p id="details-modal-short-desc" style="font-size: 0.85rem; color: var(--text-dark); margin: 0; line-height: 1.5; font-style: italic;"></p>
+              </div>
+              <div id="details-desc-container" style="display: none;">
+                <h5 style="font-weight: 700; font-size: 0.9rem; color: var(--primary-blue); margin: 0 0 4px 0;">Description</h5>
+                <p id="details-modal-desc" style="font-size: 0.85rem; color: var(--text-dark); margin: 0; line-height: 1.6; white-space: pre-wrap;"></p>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- QUICK ACTIONS / PERMISSION STATUS CONTROLS PANEL -->
+      <div id="details-actions-panel" style="background: var(--bg-light); border: 1.5px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px; display: none; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap; flex: 1;">
+          <!-- Status select if editable -->
+          <div id="details-status-control" style="display: none; flex-direction: column; gap: 4px;">
+            <label for="details-quick-status" style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Vehicle Status</label>
+            <select id="details-quick-status" style="padding: 6px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); background: var(--bg-white); font-size: 0.85rem; font-weight: 500; min-width: 130px; cursor: pointer;">
+              <option value="available">Available</option>
+              <option value="incoming">Incoming</option>
+              <option value="reserved">Reserved</option>
+              <option value="sold">Sold</option>
+            </select>
+          </div>
+          <!-- Publish select if publishable -->
+          <div id="details-publish-control" style="display: none; flex-direction: column; gap: 4px;">
+            <label for="details-quick-publish" style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Publication Status</label>
+            <select id="details-quick-publish" style="padding: 6px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); background: var(--bg-white); font-size: 0.85rem; font-weight: 500; min-width: 140px; cursor: pointer;">
+              <option value="draft">Draft (Unpublished)</option>
+              <option value="published">Published</option>
+            </select>
+          </div>
+          <!-- Inline save feedback indicator -->
+          <span id="details-quick-save-feedback" style="font-size: 0.8rem; font-weight: 600; color: #25d366; display: none; align-items: center; gap: 4px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Saved!
+          </span>
+        </div>
+      </div>
+
+      <!-- MODAL FOOTER BUTTONS -->
+      <div class="modal-footer-row" style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: auto; display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" id="btn-close-details" class="btn btn-view-site" style="margin-bottom: 0;">Close</button>
+        <!-- EDIT BUTTON (If vehicles.edit) -->
+        <button type="button" id="btn-details-edit" class="btn btn-login-submit" style="width: auto; background: var(--primary-blue); border-color: var(--primary-blue); color: var(--bg-white); margin-top: 0; padding: 10px 24px; display: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-edit-2" style="margin-right: 4px;"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          Edit Vehicle
+        </button>
+        <!-- DELETE BUTTON (If vehicles.delete) -->
+        <button type="button" id="btn-details-delete" class="btn-danger" style="border-radius: var(--radius-sm); padding: 10px 24px; font-weight: 600; font-size: 0.9rem; display: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          Delete
+        </button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- USER EDIT/ADD MODAL -->
   <div id="user-modal" class="modal-overlay" style="display: none;">
     <div class="modal-card" style="max-width: 500px; padding: 28px;">

@@ -179,7 +179,7 @@ function applyUIPermissions() {
     el.textContent = user.display_name || user.username;
   });
   topbarLabelElements.forEach(el => {
-    el.textContent = user.role_name || (user.role_id === 1 ? "Admin" : (user.role_id === 2 ? "Manager" : "User"));
+    el.textContent = user.role_name || (user.role_id === 1 ? "Super Administrator" : (user.role_id === 2 ? "Manager" : "User"));
   });
 
   const mustChange = sessionStorage.getItem("mustChangePassword") === "true";

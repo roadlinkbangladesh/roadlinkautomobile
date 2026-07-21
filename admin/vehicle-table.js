@@ -387,11 +387,19 @@ export function renderVehicleTable() {
       : "background-color: rgba(100, 116, 139, 0.08); color: #64748b; border: 1px solid rgba(100, 116, 139, 0.2);";
 
     let actionButtonsHtml = "";
+    if (hasPermission("vehicles.view")) {
+      actionButtonsHtml += `
+        <button class="btn-action-view btn btn-view-site" data-id="${v.id}" style="padding: 4px 8px; font-size: 0.8rem; border-radius: var(--radius-sm); background: var(--bg-white); border: 1.5px solid var(--border-color); margin: 0; color: var(--text-dark); display: inline-flex; align-items: center; gap: 4px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye" style="color: var(--primary-blue);"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0z"/><circle cx="12" cy="12" r="3"/></svg>
+          Details
+        </button>
+      `;
+    }
     if (canEdit || canPublish) {
       actionButtonsHtml += `
         <button class="btn-action-status btn btn-view-site" data-id="${v.id}" style="padding: 4px 8px; font-size: 0.8rem; border-radius: var(--radius-sm); background: var(--bg-white); border: 1.5px solid var(--border-color); margin: 0; color: var(--text-dark); display: inline-flex; align-items: center; gap: 4px;">
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Change Status
+          Status
         </button>
       `;
     }
@@ -410,9 +418,6 @@ export function renderVehicleTable() {
           Delete
         </button>
       `;
-    }
-    if (!canEdit && !canDelete && !canPublish) {
-      actionButtonsHtml = `<span style="color: var(--text-muted); font-size: 0.85rem;">View Only</span>`;
     }
 
     row.innerHTML = `
