@@ -1,5 +1,5 @@
-import { success, badRequest, notFound, conflict, serverError } from "../../utils/response.js";
-import { authenticate } from "../../utils/auth.js";
+import { success, badRequest, notFound, conflict, serverError, forbidden } from "../../utils/response.js";
+import { authenticate, isStrictlyLessPrivileged } from "../../utils/auth.js";
 
 export const SYSTEM_PERMISSIONS = [
     { key: "dashboard.view", group: "Dashboard", description: "View dashboard widgets and charts" },
@@ -22,8 +22,12 @@ export async function listPermissions(request, env) {
 }
 
 export async function listRoles(request, env) {
-    const auth = await authenticate(request, env, "roles.manage");
+    const auth = await authenticate(request, env);
     if (auth.errorResponse) return auth.errorResponse;
+
+    if (!auth.permissions.includes("roles.manage") && !auth.permissions.includes("users.manage")) {
+        return forbidden("Access denied. Insufficient permissions.");
+    }
 
     try {
         const roles = await env.DB
@@ -32,9 +36,21 @@ export async function listRoles(request, env) {
 
         const list = roles.results || [];
         
+        // If not Super Administrator, filter roles to only show those strictly less privileged than the caller's role
+        let viewableRoles = list;
+        if (auth.user.role_id !== 1) {
+            const filtered = [];
+            for (const r of list) {
+                if (await isStrictlyLessPrivileged(env, r.id, auth.user.role_id)) {
+                    filtered.push(r);
+                }
+            }
+            viewableRoles = filtered;
+        }
+
         // Load assigned permissions count and user count for each role
         const enriched = [];
-        for (const role of list) {
+        for (const role of viewableRoles) {
             const permsQuery = await env.DB
                 .prepare(`SELECT count(*) as count FROM role_permissions WHERE role_id = ?`)
                 .bind(role.id)
@@ -59,12 +75,21 @@ export async function listRoles(request, env) {
 }
 
 export async function getRole(request, env, ctx, params) {
-    const auth = await authenticate(request, env, "roles.manage");
+    const auth = await authenticate(request, env);
     if (auth.errorResponse) return auth.errorResponse;
+
+    if (!auth.permissions.includes("roles.manage") && !auth.permissions.includes("users.manage")) {
+        return forbidden("Access denied. Insufficient permissions.");
+    }
 
     const id = parseInt(params.id);
     if (isNaN(id)) {
         return badRequest("Invalid role ID.");
+    }
+
+    // If not Super Administrator, verify the requested role is strictly less privileged
+    if (auth.user.role_id !== 1 && !(await isStrictlyLessPrivileged(env, id, auth.user.role_id))) {
+        return forbidden("Access denied. You do not have permission to view this role.");
     }
 
     try {
@@ -97,6 +122,11 @@ export async function getRole(request, env, ctx, params) {
 export async function createRole(request, env) {
     const auth = await authenticate(request, env, "roles.manage");
     if (auth.errorResponse) return auth.errorResponse;
+
+    // Only Super Administrators may create roles
+    if (auth.user.role_id !== 1) {
+        return forbidden("Access denied. Only Super Administrators may create roles.");
+    }
 
     try {
         const body = await request.json();
@@ -155,9 +185,18 @@ export async function updateRole(request, env, ctx, params) {
     const auth = await authenticate(request, env, "roles.manage");
     if (auth.errorResponse) return auth.errorResponse;
 
+    // Only Super Administrators may edit roles
+    if (auth.user.role_id !== 1) {
+        return forbidden("Access denied. Only Super Administrators may modify roles.");
+    }
+
     const id = parseInt(params.id);
     if (isNaN(id)) {
         return badRequest("Invalid role ID.");
+    }
+
+    if (id === 1) {
+        return badRequest("The system default Super Administrator role cannot be modified.");
     }
 
     try {
@@ -236,6 +275,11 @@ export async function deleteRole(request, env, ctx, params) {
     const auth = await authenticate(request, env, "roles.manage");
     if (auth.errorResponse) return auth.errorResponse;
 
+    // Only Super Administrators may delete roles
+    if (auth.user.role_id !== 1) {
+        return forbidden("Access denied. Only Super Administrators may delete roles.");
+    }
+
     const id = parseInt(params.id);
     if (isNaN(id)) {
         return badRequest("Invalid role ID.");
@@ -243,7 +287,7 @@ export async function deleteRole(request, env, ctx, params) {
 
     // Protect core roles (e.g., Admin role with id=1 should not be deleted)
     if (id === 1) {
-        return badRequest("The system default Administrator role cannot be deleted.");
+        return badRequest("The system default Super Administrator role cannot be deleted.");
     }
 
     try {

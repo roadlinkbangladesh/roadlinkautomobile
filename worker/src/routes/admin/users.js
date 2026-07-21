@@ -8,7 +8,7 @@ import {
     conflict,
     serverError
 } from "../../utils/response.js";
-import { authenticate } from "../../utils/auth.js";
+import { authenticate, isStrictlyLessPrivileged } from "../../utils/auth.js";
 import { hashPassword, verifyPassword } from "../../utils/password.js";
 import { validatePasswordComplexity } from "../../utils/password-validator.js";
 
@@ -29,9 +29,23 @@ export async function listUsers(request, env) {
             `)
             .all();
 
+        const results = users.results || [];
+
+        // If not Super Administrator, filter list to only show users strictly less privileged than caller's role (plus self)
+        let viewableUsers = results;
+        if (auth.user.role_id !== 1) {
+            const filtered = [];
+            for (const u of results) {
+                if (u.id === auth.user.id || (await isStrictlyLessPrivileged(env, u.role_id, auth.user.role_id))) {
+                    filtered.push(u);
+                }
+            }
+            viewableUsers = filtered;
+        }
+
         // Convert SQLite 1/0 to true/false for JSON consistency if desired, or keep as integer.
         // Let's normalize SQLite integers (0/1) to boolean for the frontend representation.
-        const list = (users.results || []).map(u => ({
+        const list = viewableUsers.map(u => ({
             ...u,
             is_active: u.is_active === 1,
             must_change_password: u.must_change_password === 1
@@ -72,6 +86,13 @@ export async function getUser(request, env, ctx, params) {
             return notFound("User not found.");
         }
 
+        // Delegated Administrator Guard: Cannot view details of someone equal or more privileged
+        if (auth.user.role_id !== 1) {
+            if (id !== auth.user.id && !(await isStrictlyLessPrivileged(env, user.role_id, auth.user.role_id))) {
+                return forbidden("Access denied. You do not have permission to view this user's details.");
+            }
+        }
+
         return success({
             ...user,
             is_active: user.is_active === 1,
@@ -109,6 +130,13 @@ export async function createUser(request, env) {
 
         if (!roleExists) {
             return badRequest("Invalid role. Selected role does not exist.");
+        }
+
+        // Role assignment check: Must be strictly less privileged
+        if (auth.user.role_id !== 1) {
+            if (!(await isStrictlyLessPrivileged(env, roleId, auth.user.role_id))) {
+                return forbidden("You can only assign roles that are strictly less privileged than your own.");
+            }
         }
 
         // Check unique username
@@ -202,7 +230,19 @@ export async function updateUser(request, env, ctx, params) {
                 return badRequest("You cannot deactivate your own account.");
             }
             if (roleId !== undefined && roleId !== auth.user.role_id) {
-                return badRequest("You cannot revoke your own administrator privileges.");
+                return badRequest("You cannot change your own role.");
+            }
+        }
+
+        // Delegated Administrator Guard: Cannot modify someone equal or more privileged
+        if (auth.user.role_id !== 1) {
+            if (!(await isStrictlyLessPrivileged(env, user.role_id, auth.user.role_id))) {
+                return forbidden("Access denied. You can only modify user accounts that are strictly less privileged than your own.");
+            }
+
+            // Also, if changing the role, the new role must be strictly less privileged than their own role
+            if (roleId !== undefined && !(await isStrictlyLessPrivileged(env, roleId, auth.user.role_id))) {
+                return forbidden("You can only assign roles that are strictly less privileged than your own.");
             }
         }
 
@@ -284,12 +324,19 @@ export async function deleteUser(request, env, ctx, params) {
 
     try {
         const user = await env.DB
-            .prepare(`SELECT id FROM users WHERE id = ? LIMIT 1`)
+            .prepare(`SELECT id, role_id FROM users WHERE id = ? LIMIT 1`)
             .bind(id)
             .first();
 
         if (!user) {
             return notFound("User not found.");
+        }
+
+        // Delegated Administrator Guard: Cannot delete someone equal or more privileged
+        if (auth.user.role_id !== 1) {
+            if (!(await isStrictlyLessPrivileged(env, user.role_id, auth.user.role_id))) {
+                return forbidden("Access denied. You can only delete user accounts that are strictly less privileged than your own.");
+            }
         }
 
         await env.DB
@@ -322,12 +369,19 @@ export async function resetPassword(request, env, ctx, params) {
 
     try {
         const user = await env.DB
-            .prepare(`SELECT id FROM users WHERE id = ? LIMIT 1`)
+            .prepare(`SELECT id, role_id FROM users WHERE id = ? LIMIT 1`)
             .bind(id)
             .first();
 
         if (!user) {
             return notFound("User not found.");
+        }
+
+        // Delegated Administrator Guard: Cannot reset password for someone equal or more privileged
+        if (auth.user.role_id !== 1) {
+            if (!(await isStrictlyLessPrivileged(env, user.role_id, auth.user.role_id))) {
+                return forbidden("Access denied. You can only reset passwords for users who are strictly less privileged than your own role.");
+            }
         }
 
         // Generate strong temporary password passing complexity requirements
