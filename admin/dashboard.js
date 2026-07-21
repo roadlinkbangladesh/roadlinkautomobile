@@ -5,6 +5,10 @@
 
 import { $ } from "./utils.js";
 import { getAllVehicles } from "../js/inventory.js";
+import { navigationController } from "./navigation.js";
+import { state as tableState, saveState as saveTableState, renderVehicleTable } from "./vehicle-table.js";
+
+let dashboardEventsBound = false;
 
 /**
  * Calculates vehicle statistics based on their status fields.
@@ -44,10 +48,66 @@ export function renderDashboardStatistics(stats) {
 }
 
 /**
+ * Bind click events to metric cards for module navigation and table filtering
+ */
+function bindMetricCardEvents() {
+  const cardTotal = document.querySelector(".bg-card-blue");
+  const cardAvailable = document.querySelector(".bg-card-green");
+  const cardIncoming = document.querySelector(".bg-card-red");
+  const cardReserved = document.querySelector(".bg-card-orange");
+  const cardSold = document.querySelector(".bg-card-charcoal");
+
+  const navigateAndFilter = (status) => {
+    // Update the vehicles table state
+    tableState.statusFilter = status;
+    tableState.currentPage = 1;
+    saveTableState();
+
+    // Sync input UI if it exists
+    const filterSelect = $("vehicle-status-filter");
+    if (filterSelect) {
+      filterSelect.value = status;
+    }
+
+    // Render table with new filter
+    renderVehicleTable();
+
+    // Navigate to vehicles module
+    navigationController.navigateTo("vehicles");
+  };
+
+  if (cardTotal) {
+    cardTotal.style.cursor = "pointer";
+    cardTotal.onclick = () => navigateAndFilter("all");
+  }
+  if (cardAvailable) {
+    cardAvailable.style.cursor = "pointer";
+    cardAvailable.onclick = () => navigateAndFilter("available");
+  }
+  if (cardIncoming) {
+    cardIncoming.style.cursor = "pointer";
+    cardIncoming.onclick = () => navigateAndFilter("incoming");
+  }
+  if (cardReserved) {
+    cardReserved.style.cursor = "pointer";
+    cardReserved.onclick = () => navigateAndFilter("reserved");
+  }
+  if (cardSold) {
+    cardSold.style.cursor = "pointer";
+    cardSold.onclick = () => navigateAndFilter("sold");
+  }
+}
+
+/**
  * Initializes and updates the dashboard metrics.
  */
 export function initDashboard() {
   const vehicles = getAllVehicles();
   const stats = calculateVehicleStatistics(vehicles);
   renderDashboardStatistics(stats);
+  
+  if (!dashboardEventsBound) {
+    bindMetricCardEvents();
+    dashboardEventsBound = true;
+  }
 }
