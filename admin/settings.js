@@ -3,11 +3,29 @@
  * Integrates with the backend REST API for system settings.
  */
 
-import { getToken, clearToken } from "./auth.js";
+import { getToken, clearToken, hasPermission } from "./auth.js";
 import { showLoginView } from "./ui.js";
 import { $, apiFetch } from "./utils.js";
 
 let settingsEventsBound = false;
+
+const SYSTEM_DEFAULTS = {
+  companyName: "Roadlink Automobiles",
+  address: "169 (Level 2), Fakirerpool, Dhaka 1000",
+  phone: "+880 1311-503840",
+  whatsapp: "8801311503840",
+  email: "roadlinkbangladesh@gmail.com",
+  facebookUrl: "https://www.facebook.com/roadlinkautomobiles",
+  youtubeUrl: "https://www.youtube.com/@roadlinkautomobiles9168",
+  displayTimezone: "Asia/Dhaka",
+  displayLocale: "en-BD",
+  defaultCurrency: "BDT",
+  sessionTimeoutMinutes: 30,
+  archiveRetentionDays: 180,
+  seoTitleSuffix: "Roadlink Automobiles",
+  seoDefaultKeywords: "Japanese cars, reconditioned cars, Dhaka car importer, Toyota Axio, Honda Vezel, Nissan X-Trail, Roadlink Automobiles Bangladesh",
+  seoDefaultDescription: "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock."
+};
 
 /**
  * Initializes and hydrates the Settings View fields from the backend API.
@@ -33,6 +51,11 @@ async function loadSettings() {
   const form = $("settings-form");
   const loadingContainer = $("settings-loading-container");
   const errorContainer = $("settings-error-container");
+  const successAlert = $("settings-alert-success");
+  const errorAlert = $("settings-alert-error");
+
+  if (successAlert) successAlert.style.display = "none";
+  if (errorAlert) errorAlert.style.display = "none";
 
   // Show loading state, hide other panels
   if (loadingContainer) loadingContainer.style.display = "block";
@@ -57,9 +80,9 @@ async function loadSettings() {
       if (loadingContainer) loadingContainer.style.display = "none";
       if (form) {
         form.style.display = "block";
-        disableFormElements(form, false);
       }
       populateForm(payload.data);
+      applyPermissions();
     } else {
       throw new Error(payload.message || "Failed to load settings configuration.");
     }
@@ -92,6 +115,13 @@ function populateForm(data) {
   const seoKeywordsField = $("set-seo-keywords");
   const seoDescField = $("set-seo-desc");
 
+  // New settings fields from database schema
+  const displayTimezoneField = $("set-display-timezone");
+  const displayLocaleField = $("set-display-locale");
+  const defaultCurrencyField = $("set-default-currency");
+  const sessionTimeoutField = $("set-session-timeout");
+  const archiveRetentionField = $("set-archive-retention");
+
   // Populate fields handling both camelCase and snake_case backend schemas
   if (companyField) companyField.value = data.companyName || data.company_name || "";
   if (addressField) addressField.value = data.address || "";
@@ -99,32 +129,147 @@ function populateForm(data) {
   if (whatsappField) whatsappField.value = data.whatsapp || "";
   if (emailField) emailField.value = data.email || "";
   
-  if (facebookField) facebookField.value = data.facebookUrl || data.facebook_url || "";
-  if (youtubeField) youtubeField.value = data.youtubeUrl || data.youtube_url || "";
+  if (facebookField) facebookField.value = data.facebookUrl || data.facebook_url || data.facebook || "";
+  if (youtubeField) youtubeField.value = data.youtubeUrl || data.youtube_url || data.youtube || "";
   
   if (seoSuffixField) seoSuffixField.value = data.seoTitleSuffix || data.seo_title_suffix || "";
   if (seoKeywordsField) seoKeywordsField.value = data.seoDefaultKeywords || data.seo_default_keywords || "";
   if (seoDescField) seoDescField.value = data.seoDefaultDescription || data.seo_default_description || "";
 
-  // Reset and clear security inputs safely
-  const currPass = $("set-curr-pass");
-  const newPass = $("set-new-pass");
-  const confPass = $("set-conf-pass");
-  if (currPass) currPass.value = "";
-  if (newPass) newPass.value = "";
-  if (confPass) confPass.value = "";
+  if (displayTimezoneField) displayTimezoneField.value = data.displayTimezone || data.display_timezone || "Asia/Dhaka";
+  if (displayLocaleField) displayLocaleField.value = data.displayLocale || data.display_locale || "en-BD";
+  if (defaultCurrencyField) defaultCurrencyField.value = data.defaultCurrency || data.default_currency || "BDT";
+  if (sessionTimeoutField) sessionTimeoutField.value = data.sessionTimeoutMinutes !== undefined ? data.sessionTimeoutMinutes : (data.session_timeout_minutes || 30);
+  if (archiveRetentionField) archiveRetentionField.value = data.archiveRetentionDays !== undefined ? data.archiveRetentionDays : (data.archive_retention_days || 180);
 }
 
 /**
- * Enables or disables all inputs, selects, and buttons inside a form container.
+ * Applies role-based permissions dynamically on the settings form.
+ * If user does not have settings.edit permission, make fields read-only and hide submit buttons.
+ */
+function applyPermissions() {
+  const form = $("settings-form");
+  const canEdit = hasPermission("settings.edit");
+  const btnReset = $("btn-reset-settings");
+  const btnSave = $("btn-save-settings");
+
+  if (form) {
+    disableFormElements(form, !canEdit);
+  }
+
+  if (btnReset) {
+    btnReset.style.display = canEdit ? "inline-flex" : "none";
+    btnReset.disabled = !canEdit;
+  }
+  if (btnSave) {
+    btnSave.style.display = canEdit ? "inline-flex" : "none";
+    btnSave.disabled = !canEdit;
+  }
+}
+
+/**
+ * Enables or disables all inputs, selects, and textareas inside a form container.
  * @param {HTMLElement} form - The form container element
  * @param {boolean} disabled - Whether to disable elements
  */
 function disableFormElements(form, disabled) {
-  const elements = form.querySelectorAll("input, select, textarea, button");
+  const elements = form.querySelectorAll("input, select, textarea");
   elements.forEach(element => {
     element.disabled = disabled;
   });
+}
+
+/**
+ * Handles form submit to save settings.
+ */
+async function handleSettingsSubmit(e) {
+  e.preventDefault();
+
+  if (!hasPermission("settings.edit")) {
+    alert("Access Denied: You do not have permission to modify system settings.");
+    return;
+  }
+
+  const successAlert = $("settings-alert-success");
+  const errorAlert = $("settings-alert-error");
+  const btnSave = $("btn-save-settings");
+
+  if (successAlert) successAlert.style.display = "none";
+  if (errorAlert) errorAlert.style.display = "none";
+
+  const companyName = $("set-company-name")?.value || "";
+  const address = $("set-address")?.value || "";
+  const phone = $("set-phone")?.value || "";
+  const whatsapp = $("set-whatsapp")?.value || "";
+  const email = $("set-email")?.value || "";
+  const facebookUrl = $("set-facebook")?.value || "";
+  const youtubeUrl = $("set-youtube")?.value || "";
+  const displayTimezone = $("set-display-timezone")?.value || "";
+  const displayLocale = $("set-display-locale")?.value || "";
+  const defaultCurrency = $("set-default-currency")?.value || "";
+  const sessionTimeoutMinutes = parseInt($("set-session-timeout")?.value, 10);
+  const archiveRetentionDays = parseInt($("set-archive-retention")?.value, 10);
+  const seoTitleSuffix = $("set-seo-suffix")?.value || "";
+  const seoDefaultKeywords = $("set-seo-keywords")?.value || "";
+  const seoDefaultDescription = $("set-seo-desc")?.value || "";
+
+  if (!companyName || !address || !phone || !email) {
+    if (errorAlert) {
+      errorAlert.textContent = "Please fill in all required fields marked with *.";
+      errorAlert.style.display = "block";
+    }
+    return;
+  }
+
+  if (btnSave) {
+    btnSave.disabled = true;
+    btnSave.textContent = "Saving Settings...";
+  }
+
+  try {
+    const response = await apiFetch("/api/v1/admin/settings", {
+      method: "PUT",
+      body: JSON.stringify({
+        companyName, address, phone, whatsapp, email,
+        facebookUrl, youtubeUrl, displayTimezone, displayLocale,
+        defaultCurrency, sessionTimeoutMinutes, archiveRetentionDays,
+        seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription
+      })
+    });
+
+    const payload = await response.json();
+    if (response.ok && payload.success) {
+      if (successAlert) {
+        successAlert.style.display = "flex";
+        setTimeout(() => {
+          successAlert.style.display = "none";
+        }, 4000);
+      }
+    } else {
+      throw new Error(payload.message || "Failed to update settings.");
+    }
+  } catch (err) {
+    console.error("Save settings failed:", err);
+    if (errorAlert) {
+      errorAlert.textContent = err.message || "An error occurred while saving settings.";
+      errorAlert.style.display = "block";
+    }
+  } finally {
+    if (btnSave) {
+      btnSave.disabled = false;
+      btnSave.textContent = "Save System Settings";
+    }
+  }
+}
+
+/**
+ * Handles reset to default parameters.
+ */
+function handleResetClick(e) {
+  e.preventDefault();
+  if (confirm("Are you sure you want to revert settings to factory defaults? You will need to click 'Save' to apply changes.")) {
+    populateForm(SYSTEM_DEFAULTS);
+  }
 }
 
 /**
@@ -134,13 +279,9 @@ function bindSettingsEvents() {
   const form = $("settings-form");
   const retryBtn = $("btn-retry-settings");
   const btnReset = $("btn-reset-settings");
-  const btnSave = $("btn-save-settings");
 
   if (form) {
-    form.onsubmit = (e) => {
-      e.preventDefault();
-      // Do NOT implement Save functionality as per instructions
-    };
+    form.addEventListener("submit", handleSettingsSubmit);
   }
 
   if (retryBtn) {
@@ -149,15 +290,7 @@ function bindSettingsEvents() {
     });
   }
 
-  // Disable save/reset triggers as save functionality is not implemented in v1
   if (btnReset) {
-    btnReset.disabled = true;
-    btnReset.addEventListener("click", (e) => {
-      e.preventDefault();
-    });
-  }
-
-  if (btnSave) {
-    btnSave.disabled = true;
+    btnReset.addEventListener("click", handleResetClick);
   }
 }
