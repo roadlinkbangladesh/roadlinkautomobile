@@ -44,7 +44,7 @@ async function loadProfileData() {
         el.textContent = user.display_name || user.username;
       });
       topbarLabelElements.forEach(el => {
-        el.textContent = user.role_name || "User";
+        el.textContent = user.role_name || (user.role_id === 1 ? "Admin" : (user.role_id === 2 ? "Manager" : "User"));
       });
 
       // Populate profile form inputs
@@ -56,7 +56,7 @@ async function loadProfileData() {
       if (profUsername) profUsername.value = user.username || "";
       if (profDisplayName) profDisplayName.value = user.display_name || "";
       if (profRoleBadge) {
-        profRoleBadge.textContent = user.role_name || "User";
+        profRoleBadge.textContent = user.role_name || (user.role_id === 1 ? "Admin" : (user.role_id === 2 ? "Manager" : "User"));
       }
 
       if (profPermissionsContainer) {
