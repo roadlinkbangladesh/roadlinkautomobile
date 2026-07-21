@@ -282,6 +282,7 @@
                       <th class="sortable" data-sort="year">Vehicle Name <span class="sort-indicator"> ↕</span></th>
                       <th class="sortable" data-sort="price">Price <span class="sort-indicator"> ↕</span></th>
                       <th>Status</th>
+                      <th>Published</th>
                       <th class="text-right" style="text-align: right; padding-right: 24px;">Actions</th>
                     </tr>
                   </thead>
@@ -395,6 +396,30 @@
                     </div>
                   </div>
 
+                  <!-- CARD 3: Database & Security Settings -->
+                  <div class="settings-section-card">
+                    <h3 class="settings-section-title">Database & Security Settings</h3>
+                    <div class="form-group">
+                      <label for="set-display-timezone">Display Timezone</label>
+                      <input type="text" id="set-display-timezone" placeholder="e.g. Asia/Dhaka" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="set-display-locale">Display Locale</label>
+                      <input type="text" id="set-display-locale" placeholder="e.g. en-BD" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="set-default-currency">Default Currency</label>
+                      <input type="text" id="set-default-currency" placeholder="e.g. BDT" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="set-session-timeout">Session Timeout (Minutes) *</label>
+                      <input type="number" id="set-session-timeout" min="5" max="1440" required placeholder="e.g. 30">
+                    </div>
+                    <div class="form-group">
+                      <label for="set-archive-retention">Archive Retention (Days) *</label>
+                      <input type="number" id="set-archive-retention" min="1" max="3650" required placeholder="e.g. 180">
+                    </div>
+                  </div>
 
                 </div>
 
@@ -436,7 +461,7 @@
               <div class="inventory-controls" style="margin-bottom: 24px; gap: 12px; align-items: center;">
                 <div class="search-box-wrapper" style="flex: 1;">
                   <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
-                  <input type="text" id="user-search" placeholder="Search by username, email, name or role..." class="form-control-search">
+                  <input type="text" id="user-search" placeholder="Search by username, name or role..." class="form-control-search">
                 </div>
                 <div>
                   <button id="btn-refresh-users" class="btn btn-view-site" style="height: 42px; margin-bottom: 0; width: auto; font-size: 0.9rem; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; padding: 0 16px; border: 1px solid var(--border-color); background: var(--bg-white);">
@@ -450,11 +475,11 @@
                 <table class="inventory-table">
                   <thead>
                     <tr>
-                      <th>Name</th>
+                      <th>Full Name</th>
                       <th>Username</th>
-                      <th>Email</th>
                       <th>Role</th>
                       <th>Status</th>
+                      <th>Last Login</th>
                       <th class="text-right" style="text-align: right; padding-right: 24px;">Actions</th>
                     </tr>
                   </thead>
@@ -660,6 +685,15 @@
       <form id="vehicle-form" novalidate>
         <div class="form-grid">
           
+          <!-- COPY FROM EXISTING VEHICLE OPTION -->
+          <div id="copy-vehicle-container" class="form-group full-width" style="margin-bottom: 20px; padding: 14px; background: var(--bg-light); border: 1.5px dashed var(--border-color); border-radius: var(--radius-sm); grid-column: span 2;">
+            <label for="copy-vehicle-select" style="font-weight: 700; color: var(--primary-blue); font-size: 0.85rem; text-transform: uppercase; margin-bottom: 6px; display: block;">Copy Parameters from Existing Vehicle</label>
+            <select id="copy-vehicle-select" style="width: 100%; padding: 10px 12px; border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.95rem; background: var(--bg-white);">
+              <option value="">-- Choose a vehicle to copy from --</option>
+            </select>
+            <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; display: block;">Selecting a vehicle will automatically populate the form fields below with its current values. You can then modify them as needed.</span>
+          </div>
+
           <!-- SECTION 1: VEHICLE INFORMATION -->
           <div class="form-section-title full-width">Vehicle Information</div>
           <div class="form-group">
