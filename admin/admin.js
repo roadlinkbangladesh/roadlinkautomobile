@@ -68,6 +68,14 @@ async function init() {
 
   bindSidebarEvents();
 
+  // Bind topbar profile click to navigate to My Profile
+  const topbarProfileBadge = $("topbar-profile-badge");
+  if (topbarProfileBadge) {
+    topbarProfileBadge.onclick = () => {
+      navigationController.navigateTo("profile");
+    };
+  }
+
   setUnauthorizedHandler(() => {
     clearToken();
     showLoginView();
