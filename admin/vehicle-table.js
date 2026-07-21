@@ -4,6 +4,7 @@
  */
 
 import { getAllVehicles } from "../js/inventory.js";
+import { hasPermission } from "./auth.js";
 
 const STORAGE_KEYS = {
   SEARCH: "roadlink_admin_search",
@@ -375,6 +376,30 @@ export function renderVehicleTable() {
     const thumbnailSrc = v.coverImage || v.posterImage || (v.images && v.images[0]) || "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
     const vehicleName = `${v.year} ${v.make} ${v.model} ${v.grade ? `(${v.grade})` : ""}`.trim();
 
+    const canEdit = hasPermission("vehicles.edit");
+    const canDelete = hasPermission("vehicles.delete");
+
+    let actionButtonsHtml = "";
+    if (canEdit) {
+      actionButtonsHtml += `
+        <button class="btn-action-edit" data-id="${v.id}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-edit-2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          Edit
+        </button>
+      `;
+    }
+    if (canDelete) {
+      actionButtonsHtml += `
+        <button class="btn-action-delete" data-id="${v.id}">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          Delete
+        </button>
+      `;
+    }
+    if (!canEdit && !canDelete) {
+      actionButtonsHtml = `<span style="color: var(--text-muted); font-size: 0.85rem;">View Only</span>`;
+    }
+
     row.innerHTML = `
       <td>
         <img src="${thumbnailSrc}" alt="${v.make} ${v.model}" class="thumb-img" referrerpolicy="no-referrer" data-id="${v.id}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800';">
@@ -389,14 +414,7 @@ export function renderVehicleTable() {
       </td>
       <td>
         <div class="action-buttons">
-          <button class="btn-action-edit" data-id="${v.id}">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-edit-2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-            Edit
-          </button>
-          <button class="btn-action-delete" data-id="${v.id}">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-            Delete
-          </button>
+          ${actionButtonsHtml}
         </div>
       </td>
     `;
