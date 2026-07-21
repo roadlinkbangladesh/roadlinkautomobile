@@ -7,12 +7,27 @@
 
 PRAGMA foreign_keys = ON;
 
+CREATE TABLE IF NOT EXISTS roles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS role_permissions (
+    role_id INTEGER NOT NULL,
+    permission_key TEXT NOT NULL,
+    PRIMARY KEY(role_id, permission_key),
+    FOREIGN KEY(role_id) REFERENCES roles(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     display_name TEXT NOT NULL,
-    role TEXT NOT NULL CHECK(role IN ('admin','manager')),
+    role_id INTEGER NOT NULL REFERENCES roles(id),
     is_active INTEGER NOT NULL DEFAULT 1 CHECK(is_active IN (0,1)),
     last_login_at TEXT,
     created_at TEXT NOT NULL,
@@ -21,7 +36,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
-CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_users_role_id ON users(role_id);
 
 CREATE TABLE IF NOT EXISTS settings (
 
