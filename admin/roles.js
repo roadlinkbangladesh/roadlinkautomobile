@@ -106,21 +106,33 @@ export async function loadRolesList() {
         const tr = document.createElement("tr");
         
         // Count permissions
-        const permCount = Array.isArray(role.permissions) ? role.permissions.length : 0;
+        const permCount = role.permissions_count !== undefined ? role.permissions_count : (Array.isArray(role.permissions) ? role.permissions.length : 0);
+        const userCount = role.users_count !== undefined ? role.users_count : 0;
         
+        const isAdminRole = role.id === 1 || role.name.toLowerCase() === "admin";
+        const actionButtons = isAdminRole 
+          ? `
+              <button class="btn btn-view-site btn-edit-role" data-id="${role.id}" data-view-only="true" style="padding: 6px 12px; margin: 0; font-size: 0.85rem;">
+                View
+              </button>
+            `
+          : `
+              <button class="btn btn-view-site btn-edit-role" data-id="${role.id}" style="padding: 6px 12px; margin: 0; font-size: 0.85rem;">
+                Edit
+              </button>
+              <button class="btn btn-danger btn-delete-role" data-id="${role.id}" data-name="${role.name}" data-users="${userCount}" style="padding: 6px 12px; margin: 0; font-size: 0.85rem;">
+                Delete
+              </button>
+            `;
+
         tr.innerHTML = `
           <td style="font-weight: 700; color: var(--primary-blue);">${role.name}</td>
           <td style="color: var(--text-muted); font-size: 0.9rem;">${role.description || "<em>No description</em>"}</td>
           <td style="text-align: center;"><span class="table-badge status-available" style="padding: 2px 8px; font-weight: 600;">${permCount}</span></td>
-          <td style="text-align: center;"><span class="table-badge" style="background: var(--bg-light); border: 1px solid var(--border-color); color: var(--text-dark); padding: 2px 8px; font-weight: 600;">${role.userCount || 0}</span></td>
+          <td style="text-align: center;"><span class="table-badge" style="background: var(--bg-light); border: 1px solid var(--border-color); color: var(--text-dark); padding: 2px 8px; font-weight: 600;">${userCount}</span></td>
           <td class="text-right" style="text-align: right; padding-right: 24px;">
             <div style="display: flex; gap: 8px; justify-content: flex-end;">
-              <button class="btn btn-view-site btn-edit-role" data-id="${role.id}" style="padding: 6px 12px; margin: 0; font-size: 0.85rem;">
-                Edit
-              </button>
-              <button class="btn btn-danger btn-delete-role" data-id="${role.id}" data-name="${role.name}" data-users="${role.userCount || 0}" style="padding: 6px 12px; margin: 0; font-size: 0.85rem;">
-                Delete
-              </button>
+              ${actionButtons}
             </div>
           </td>
         `;
@@ -146,7 +158,8 @@ function bindInlineRolesEvents() {
   tbody.querySelectorAll(".btn-edit-role").forEach(btn => {
     btn.onclick = async () => {
       const id = btn.getAttribute("data-id");
-      await openRoleModal(id);
+      const viewOnly = btn.getAttribute("data-view-only") === "true";
+      await openRoleModal(id, viewOnly);
     };
   });
 
@@ -163,13 +176,14 @@ function bindInlineRolesEvents() {
 /**
  * Loads dynamic role info and shows the configuration Modal
  */
-async function openRoleModal(roleId = null) {
+async function openRoleModal(roleId = null, viewOnly = false) {
   const modal = $("role-modal");
   const modalTitle = $("role-modal-title");
   const form = $("role-form");
   const idField = $("role-id-field");
   const nameField = $("r-name");
   const descField = $("r-description");
+  const saveBtn = $("btn-save-role");
 
   if (!modal || !form) return;
 
@@ -184,10 +198,15 @@ async function openRoleModal(roleId = null) {
   const checkboxes = document.querySelectorAll("#role-permissions-checkboxes input[type='checkbox']");
   checkboxes.forEach(chk => {
     chk.checked = false;
+    chk.disabled = viewOnly;
   });
 
+  if (nameField) nameField.disabled = viewOnly;
+  if (descField) descField.disabled = viewOnly;
+  if (saveBtn) saveBtn.style.display = viewOnly ? "none" : "block";
+
   if (roleId) {
-    if (modalTitle) modalTitle.textContent = "Edit Role";
+    if (modalTitle) modalTitle.textContent = viewOnly ? "View Role" : "Edit Role";
     try {
       const response = await apiFetch(`/api/v1/admin/roles/${roleId}`);
       if (!response.ok) throw new Error("Failed to load role details.");
