@@ -253,7 +253,7 @@ function bindUsersEvents() {
       const displayNameVal = $("u-display-name").value.trim();
       const usernameVal = $("u-username").value.trim();
       const roleIdVal = parseInt($("u-role-id").value, 10);
-      const statusVal = parseInt($$("u-status").value);
+      const statusVal = parseInt($("u-status").value, 10);
 
       const formErrorAlert = $("u-form-error");
 
@@ -274,6 +274,11 @@ function bindUsersEvents() {
 
       if (!usernameVal) {
         showFieldError("u-username-error", "Username is required.");
+        hasError = true;
+      }
+
+      if (isNaN(roleIdVal) || !roleIdVal) {
+        showFieldError("u-role-error", "Please select a valid role.");
         hasError = true;
       }
 
@@ -465,12 +470,29 @@ export async function showUserFormModal(userId = null) {
     const rResult = await rResponse.json();
     if (rResponse.ok && rResult.success && Array.isArray(rResult.data) && roleSelect) {
       roleSelect.innerHTML = "";
-      rResult.data.forEach(role => {
+      if (rResult.data.length === 0) {
         const opt = document.createElement("option");
-        opt.value = role.id;
-        opt.textContent = role.name;
+        opt.value = "";
+        opt.textContent = "No assignable roles available";
+        opt.disabled = true;
+        opt.selected = true;
         roleSelect.appendChild(opt);
-      });
+      } else {
+        if (!userId) {
+          const defaultOpt = document.createElement("option");
+          defaultOpt.value = "";
+          defaultOpt.textContent = "Select a role...";
+          defaultOpt.disabled = true;
+          defaultOpt.selected = true;
+          roleSelect.appendChild(defaultOpt);
+        }
+        rResult.data.forEach(role => {
+          const opt = document.createElement("option");
+          opt.value = role.id;
+          opt.textContent = role.name;
+          roleSelect.appendChild(opt);
+        });
+      }
     }
   } catch (err) {
     console.error("Failed to populate roles dropdown:", err);
