@@ -4,7 +4,7 @@ import { verifyToken } from "./jwt.js";
 /**
  * Common Authentication & Authorization Middleware for Workers
  */
-export async function authenticate(request, env, requiredRole = null, isChangePasswordRoute = false) {
+export async function authenticate(request, env, requiredPermission = null, isChangePasswordRoute = false) {
     const authHeader = request.headers.get("Authorization");
 
     if (!authHeader?.startsWith("Bearer ")) {
@@ -21,9 +21,10 @@ export async function authenticate(request, env, requiredRole = null, isChangePa
     // Retrieve active record directly from DB to verify constraints
     const user = await env.DB
         .prepare(`
-            SELECT *
-            FROM users
-            WHERE id = ?
+            SELECT u.*, r.name as role_name
+            FROM users u
+            LEFT JOIN roles r ON u.role_id = r.id
+            WHERE u.id = ?
             LIMIT 1
         `)
         .bind(decoded.id)
@@ -36,6 +37,18 @@ export async function authenticate(request, env, requiredRole = null, isChangePa
     if (user.is_active !== 1) {
         return { errorResponse: forbidden("Your account is deactivated.") };
     }
+
+    // Retrieve role permissions
+    const permissionsQuery = await env.DB
+        .prepare(`
+            SELECT permission_key
+            FROM role_permissions
+            WHERE role_id = ?
+        `)
+        .bind(user.role_id)
+        .all();
+    
+    const permissions = (permissionsQuery.results || []).map(p => p.permission_key);
 
     // Protected endpoints must reject requests from users whose must_change_password flag is true,
     // except for change password or logout operations.
@@ -56,9 +69,9 @@ export async function authenticate(request, env, requiredRole = null, isChangePa
         };
     }
 
-    if (requiredRole && user.role !== requiredRole) {
-        return { errorResponse: forbidden("Access denied. Privileges required.") };
+    if (requiredPermission && !permissions.includes(requiredPermission)) {
+        return { errorResponse: forbidden("Access denied. Insufficient permissions.") };
     }
 
-    return { user };
+    return { user, permissions };
 }
