@@ -41,10 +41,10 @@ async function loadProfileData() {
       const topbarLabelElements = document.querySelectorAll(".user-label");
       
       topbarRoleElements.forEach(el => {
-        el.textContent = user.displayName || user.username;
+        el.textContent = user.display_name || user.username;
       });
       topbarLabelElements.forEach(el => {
-        el.textContent = user.roleName || "User";
+        el.textContent = user.role_name || "User";
       });
 
       // Populate profile form inputs
@@ -54,9 +54,9 @@ async function loadProfileData() {
       const profPermissionsContainer = $("prof-permissions-container");
 
       if (profUsername) profUsername.value = user.username || "";
-      if (profDisplayName) profDisplayName.value = user.displayName || "";
+      if (profDisplayName) profDisplayName.value = user.display_name || "";
       if (profRoleBadge) {
-        profRoleBadge.textContent = user.roleName || "User";
+        profRoleBadge.textContent = user.role_name || "User";
       }
 
       if (profPermissionsContainer) {
@@ -183,7 +183,7 @@ function bindProfileEvents() {
 
         const response = await apiFetch("/api/v1/admin/profile", {
           method: "PUT",
-          body: JSON.stringify({ displayName })
+          body: JSON.stringify({ display_name: displayName })
         });
 
         const result = await response.json();
