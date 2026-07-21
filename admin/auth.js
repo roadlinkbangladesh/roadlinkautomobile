@@ -38,6 +38,7 @@ export function clearToken() {
   localStorage.removeItem("token");
   sessionStorage.removeItem("mustChangePassword");
   sessionStorage.removeItem("currentUser");
+  sessionStorage.removeItem("active_admin_module");
 }
 
 /**
