@@ -124,7 +124,7 @@ export async function createUser(request, env) {
 
         // Validate role exists
         const roleExists = await env.DB
-            .prepare(`SELECT id FROM roles WHERE id = ? LIMIT 1`)
+            .prepare(`SELECT id, name FROM roles WHERE id = ? LIMIT 1`)
             .bind(roleId)
             .first();
 
@@ -186,6 +186,7 @@ export async function createUser(request, env) {
         return created({
             user: {
                 ...result,
+                role_name: roleExists.name,
                 is_active: result.is_active === 1,
                 must_change_password: result.must_change_password === 1
             },
