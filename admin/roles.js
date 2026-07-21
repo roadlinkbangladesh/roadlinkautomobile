@@ -61,17 +61,17 @@ function renderPermissionCheckboxes() {
     
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
-    checkbox.value = perm;
-    checkbox.id = `perm-chk-${perm}`;
+    checkbox.value = perm.key;
+    checkbox.id = `perm-chk-${perm.key}`;
     checkbox.name = "permissions";
     checkbox.style.cssText = "width: 16px; height: 16px; margin-top: 3px; accent-color: var(--primary-blue); cursor: pointer;";
 
     const label = document.createElement("label");
-    label.htmlFor = `perm-chk-${perm}`;
+    label.htmlFor = `perm-chk-${perm.key}`;
     label.style.cssText = "font-size: 0.85rem; font-weight: 500; color: var(--text-dark); cursor: pointer; line-height: 1.3;";
     
-    const desc = PERMISSION_DESCRIPTIONS[perm] || perm;
-    label.innerHTML = `<strong style="font-family: var(--font-mono); font-size: 0.8rem; display: block; color: var(--primary-blue);">${perm}</strong><span style="color: var(--text-muted); font-size: 0.75rem;">${desc}</span>`;
+    const desc = perm.description || perm.key;
+    label.innerHTML = `<strong style="font-family: var(--font-mono); font-size: 0.8rem; display: block; color: var(--primary-blue);">${perm.key}</strong><span style="color: var(--text-muted); font-size: 0.75rem;">${desc}</span>`;
 
     wrapper.appendChild(checkbox);
     wrapper.appendChild(label);
