@@ -11,6 +11,8 @@ import { initVehicleTable, renderVehicleTable, populateMakeFilter, state as tabl
 
 // Currently active vehicle ID (null for adding, ID string for editing)
 let currentVehicleId = null;
+// Active vehicle ID marked for status change
+let statusChangeVehicleId = null;
 // Active vehicle ID marked for deletion
 let deleteVehicleId = null;
 // In-memory arrays of base64/URL images for the active vehicle
@@ -91,9 +93,24 @@ export function bindVehicleEvents() {
   if (tableBody) {
     tableBody.removeEventListener("click", handleTableActions);
     tableBody.addEventListener("click", handleTableActions);
-    
-    tableBody.removeEventListener("change", handleTableStatusChange);
-    tableBody.addEventListener("change", handleTableStatusChange);
+  }
+
+  // Change Status modal actions
+  const btnCloseStatusModal = $("btn-close-status-modal");
+  const btnCancelStatusModal = $("btn-cancel-status-modal");
+  const statusChangeForm = $("status-change-form");
+
+  if (btnCloseStatusModal) {
+    btnCloseStatusModal.removeEventListener("click", closeStatusModal);
+    btnCloseStatusModal.addEventListener("click", closeStatusModal);
+  }
+  if (btnCancelStatusModal) {
+    btnCancelStatusModal.removeEventListener("click", closeStatusModal);
+    btnCancelStatusModal.addEventListener("click", closeStatusModal);
+  }
+  if (statusChangeForm) {
+    statusChangeForm.removeEventListener("submit", handleStatusFormSubmit);
+    statusChangeForm.addEventListener("submit", handleStatusFormSubmit);
   }
 
   // Delete modals actions
@@ -149,7 +166,7 @@ function handleTableActions(e) {
   const thumbImg = e.target.closest(".thumb-img");
   const editBtn = e.target.closest(".btn-action-edit");
   const deleteBtn = e.target.closest(".btn-action-delete");
-  const publishBtn = e.target.closest(".btn-action-publish");
+  const statusBtn = e.target.closest(".btn-action-status");
 
   if (thumbImg) {
     const vehicleId = thumbImg.getAttribute("data-id");
@@ -168,25 +185,9 @@ function handleTableActions(e) {
     }
     const vehicleId = deleteBtn.getAttribute("data-id");
     openDeleteConfirmation(vehicleId);
-  } else if (publishBtn) {
-    if (!hasPermission("vehicles.publish")) {
-      alert("Access Denied. You do not have permission to publish/unpublish vehicles.");
-      return;
-    }
-    const vehicleId = publishBtn.getAttribute("data-id");
-    const vehicles = getAllVehicles();
-    const idx = vehicles.findIndex(v => v.id === vehicleId);
-    if (idx !== -1) {
-      // Toggle publish status!
-      const currentVal = vehicles[idx].published !== false && vehicles[idx].isPublished !== false;
-      vehicles[idx].published = !currentVal;
-      vehicles[idx].isPublished = !currentVal;
-      
-      const STORAGE_KEY = "roadlink_vehicles";
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(vehicles));
-      renderVehicleTable();
-      initDashboard(); // Update dashboard metric counts!
-    }
+  } else if (statusBtn) {
+    const vehicleId = statusBtn.getAttribute("data-id");
+    openStatusModal(vehicleId);
   }
 }
 
@@ -870,4 +871,101 @@ function closeImagePreviewModal() {
   if (modal) {
     modal.style.display = "none";
   }
+}
+
+/**
+ * Opens vehicle status change modal.
+ */
+function openStatusModal(vehicleId) {
+  statusChangeVehicleId = vehicleId;
+  const vehicle = getAllVehicles().find(v => v.id === vehicleId);
+  if (!vehicle) return;
+
+  const modal = $("status-change-modal");
+  const nameLabel = $("status-modal-vehicle-name");
+  const selectStatus = $("status-modal-select");
+  const selectPublish = $("status-modal-publish");
+  const editHint = $("status-modal-edit-hint");
+  const publishHint = $("status-modal-publish-hint");
+
+  if (nameLabel) {
+    nameLabel.textContent = `${vehicle.year} ${vehicle.make} ${vehicle.model} (Stock: ${vehicle.stockNumber})`;
+  }
+
+  const canEdit = hasPermission("vehicles.edit");
+  const canPublish = hasPermission("vehicles.publish");
+
+  if (selectStatus) {
+    selectStatus.value = vehicle.status || "available";
+    selectStatus.disabled = !canEdit;
+  }
+  if (editHint) {
+    editHint.style.display = canEdit ? "none" : "block";
+  }
+
+  if (selectPublish) {
+    const isPublished = vehicle.published !== false && vehicle.isPublished !== false;
+    selectPublish.value = isPublished ? "published" : "draft";
+    selectPublish.disabled = !canPublish;
+  }
+  if (publishHint) {
+    publishHint.style.display = canPublish ? "none" : "block";
+  }
+
+  const btnSave = $("btn-save-status-modal");
+  if (btnSave) {
+    btnSave.disabled = !canEdit && !canPublish;
+  }
+
+  if (modal) {
+    modal.style.display = "flex";
+  }
+}
+
+/**
+ * Closes vehicle status change modal.
+ */
+function closeStatusModal() {
+  statusChangeVehicleId = null;
+  const modal = $("status-change-modal");
+  if (modal) {
+    modal.style.display = "none";
+  }
+}
+
+/**
+ * Handles saving changes from the status change modal.
+ */
+function handleStatusFormSubmit(e) {
+  e.preventDefault();
+  if (!statusChangeVehicleId) return;
+
+  const vehicle = getAllVehicles().find(v => v.id === statusChangeVehicleId);
+  if (!vehicle) return;
+
+  const selectStatus = $("status-modal-select");
+  const selectPublish = $("status-modal-publish");
+
+  const canEdit = hasPermission("vehicles.edit");
+  const canPublish = hasPermission("vehicles.publish");
+
+  const updatedFields = {};
+
+  if (canEdit && selectStatus) {
+    updatedFields.status = selectStatus.value;
+  }
+
+  if (canPublish && selectPublish) {
+    const pubValue = selectPublish.value === "published";
+    updatedFields.published = pubValue;
+    updatedFields.isPublished = pubValue;
+  }
+
+  if (Object.keys(updatedFields).length > 0) {
+    updateVehicle(statusChangeVehicleId, updatedFields);
+    renderVehicleTable();
+    initDashboard(); // Update dashboard metric counts!
+  }
+
+  closeStatusModal();
 }

@@ -11,6 +11,7 @@ let filteredUsers = [];
 let userSearchQuery = "";
 let usersEventsBound = false;
 let userToDelete = null;
+let systemSettings = null;
 
 /**
  * Initializes and populates the Users View.
@@ -31,17 +32,27 @@ async function fetchUsers() {
   if (tableBody) tableBody.style.opacity = "0.5";
 
   try {
-    const response = await apiFetch("/api/v1/admin/users");
-    const result = await response.json();
+    const [usersResponse, settingsResponse] = await Promise.all([
+      apiFetch("/api/v1/admin/users"),
+      apiFetch("/api/v1/admin/settings")
+    ]);
 
-    if (response.ok && result.success) {
+    const result = await usersResponse.json();
+    if (usersResponse.ok && result.success) {
       usersList = result.data || [];
     } else {
       console.error("Failed to load users:", result.message);
       usersList = [];
     }
+
+    if (settingsResponse.ok) {
+      const settingsResult = await settingsResponse.json();
+      if (settingsResult.success) {
+        systemSettings = settingsResult.data;
+      }
+    }
   } catch (err) {
-    console.error("Network error fetching users:", err);
+    console.error("Network error fetching users/settings:", err);
     usersList = [];
   } finally {
     if (tableBody) tableBody.style.opacity = "1";
@@ -97,9 +108,26 @@ function renderUsersTable() {
       ? "background-color: rgba(37, 211, 102, 0.08); color: #25d366; border: 1px solid rgba(37, 211, 102, 0.2);"
       : "background-color: rgba(227, 27, 35, 0.08); color: #e31b23; border: 1px solid rgba(227, 27, 35, 0.2);";
 
-    const lastLogin = u.last_login_at
-      ? new Date(u.last_login_at).toLocaleString("en-BD", { hour12: true })
-      : "Never";
+    let lastLogin = "Never";
+    if (u.last_login_at) {
+      try {
+        const tz = systemSettings?.displayTimezone || systemSettings?.display_timezone || "Asia/Dhaka";
+        const locale = systemSettings?.displayLocale || systemSettings?.display_locale || "en-BD";
+        lastLogin = new Date(u.last_login_at).toLocaleString(locale, {
+          timeZone: tz,
+          hour12: true,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit"
+        });
+      } catch (e) {
+        console.error("Error formatting date with settings tz/locale:", e);
+        lastLogin = new Date(u.last_login_at).toLocaleString("en-BD", { hour12: true });
+      }
+    }
 
     // Disable Actions for self
     const isSelf = u.id === currentUserId;

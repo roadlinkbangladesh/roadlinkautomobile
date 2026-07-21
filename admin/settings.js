@@ -119,8 +119,6 @@ function populateForm(data) {
   const displayTimezoneField = $("set-display-timezone");
   const displayLocaleField = $("set-display-locale");
   const defaultCurrencyField = $("set-default-currency");
-  const sessionTimeoutField = $("set-session-timeout");
-  const archiveRetentionField = $("set-archive-retention");
 
   // Populate fields handling both camelCase and snake_case backend schemas
   if (companyField) companyField.value = data.companyName || data.company_name || "";
@@ -139,8 +137,6 @@ function populateForm(data) {
   if (displayTimezoneField) displayTimezoneField.value = data.displayTimezone || data.display_timezone || "Asia/Dhaka";
   if (displayLocaleField) displayLocaleField.value = data.displayLocale || data.display_locale || "en-BD";
   if (defaultCurrencyField) defaultCurrencyField.value = data.defaultCurrency || data.default_currency || "BDT";
-  if (sessionTimeoutField) sessionTimeoutField.value = data.sessionTimeoutMinutes !== undefined ? data.sessionTimeoutMinutes : (data.session_timeout_minutes || 30);
-  if (archiveRetentionField) archiveRetentionField.value = data.archiveRetentionDays !== undefined ? data.archiveRetentionDays : (data.archive_retention_days || 180);
 }
 
 /**
@@ -207,8 +203,6 @@ async function handleSettingsSubmit(e) {
   const displayTimezone = $("set-display-timezone")?.value || "";
   const displayLocale = $("set-display-locale")?.value || "";
   const defaultCurrency = $("set-default-currency")?.value || "";
-  const sessionTimeoutMinutes = parseInt($("set-session-timeout")?.value, 10);
-  const archiveRetentionDays = parseInt($("set-archive-retention")?.value, 10);
   const seoTitleSuffix = $("set-seo-suffix")?.value || "";
   const seoDefaultKeywords = $("set-seo-keywords")?.value || "";
   const seoDefaultDescription = $("set-seo-desc")?.value || "";
@@ -232,7 +226,7 @@ async function handleSettingsSubmit(e) {
       body: JSON.stringify({
         companyName, address, phone, whatsapp, email,
         facebookUrl, youtubeUrl, displayTimezone, displayLocale,
-        defaultCurrency, sessionTimeoutMinutes, archiveRetentionDays,
+        defaultCurrency,
         seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription
       })
     });

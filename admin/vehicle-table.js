@@ -387,23 +387,11 @@ export function renderVehicleTable() {
       : "background-color: rgba(100, 116, 139, 0.08); color: #64748b; border: 1px solid rgba(100, 116, 139, 0.2);";
 
     let actionButtonsHtml = "";
-    if (canEdit) {
+    if (canEdit || canPublish) {
       actionButtonsHtml += `
-        <div style="display: inline-block;">
-          <select class="status-select-inline" data-id="${v.id}" style="padding: 4px 8px; font-size: 0.8rem; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); background: var(--bg-white); cursor: pointer; color: var(--text-dark); font-weight: 500;">
-            <option value="available" ${v.status === 'available' ? 'selected' : ''}>Available</option>
-            <option value="incoming" ${v.status === 'incoming' ? 'selected' : ''}>Incoming</option>
-            <option value="reserved" ${v.status === 'reserved' || v.status === 'pending' ? 'selected' : ''}>Reserved</option>
-            <option value="sold" ${v.status === 'sold' ? 'selected' : ''}>Sold</option>
-          </select>
-        </div>
-      `;
-    }
-    if (canPublish) {
-      actionButtonsHtml += `
-        <button class="btn-action-publish btn btn-view-site" data-id="${v.id}" style="padding: 4px 8px; font-size: 0.8rem; border-radius: var(--radius-sm); background: var(--bg-white); border: 1.5px solid var(--border-color); margin: 0; color: var(--text-dark); display: inline-flex; align-items: center; gap: 4px;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-          ${isPublished ? 'Unpublish' : 'Publish'}
+        <button class="btn-action-status btn btn-view-site" data-id="${v.id}" style="padding: 4px 8px; font-size: 0.8rem; border-radius: var(--radius-sm); background: var(--bg-white); border: 1.5px solid var(--border-color); margin: 0; color: var(--text-dark); display: inline-flex; align-items: center; gap: 4px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Change Status
         </button>
       `;
     }

@@ -14,6 +14,7 @@ import { initProfileView } from "./profile.js";
 import { initRolesView } from "./roles.js";
 import { showLoginView } from "./ui.js";
 import { navigationController } from "./navigation.js";
+import { initIdleTimeout } from "./idle-timeout.js";
 
 /**
  * Initialize core application
@@ -22,6 +23,9 @@ async function init() {
   // Always bind event handlers first
   bindLoginEvents(showDashboardView);
   bindLogoutEvents(showLoginView);
+  
+  // Start inactivity timer tracking for non-RememberMe sessions
+  initIdleTimeout();
   
   // Register all modules with centralized Navigation Controller
   navigationController.registerModule("dashboard", {

@@ -396,9 +396,9 @@
                     </div>
                   </div>
 
-                  <!-- CARD 3: Database & Security Settings -->
+                  <!-- CARD 3: Other Settings -->
                   <div class="settings-section-card">
-                    <h3 class="settings-section-title">Database & Security Settings</h3>
+                    <h3 class="settings-section-title">Other Settings</h3>
                     <div class="form-group">
                       <label for="set-display-timezone">Display Timezone</label>
                       <input type="text" id="set-display-timezone" placeholder="e.g. Asia/Dhaka" required>
@@ -410,14 +410,6 @@
                     <div class="form-group">
                       <label for="set-default-currency">Default Currency</label>
                       <input type="text" id="set-default-currency" placeholder="e.g. BDT" required>
-                    </div>
-                    <div class="form-group">
-                      <label for="set-session-timeout">Session Timeout (Minutes) *</label>
-                      <input type="number" id="set-session-timeout" min="5" max="1440" required placeholder="e.g. 30">
-                    </div>
-                    <div class="form-group">
-                      <label for="set-archive-retention">Archive Retention (Days) *</label>
-                      <input type="number" id="set-archive-retention" min="1" max="3650" required placeholder="e.g. 180">
                     </div>
                   </div>
 
@@ -1079,6 +1071,64 @@
         <button id="btn-confirm-delete-role" class="btn-danger" style="width: 100%; border-radius: var(--radius-sm); padding: 12px; font-weight: 600;">Yes, Delete Role</button>
         <button id="btn-cancel-delete-role" class="btn btn-view-site" style="justify-content: center; width: 100%; border-radius: var(--radius-sm); margin-bottom: 0; padding: 12px;">Cancel</button>
       </div>
+    </div>
+  </div>
+
+  <!-- IDLE TIMEOUT WARNING MODAL -->
+  <div id="idle-timeout-modal" class="modal-overlay" style="display: none; z-index: 9999;">
+    <div class="modal-card" style="max-width: 400px; padding: 28px; text-align: center;">
+      <div class="modal-icon" style="margin: 0 auto 16px auto; display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: var(--radius-full); background: rgba(227, 27, 35, 0.08); color: var(--primary-red);">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <h3 class="modal-title" style="margin: 0 0 8px 0; font-family: var(--font-display); font-weight: 700; font-size: 1.25rem;">Session Inactivity Warning</h3>
+      <p class="modal-desc" style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 20px;">
+        You have been inactive for a while. You will be logged out in <strong id="idle-countdown-seconds">120</strong> seconds.
+      </p>
+      <div class="modal-footer-row-stacked">
+        <button id="btn-idle-stay" class="btn btn-login-submit" style="width: 100%; padding: 12px; margin-bottom: 8px;">Stay Logged In</button>
+        <button id="btn-idle-logout" class="btn btn-view-site" style="justify-content: center; width: 100%; border-radius: var(--radius-sm); margin-bottom: 0;">Log Out Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VEHICLE STATUS CHANGE MODAL -->
+  <div id="status-change-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card" style="max-width: 450px; padding: 28px;">
+      <div class="modal-header-row" style="margin-bottom: 20px;">
+        <h3 id="status-modal-title" class="modal-title-left" style="font-family: var(--font-display); font-weight: 700; font-size: 1.2rem;">Change Vehicle Status</h3>
+        <button id="btn-close-status-modal" class="btn-modal-close" aria-label="Close Modal" type="button">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+        </button>
+      </div>
+      
+      <p id="status-modal-vehicle-name" style="font-size: 0.95rem; font-weight: 600; color: var(--primary-blue); margin-bottom: 20px;"></p>
+
+      <form id="status-change-form">
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="status-modal-select" style="font-weight: 600; margin-bottom: 6px; display: block; font-size: 0.85rem;">Vehicle Status</label>
+          <select id="status-modal-select" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); background: var(--bg-white); font-weight: 500;">
+            <option value="available">Available</option>
+            <option value="incoming">Incoming</option>
+            <option value="reserved">Reserved</option>
+            <option value="sold">Sold</option>
+          </select>
+          <small id="status-modal-edit-hint" style="color: var(--text-muted); font-size: 0.75rem; display: none; margin-top: 4px;">You do not have permission to edit vehicle status.</small>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 24px;">
+          <label for="status-modal-publish" style="font-weight: 600; margin-bottom: 6px; display: block; font-size: 0.85rem;">Publication Status</label>
+          <select id="status-modal-publish" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); background: var(--bg-white); font-weight: 500;">
+            <option value="draft">Draft (Unpublished)</option>
+            <option value="published">Published</option>
+          </select>
+          <small id="status-modal-publish-hint" style="color: var(--text-muted); font-size: 0.75rem; display: none; margin-top: 4px;">You do not have permission to change publication status.</small>
+        </div>
+
+        <div class="modal-footer-row" style="border-top: 1px solid var(--border-color); padding-top: 16px; justify-content: flex-end; gap: 10px; margin-bottom: 0;">
+          <button type="button" id="btn-cancel-status-modal" class="btn btn-view-site" style="margin-bottom: 0;">Cancel</button>
+          <button type="submit" id="btn-save-status-modal" class="btn btn-login-submit" style="width: auto; padding: 10px 24px; margin: 0;">Save Changes</button>
+        </div>
+      </form>
     </div>
   </div>
 
