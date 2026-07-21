@@ -16,15 +16,16 @@ import { validatePasswordComplexity } from "../../utils/password-validator.js";
  * GET /api/v1/admin/users
  */
 export async function listUsers(request, env) {
-    const auth = await authenticate(request, env, "admin");
+    const auth = await authenticate(request, env, "users.manage");
     if (auth.errorResponse) return auth.errorResponse;
 
     try {
         const users = await env.DB
             .prepare(`
-                SELECT id, username, display_name, role, is_active, last_login_at, created_at, updated_at, must_change_password
-                FROM users
-                ORDER BY id ASC
+                SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, u.is_active, u.last_login_at, u.created_at, u.updated_at, u.must_change_password
+                FROM users u
+                LEFT JOIN roles r ON u.role_id = r.id
+                ORDER BY u.id ASC
             `)
             .all();
 
@@ -47,7 +48,7 @@ export async function listUsers(request, env) {
  * GET /api/v1/admin/users/:id
  */
 export async function getUser(request, env, ctx, params) {
-    const auth = await authenticate(request, env, "admin");
+    const auth = await authenticate(request, env, "users.manage");
     if (auth.errorResponse) return auth.errorResponse;
 
     const id = parseInt(params.id);
@@ -58,9 +59,10 @@ export async function getUser(request, env, ctx, params) {
     try {
         const user = await env.DB
             .prepare(`
-                SELECT id, username, display_name, role, is_active, last_login_at, created_at, updated_at, must_change_password
-                FROM users
-                WHERE id = ?
+                SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, u.is_active, u.last_login_at, u.created_at, u.updated_at, u.must_change_password
+                FROM users u
+                LEFT JOIN roles r ON u.role_id = r.id
+                WHERE u.id = ?
                 LIMIT 1
             `)
             .bind(id)
@@ -85,22 +87,28 @@ export async function getUser(request, env, ctx, params) {
  * POST /api/v1/admin/users
  */
 export async function createUser(request, env) {
-    const auth = await authenticate(request, env, "admin");
+    const auth = await authenticate(request, env, "users.manage");
     if (auth.errorResponse) return auth.errorResponse;
 
     try {
         const body = await request.json();
         const username = body.username?.trim();
         const displayName = body.display_name?.trim();
-        const role = body.role;
+        const roleId = parseInt(body.role_id);
         const isActive = body.is_active === undefined ? 1 : (body.is_active ? 1 : 0);
 
-        if (!username || !displayName || !role) {
-            return badRequest("All fields (username, display_name, role) are required.");
+        if (!username || !displayName || isNaN(roleId)) {
+            return badRequest("All fields (username, display_name, role_id) are required.");
         }
 
-        if (role !== "admin" && role !== "manager") {
-            return badRequest("Invalid role. Role must be 'admin' or 'manager'.");
+        // Validate role exists
+        const roleExists = await env.DB
+            .prepare(`SELECT id FROM roles WHERE id = ? LIMIT 1`)
+            .bind(roleId)
+            .first();
+
+        if (!roleExists) {
+            return badRequest("Invalid role. Selected role does not exist.");
         }
 
         // Check unique username
@@ -140,11 +148,11 @@ export async function createUser(request, env) {
 
         const result = await env.DB
             .prepare(`
-                INSERT INTO users (username, password_hash, display_name, role, is_active, must_change_password, created_at, updated_at)
+                INSERT INTO users (username, password_hash, display_name, role_id, is_active, must_change_password, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, 1, ?, ?)
-                RETURNING id, username, display_name, role, is_active, must_change_password, created_at, updated_at
+                RETURNING id, username, display_name, role_id, is_active, must_change_password, created_at, updated_at
             `)
-            .bind(username, passwordHash, displayName, role, isActive, now, now)
+            .bind(username, passwordHash, displayName, roleId, isActive, now, now)
             .first();
 
         return created({
@@ -165,7 +173,7 @@ export async function createUser(request, env) {
  * PUT /api/v1/admin/users/:id
  */
 export async function updateUser(request, env, ctx, params) {
-    const auth = await authenticate(request, env, "admin");
+    const auth = await authenticate(request, env, "users.manage");
     if (auth.errorResponse) return auth.errorResponse;
 
     const id = parseInt(params.id);
@@ -185,7 +193,7 @@ export async function updateUser(request, env, ctx, params) {
 
         const body = await request.json();
         const displayName = body.display_name?.trim();
-        const role = body.role;
+        const roleId = body.role_id === undefined ? undefined : parseInt(body.role_id);
         const isActive = body.is_active;
 
         // Security Checks: cannot deactivate or demote self
@@ -193,7 +201,7 @@ export async function updateUser(request, env, ctx, params) {
             if (isActive !== undefined && !isActive) {
                 return badRequest("You cannot deactivate your own account.");
             }
-            if (role !== undefined && role !== "admin") {
+            if (roleId !== undefined && roleId !== auth.user.role_id) {
                 return badRequest("You cannot revoke your own administrator privileges.");
             }
         }
@@ -206,12 +214,17 @@ export async function updateUser(request, env, ctx, params) {
             bindings.push(displayName);
         }
 
-        if (role !== undefined) {
-            if (role !== "admin" && role !== "manager") {
-                return badRequest("Invalid role. Role must be 'admin' or 'manager'.");
+        if (roleId !== undefined) {
+            const roleExists = await env.DB
+                .prepare(`SELECT id FROM roles WHERE id = ? LIMIT 1`)
+                .bind(roleId)
+                .first();
+
+            if (!roleExists) {
+                return badRequest("Invalid role. Selected role does not exist.");
             }
-            updatedFields.push("role = ?");
-            bindings.push(role);
+            updatedFields.push("role_id = ?");
+            bindings.push(roleId);
         }
 
         if (isActive !== undefined) {
@@ -234,7 +247,7 @@ export async function updateUser(request, env, ctx, params) {
             UPDATE users
             SET ${updatedFields.join(", ")}
             WHERE id = ?
-            RETURNING id, username, display_name, role, is_active, must_change_password, created_at, updated_at
+            RETURNING id, username, display_name, role_id, is_active, must_change_password, created_at, updated_at
         `;
 
         const result = await env.DB
@@ -257,7 +270,7 @@ export async function updateUser(request, env, ctx, params) {
  * DELETE /api/v1/admin/users/:id
  */
 export async function deleteUser(request, env, ctx, params) {
-    const auth = await authenticate(request, env, "admin");
+    const auth = await authenticate(request, env, "users.manage");
     if (auth.errorResponse) return auth.errorResponse;
 
     const id = parseInt(params.id);
@@ -295,7 +308,7 @@ export async function deleteUser(request, env, ctx, params) {
  * POST /api/v1/admin/users/:id/reset-password
  */
 export async function resetPassword(request, env, ctx, params) {
-    const auth = await authenticate(request, env, "admin");
+    const auth = await authenticate(request, env, "users.manage");
     if (auth.errorResponse) return auth.errorResponse;
 
     const id = parseInt(params.id);
@@ -418,5 +431,77 @@ export async function changePassword(request, env) {
     } catch (error) {
         console.error("Change password error:", error);
         return serverError("Failed to update password.");
+    }
+}
+
+/**
+ * GET /api/v1/admin/profile
+ */
+export async function getProfile(request, env) {
+    const auth = await authenticate(request, env);
+    if (auth.errorResponse) return auth.errorResponse;
+
+    try {
+        const user = await env.DB
+            .prepare(`
+                SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, u.is_active, u.created_at, u.last_login_at
+                FROM users u
+                LEFT JOIN roles r ON u.role_id = r.id
+                WHERE u.id = ?
+                LIMIT 1
+            `)
+            .bind(auth.user.id)
+            .first();
+
+        if (!user) {
+            return notFound("User not found.");
+        }
+
+        return success({
+            ...user,
+            is_active: user.is_active === 1,
+            permissions: auth.permissions
+        });
+    } catch (error) {
+        console.error("Get profile error:", error);
+        return serverError("Failed to fetch profile.");
+    }
+}
+
+/**
+ * PUT /api/v1/admin/profile
+ */
+export async function updateProfile(request, env) {
+    const auth = await authenticate(request, env);
+    if (auth.errorResponse) return auth.errorResponse;
+
+    try {
+        const body = await request.json();
+        const displayName = body.display_name?.trim();
+
+        if (!displayName) {
+            return badRequest("Display name is required.");
+        }
+
+        const now = new Date().toISOString();
+
+        const result = await env.DB
+            .prepare(`
+                UPDATE users
+                SET display_name = ?, updated_at = ?
+                WHERE id = ?
+                RETURNING id, username, display_name, role_id, is_active, created_at, updated_at
+            `)
+            .bind(displayName, now, auth.user.id)
+            .first();
+
+        return success({
+            ...result,
+            is_active: result.is_active === 1,
+            permissions: auth.permissions
+        });
+    } catch (error) {
+        console.error("Update profile error:", error);
+        return serverError("Failed to update profile.");
     }
 }
