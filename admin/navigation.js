@@ -26,7 +26,7 @@ class NavigationController {
     let savedModule = sessionStorage.getItem(this.storageKey);
     
     if (mustChange) {
-      savedModule = "change-password";
+      savedModule = "profile";
     } else if (!savedModule || !this.modules[savedModule]) {
       savedModule = "dashboard";
     }
@@ -41,7 +41,7 @@ class NavigationController {
   navigateTo(name) {
     const mustChange = sessionStorage.getItem("mustChangePassword") === "true";
     if (mustChange) {
-      name = "change-password";
+      name = "profile";
     } else if (!this.modules[name]) {
       name = "dashboard";
     }
