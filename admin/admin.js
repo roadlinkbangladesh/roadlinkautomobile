@@ -175,15 +175,8 @@ function applyUIPermissions() {
     el.textContent = user.display_name || user.username;
   });
   topbarLabelElements.forEach(el => {
-    el.textContent = user.role_name || "User";
+    el.textContent = user.role_name || (user.role_id === 1 ? "Admin" : (user.role_id === 2 ? "Manager" : "User"));
   });
-
-  // Update topbar user avatar with role name first letter
-  const topbarAvatar = document.querySelector(".user-avatar");
-  if (topbarAvatar) {
-    const roleChar = (user.role_name || "User").charAt(0).toUpperCase();
-    topbarAvatar.innerHTML = `<span style="font-weight: 700; font-size: 0.95rem; font-family: var(--font-display); color: var(--bg-white);">${roleChar}</span>`;
-  }
 
   const mustChange = sessionStorage.getItem("mustChangePassword") === "true";
 
