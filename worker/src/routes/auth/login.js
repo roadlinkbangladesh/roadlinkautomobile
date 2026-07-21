@@ -21,9 +21,10 @@ export async function login(request, env) {
 
         const user = await env.DB
             .prepare(`
-                SELECT *
-                FROM users
-                WHERE username = ?
+                SELECT u.*, r.name as role_name
+                FROM users u
+                LEFT JOIN roles r ON u.role_id = r.id
+                WHERE u.username = ?
                 LIMIT 1
             `)
             .bind(username)
@@ -52,12 +53,23 @@ export async function login(request, env) {
             ? JWT.REMEMBER_ME_EXPIRES_IN
             : JWT.SESSION_EXPIRES_IN;
         
+        // Fetch user permissions
+        const permissionsQuery = await env.DB
+            .prepare(`
+                SELECT permission_key
+                FROM role_permissions
+                WHERE role_id = ?
+            `)
+            .bind(user.role_id)
+            .all();
+        const permissions = (permissionsQuery.results || []).map(p => p.permission_key);
+
         // Generate JWT
         const token = await createToken(
             {
                 id: user.id,
                 username: user.username,
-                role: user.role
+                role_id: user.role_id
             },
             env.JWT_SECRET,
             expiresIn
@@ -69,7 +81,10 @@ export async function login(request, env) {
             user: {
                 id: user.id,
                 username: user.username,
-                role: user.role
+                role_id: user.role_id,
+                role_name: user.role_name,
+                display_name: user.display_name,
+                permissions: permissions
             }
         });
         
