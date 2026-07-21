@@ -75,3 +75,46 @@ export async function authenticate(request, env, requiredPermission = null, isCh
 
     return { user, permissions };
 }
+
+/**
+ * Checks if roleA is strictly less privileged than roleB.
+ * Super Administrator (role B ID === 1) is always more privileged than any other role (except itself).
+ * For other roles, roleA is strictly less privileged if and only if roleA's permissions
+ * are a strict subset of roleB's permissions.
+ */
+export async function isStrictlyLessPrivileged(env, roleAId, roleBId) {
+    const rAId = parseInt(roleAId);
+    const rBId = parseInt(roleBId);
+
+    // If same role, they are equal, not strictly less privileged
+    if (rAId === rBId) return false;
+
+    // Super Administrator is more privileged than any other role
+    if (rBId === 1) {
+        return rAId !== 1;
+    }
+    // No other role is more or equally privileged than Super Administrator
+    if (rAId === 1) {
+        return false;
+    }
+
+    const permsAQuery = await env.DB
+        .prepare(`SELECT permission_key FROM role_permissions WHERE role_id = ?`)
+        .bind(rAId)
+        .all();
+    const permsBQuery = await env.DB
+        .prepare(`SELECT permission_key FROM role_permissions WHERE role_id = ?`)
+        .bind(rBId)
+        .all();
+
+    const permsA = (permsAQuery.results || []).map(rp => rp.permission_key);
+    const permsB = (permsBQuery.results || []).map(rp => rp.permission_key);
+
+    // Every permission in A must be present in B (subset)
+    const isSubset = permsA.every(p => permsB.includes(p));
+    if (!isSubset) return false;
+
+    // B must have strictly more permissions than A (strict subset)
+    return permsB.length > permsA.length;
+}
+
