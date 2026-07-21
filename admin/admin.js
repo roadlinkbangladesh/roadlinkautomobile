@@ -5,12 +5,13 @@
 
 import { getAllVehicles } from "../js/inventory.js";
 import { $, setUnauthorizedHandler } from "./utils.js";
-import { isAuthenticated, bindLoginEvents, bindLogoutEvents, validateSession, clearToken } from "./auth.js";
+import { isAuthenticated, bindLoginEvents, bindLogoutEvents, validateSession, clearToken, hasPermission, getCurrentUser } from "./auth.js";
 import { initDashboard } from "./dashboard.js";
 import { initVehiclesView } from "./vehicles.js";
 import { initSettingsView } from "./settings.js";
 import { initUsersView } from "./users.js";
-import { initChangePasswordView } from "./change-password.js";
+import { initProfileView } from "./profile.js";
+import { initRolesView } from "./roles.js";
 import { showLoginView } from "./ui.js";
 import { navigationController } from "./navigation.js";
 
@@ -51,11 +52,18 @@ async function init() {
     init: () => initUsersView()
   });
 
-  navigationController.registerModule("change-password", {
-    panelId: "change-password-view-panel",
-    btnId: "nav-item-change-password",
-    title: "Change Password",
-    init: () => initChangePasswordView()
+  navigationController.registerModule("profile", {
+    panelId: "profile-view-panel",
+    btnId: "nav-item-profile",
+    title: "My Profile",
+    init: () => initProfileView()
+  });
+
+  navigationController.registerModule("roles", {
+    panelId: "roles-view-panel",
+    btnId: "nav-item-roles",
+    title: "Roles & Permissions",
+    init: () => initRolesView()
   });
 
   bindSidebarEvents();
@@ -129,6 +137,48 @@ if (document.readyState === "loading") {
   init();
 }
 
+function applyUIPermissions() {
+  const user = getCurrentUser();
+  if (!user) return;
+
+  // Update topbar profile labels
+  const topbarRoleElements = document.querySelectorAll(".user-role");
+  const topbarLabelElements = document.querySelectorAll(".user-label");
+  topbarRoleElements.forEach(el => {
+    el.textContent = user.displayName || user.username;
+  });
+  topbarLabelElements.forEach(el => {
+    el.textContent = user.roleName || "User";
+  });
+
+  const mustChange = sessionStorage.getItem("mustChangePassword") === "true";
+
+  const navDashboard = $("nav-item-dashboard");
+  const navVehicles = $("nav-item-vehicles");
+  const navSettings = $("nav-item-settings");
+  const navUsers = $("nav-item-users");
+  const navRoles = $("nav-item-roles");
+  const navProfile = $("nav-item-profile");
+
+  if (mustChange) {
+    // If password change is mandatory, hide all other views
+    if (navDashboard) navDashboard.style.display = "none";
+    if (navVehicles) navVehicles.style.display = "none";
+    if (navSettings) navSettings.style.display = "none";
+    if (navUsers) navUsers.style.display = "none";
+    if (navRoles) navRoles.style.display = "none";
+    if (navProfile) navProfile.style.display = "flex";
+  } else {
+    // Show normal based on permissions
+    if (navDashboard) navDashboard.style.display = "flex";
+    if (navVehicles) navVehicles.style.display = "flex";
+    if (navSettings) navSettings.style.display = "flex";
+    if (navUsers) navUsers.style.display = hasPermission("users.manage") ? "flex" : "none";
+    if (navRoles) navRoles.style.display = hasPermission("roles.manage") ? "flex" : "none";
+    if (navProfile) navProfile.style.display = "flex";
+  }
+}
+
 function showDashboardView() {
   const loginView = $("login-view");
   const adminLayout = $("admin-layout");
@@ -136,5 +186,6 @@ function showDashboardView() {
   if (loginView) loginView.style.display = "none";
   if (adminLayout) adminLayout.style.display = "grid";
 
+  applyUIPermissions();
   navigationController.init();
 }
