@@ -109,7 +109,7 @@ function renderUsersTable() {
     row.innerHTML = `
       <td style="font-weight: 600; font-family: var(--font-display);">${u.display_name}</td>
       <td style="font-weight: 700; font-family: var(--font-mono); font-size: 0.85rem; color: var(--primary-blue);">${u.username}</td>
-      <td style="font-weight: 500; text-transform: capitalize;">${u.role_name || "User"}</td>
+      <td style="font-weight: 500; text-transform: capitalize;">${u.role_name || (u.role_id === 1 ? "Admin" : (u.role_id === 2 ? "Manager" : "User"))}</td>
       <td>
         <span class="badge" style="padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; ${statusStyle}">
           ${statusText}
