@@ -80,11 +80,20 @@ export function bindVehicleEvents() {
     vehicleForm.addEventListener("submit", handleFormSubmit);
   }
 
+  const copySelect = $("copy-vehicle-select");
+  if (copySelect) {
+    copySelect.removeEventListener("change", handleCopySelectChange);
+    copySelect.addEventListener("change", handleCopySelectChange);
+  }
+
   // Bind dynamic event delegation for Edit/Delete/Thumbnail actions in the table body
   const tableBody = $("vehicle-table-body");
   if (tableBody) {
     tableBody.removeEventListener("click", handleTableActions);
     tableBody.addEventListener("click", handleTableActions);
+    
+    tableBody.removeEventListener("change", handleTableStatusChange);
+    tableBody.addEventListener("change", handleTableStatusChange);
   }
 
   // Delete modals actions
@@ -140,6 +149,7 @@ function handleTableActions(e) {
   const thumbImg = e.target.closest(".thumb-img");
   const editBtn = e.target.closest(".btn-action-edit");
   const deleteBtn = e.target.closest(".btn-action-delete");
+  const publishBtn = e.target.closest(".btn-action-publish");
 
   if (thumbImg) {
     const vehicleId = thumbImg.getAttribute("data-id");
@@ -158,6 +168,52 @@ function handleTableActions(e) {
     }
     const vehicleId = deleteBtn.getAttribute("data-id");
     openDeleteConfirmation(vehicleId);
+  } else if (publishBtn) {
+    if (!hasPermission("vehicles.publish")) {
+      alert("Access Denied. You do not have permission to publish/unpublish vehicles.");
+      return;
+    }
+    const vehicleId = publishBtn.getAttribute("data-id");
+    const vehicles = getAllVehicles();
+    const idx = vehicles.findIndex(v => v.id === vehicleId);
+    if (idx !== -1) {
+      // Toggle publish status!
+      const currentVal = vehicles[idx].published !== false && vehicles[idx].isPublished !== false;
+      vehicles[idx].published = !currentVal;
+      vehicles[idx].isPublished = !currentVal;
+      
+      const STORAGE_KEY = "roadlink_vehicles";
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(vehicles));
+      renderVehicleTable();
+      initDashboard(); // Update dashboard metric counts!
+    }
+  }
+}
+
+/**
+ * Handles inline vehicle status select box change events.
+ */
+function handleTableStatusChange(e) {
+  const statusSelect = e.target.closest(".status-select-inline");
+  if (statusSelect) {
+    if (!hasPermission("vehicles.edit")) {
+      alert("Access Denied. You do not have permission to change vehicle status.");
+      renderVehicleTable();
+      return;
+    }
+    const vehicleId = statusSelect.getAttribute("data-id");
+    const newStatus = statusSelect.value;
+    const vehicles = getAllVehicles();
+    const idx = vehicles.findIndex(v => v.id === vehicleId);
+    if (idx !== -1) {
+      vehicles[idx].status = newStatus;
+      vehicles[idx].updatedAt = new Date().toISOString();
+      
+      const STORAGE_KEY = "roadlink_vehicles";
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(vehicles));
+      renderVehicleTable();
+      initDashboard(); // Update dashboard metric counts!
+    }
   }
 }
 
@@ -255,6 +311,23 @@ export function openVehicleModal(vehicleId = null) {
     populateField("published", true);
   }
 
+  // Handle Copy parameters dropdown visibility and options
+  const copyContainer = $("copy-vehicle-container");
+  const copySelect = $("copy-vehicle-select");
+  if (copyContainer) {
+    copyContainer.style.display = vehicleId ? "none" : "block";
+  }
+  if (copySelect && !vehicleId) {
+    copySelect.innerHTML = '<option value="">-- Choose a vehicle to copy from --</option>';
+    const vehicles = getAllVehicles();
+    vehicles.forEach(v => {
+      const option = document.createElement("option");
+      option.value = v.id;
+      option.textContent = `[${v.stockNumber}] ${v.year} ${v.make} ${v.model} (${v.price} BDT)`;
+      copySelect.appendChild(option);
+    });
+  }
+
   // Render previews
   renderImagePreviews();
   modal.style.display = "flex";
@@ -266,6 +339,78 @@ export function openVehicleModal(vehicleId = null) {
     card.scrollTop = 0;
   }
   window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+/**
+ * Handles copy vehicle select dropdown changes.
+ */
+function handleCopySelectChange(e) {
+  const selectedId = e.target.value;
+  if (!selectedId) return;
+  const vehicle = getAllVehicles().find(v => v.id === selectedId);
+  if (vehicle) {
+    copyVehicleParams(vehicle);
+  }
+}
+
+/**
+ * Copies parameters from a source vehicle to the form inputs.
+ */
+function copyVehicleParams(vehicle) {
+  if (!vehicle) return;
+  populateField("make", vehicle.make);
+  populateField("model", vehicle.model);
+  populateField("grade", vehicle.grade || "");
+  populateField("year", vehicle.year);
+  populateField("chassisNumber", vehicle.chassisNumber || "");
+  populateField("registration", vehicle.registration || "");
+  
+  populateField("mileage", vehicle.mileage !== undefined ? vehicle.mileage : "");
+  populateField("engineCC", vehicle.engineCC !== undefined ? vehicle.engineCC : "");
+  populateField("transmission", vehicle.transmission || "");
+  populateField("fuel", vehicle.fuel || "");
+  populateField("drive", vehicle.drive || "");
+  populateField("exteriorColor", vehicle.exteriorColor || "");
+  populateField("interiorColor", vehicle.interiorColor || "");
+  populateField("steering", vehicle.steering || "");
+  populateField("doors", vehicle.doors !== undefined ? vehicle.doors : "");
+  populateField("seats", vehicle.seats !== undefined ? vehicle.seats : "");
+
+  populateField("purchasePrice", vehicle.purchasePrice !== undefined ? vehicle.purchasePrice : "");
+  populateField("price", vehicle.price);
+  populateField("currency", vehicle.currency || "BDT");
+
+  populateField("status", vehicle.status);
+  populateField("description", vehicle.description || "");
+
+  // Newly synced public website fields
+  populateField("bodyType", vehicle.bodyType || "");
+  populateField("featured", !!vehicle.featured);
+  populateField("published", vehicle.published !== false);
+  populateField("negotiable", !!vehicle.negotiable);
+  populateField("arrivalDate", vehicle.arrivalDate || "");
+  populateField("accidentHistory", vehicle.accidentHistory || "");
+  populateField("shortDescription", vehicle.shortDescription || "");
+  populateField("youtubeUrl", vehicle.youtubeUrl || "");
+  populateField("auctionSheetUrl", vehicle.auctionSheetUrl || "");
+  populateField("auctionSheetAvailable", !!vehicle.auctionSheetAvailable);
+  populateField("features", vehicle.features || []);
+
+  // Populate Exterior Images array
+  activeExteriorImages = [...(vehicle.exteriorImages || [])];
+  if (activeExteriorImages.length === 0) {
+    if (vehicle.images && vehicle.images.length > 0) {
+      activeExteriorImages = [...vehicle.images];
+    } else if (vehicle.coverImage || vehicle.posterImage) {
+      activeExteriorImages = [vehicle.coverImage || vehicle.posterImage];
+    }
+  }
+  
+  // Populate Interior Images array
+  activeInteriorImages = [...(vehicle.interiorImages || [])];
+  
+  // Re-render preview lists
+  renderImagePreviews();
 }
 
 /**
