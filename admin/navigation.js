@@ -1,4 +1,6 @@
-import { $ } from "./utils.js";
+import { $, apiFetch } from "./utils.js";
+import { resetFilters } from "./vehicle-table.js";
+import { hasPermission } from "./auth.js";
 
 class NavigationController {
   constructor() {
@@ -38,11 +40,42 @@ class NavigationController {
    * Switches context to target module and updates interface elements
    * @param {string} name - Registered module key
    */
-  navigateTo(name) {
+  async navigateTo(name) {
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+    if (token) {
+      try {
+        const profRes = await apiFetch("/api/v1/admin/profile");
+        if (profRes.ok) {
+          const result = await profRes.json();
+          if (result.success && result.data) {
+            sessionStorage.setItem("currentUser", JSON.stringify(result.data));
+            if (typeof window.applyUIPermissions === "function") {
+              window.applyUIPermissions();
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Failed to refresh profile during navigation:", e);
+      }
+    }
+
     const mustChange = sessionStorage.getItem("mustChangePassword") === "true";
     if (mustChange) {
       name = "profile";
-    } else if (!this.modules[name]) {
+    } else {
+      // Enforce navigation guards based on permissions
+      if (name === "settings" && !hasPermission("settings.view")) {
+        name = "dashboard";
+      } else if (name === "users" && !hasPermission("users.manage")) {
+        name = "dashboard";
+      } else if (name === "roles" && !hasPermission("roles.manage")) {
+        name = "dashboard";
+      } else if (name === "vehicles" && !hasPermission("vehicles.view")) {
+        name = "dashboard";
+      }
+    }
+
+    if (!this.modules[name]) {
       name = "dashboard";
     }
 
@@ -91,7 +124,16 @@ class NavigationController {
       const btn = $(item.btnId);
       if (btn) {
         // Prevent duplicate listener attachments by using direct property assignment
-        btn.onclick = () => this.navigateTo(key);
+        btn.onclick = () => {
+          if (key === "vehicles") {
+            try {
+              resetFilters();
+            } catch (err) {
+              console.error("Error resetting vehicles filters on sidebar navigation:", err);
+            }
+          }
+          this.navigateTo(key);
+        };
       }
     });
   }
