@@ -1,252 +1,199 @@
 /**
- * Roadlink Automobiles - Admin Authentication Module
- * Handles login, logout, password visibility, and session state.
+ * Roadlink Automobiles - Admin Portal Bootstrap
+ * Standard ES Modules bootstrap file for orchestrating the admin workspace.
  */
 
-import { $, apiFetch } from "./utils.js";
-
-/**
- * Returns the token from sessionStorage if available.
- * Otherwise returns the token from localStorage.
- * @returns {string|null} JWT Token or null
- */
-export function getToken() {
-  return sessionStorage.getItem("token") || localStorage.getItem("token") || null;
-}
-
-/**
- * Saves the token according to rememberMe.
- * @param {string} token 
- * @param {boolean} rememberMe 
- */
-export function saveToken(token, rememberMe) {
-  // Ensure only one storage contains the token
-  sessionStorage.removeItem("token");
-  localStorage.removeItem("token");
-
-  if (rememberMe) {
-    localStorage.setItem("token", token);
-  } else {
-    sessionStorage.setItem("token", token);
-  }
-}
-/**
- * Removes the token from BOTH sessionStorage and localStorage.
- */
-export function clearToken() {
-  sessionStorage.removeItem("token");
-  localStorage.removeItem("token");
-  sessionStorage.removeItem("mustChangePassword");
-  sessionStorage.removeItem("currentUser");
-}
+import { getAllVehicles } from "../js/inventory.js";
+import { $, setUnauthorizedHandler } from "./utils.js";
+import { isAuthenticated, bindLoginEvents, bindLogoutEvents, validateSession, clearToken, hasPermission, getCurrentUser } from "./auth.js";
+import { initDashboard } from "./dashboard.js";
+import { initVehiclesView } from "./vehicles.js";
+import { initSettingsView } from "./settings.js";
+import { initUsersView } from "./users.js";
+import { initProfileView } from "./profile.js";
+import { initRolesView } from "./roles.js";
+import { showLoginView } from "./ui.js";
+import { navigationController } from "./navigation.js";
 
 /**
- * Retrieves the currently logged-in user object from session storage.
- * @returns {Object|null}
+ * Initialize core application
  */
-export function getCurrentUser() {
-  const userStr = sessionStorage.getItem("currentUser");
-  if (!userStr) return null;
-  try {
-    return JSON.parse(userStr);
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Checks if the current user possesses a specific permission key.
- * @param {string} permissionKey 
- * @returns {boolean}
- */
-export function hasPermission(permissionKey) {
-  const user = getCurrentUser();
-  if (!user) return false;
+async function init() {
+  // Always bind event handlers first
+  bindLoginEvents(showDashboardView);
+  bindLogoutEvents(showLoginView);
   
-  if (Array.isArray(user.permissions)) {
-    return user.permissions.includes(permissionKey);
-  }
-  
-  return false;
-}
-
-/**
- * Checks if the current administrator is authenticated.
- * @returns {boolean} True if authenticated, false otherwise
- */
-export function isAuthenticated() {
-  return getToken() !== null;
-}
-
-/**
- * Performs backend authentication request.
- * @param {string} username 
- * @param {string} password 
- * @param {boolean} rememberMe 
- * @returns {Promise<Object>} API response payload
- */
-export async function login(username, password, rememberMe) {
-  try {
-    const response = await apiFetch("/api/v1/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ username, password, rememberMe }),
-    });
-
-    const result = await response.json();
-    return {
-      status: response.status,
-      ...result,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      message: error.message || "An unexpected error occurred."
-    };
-  }
-}
-
-/**
- * Binds password toggle and form submission event listeners for the login form.
- * @param {Function} onLoginSuccess - Callback function executed upon successful login
- */
-export function bindLoginEvents(onLoginSuccess) {
-  const loginForm = $("login-form");
-  const usernameInput = $("username");
-  const passwordInput = $("password");
-  const btnTogglePassword = $("btn-toggle-password");
-  const loginErrorPanel = $("login-error");
-  const errorMessageText = $("error-message");
-
-  if (!loginForm || !usernameInput || !passwordInput || !btnTogglePassword) return;
-
-  // 1. Password Visibility Toggle
-  btnTogglePassword.addEventListener("click", () => {
-    const iconEye = btnTogglePassword.querySelector(".icon-eye");
-    const iconEyeOff = btnTogglePassword.querySelector(".icon-eye-off");
-
-    if (passwordInput.type === "password") {
-      passwordInput.type = "text";
-      if (iconEye) iconEye.style.display = "none";
-      if (iconEyeOff) iconEyeOff.style.display = "block";
-      btnTogglePassword.setAttribute("aria-label", "Hide password");
-    } else {
-      passwordInput.type = "password";
-      if (iconEye) iconEye.style.display = "block";
-      if (iconEyeOff) iconEyeOff.style.display = "none";
-      btnTogglePassword.setAttribute("aria-label", "Show password");
-    }
+  // Register all modules with centralized Navigation Controller
+  navigationController.registerModule("dashboard", {
+    panelId: "dashboard-view-panel",
+    btnId: "nav-item-dashboard",
+    title: "Dashboard",
+    init: () => initDashboard()
   });
 
-  // 2. Form Submission Handler
-  loginForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  navigationController.registerModule("vehicles", {
+    panelId: "vehicles-view-panel",
+    btnId: "nav-item-vehicles",
+    title: "Vehicles Inventory",
+    init: () => initVehiclesView()
+  });
 
-    if (loginErrorPanel) loginErrorPanel.style.display = "none";
+  navigationController.registerModule("settings", {
+    panelId: "settings-view-panel",
+    btnId: "nav-item-settings",
+    title: "System Settings",
+    init: () => initSettingsView()
+  });
 
-    const username = usernameInput.value.trim();
-    const password = passwordInput.value;
-    const rememberMeCheckbox = $("rememberMe");
-    const rememberMe = rememberMeCheckbox ? rememberMeCheckbox.checked : false;
+  navigationController.registerModule("users", {
+    panelId: "users-view-panel",
+    btnId: "nav-item-users",
+    title: "User Management",
+    init: () => initUsersView()
+  });
 
-    if (!username || !password) {
-      showError("Please enter both username and password.");
+  navigationController.registerModule("profile", {
+    panelId: "profile-view-panel",
+    btnId: "nav-item-profile",
+    title: "My Profile",
+    init: () => initProfileView()
+  });
+
+  navigationController.registerModule("roles", {
+    panelId: "roles-view-panel",
+    btnId: "nav-item-roles",
+    title: "Roles & Permissions",
+    init: () => initRolesView()
+  });
+
+  bindSidebarEvents();
+
+  // Bind topbar profile click to navigate to My Profile
+  const topbarProfileBadge = $("topbar-profile-badge");
+  if (topbarProfileBadge) {
+    topbarProfileBadge.onclick = () => {
+      navigationController.navigateTo("profile");
+    };
+  }
+
+  setUnauthorizedHandler(() => {
+    clearToken();
+    showLoginView();
+  });
+
+  if (isAuthenticated()) {
+    showDashboardView();
+
+    const valid = await validateSession();
+
+    if (!valid) {
+      showLoginView();
       return;
     }
+  } else {
+    showLoginView();
+  }
+}
 
-    // Disable button or show loading state
-    const submitBtn = loginForm.querySelector("button[type='submit']");
-    const originalText = submitBtn ? submitBtn.textContent : "Sign In";
-    if (submitBtn) {
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Signing in...";
-    }
+/**
+ * Binds responsive sidebar drawer events (non-nav toggle controls)
+ */
+function bindSidebarEvents() {
+  const sidebar = $("admin-sidebar");
+  const mobileSidebarOpen = $("mobile-sidebar-open");
+  const mobileSidebarClose = $("mobile-sidebar-close");
 
-    try {
-      const res = await login(username, password, rememberMe);
-      if (res.success && res.data && res.data.token) {
-        localStorage.setItem("rememberMe", rememberMe);
-        saveToken(res.data.token, rememberMe);
-        
-        if (res.data.mustChangePassword) {
-          sessionStorage.setItem("mustChangePassword", "true");
-        } else {
-          sessionStorage.removeItem("mustChangePassword");
-        }
+  if (!sidebar || !mobileSidebarOpen || !mobileSidebarClose) return;
 
-        if (res.data.user) {
-          sessionStorage.setItem("currentUser", JSON.stringify(res.data.user));
-        } else {
-          sessionStorage.removeItem("currentUser");
-        }
+  // Mobile navigation drawer toggle controls
+  mobileSidebarOpen.addEventListener("click", () => {
+    sidebar.classList.add("drawer-open");
+    mobileSidebarOpen.setAttribute("aria-expanded", "true");
+  });
 
-        if (onLoginSuccess) onLoginSuccess();
-      } else {
-        showError(res.message || "Invalid username or password");
-      }
-    } catch (err) {
-      showError("Connection failed. Please try again.");
-    } finally {
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = originalText;
+  mobileSidebarClose.addEventListener("click", () => {
+    sidebar.classList.remove("drawer-open");
+    mobileSidebarOpen.setAttribute("aria-expanded", "false");
+  });
+
+  // Close mobile drawer when clicking backdrop outside of sidebar area
+  document.addEventListener("click", (e) => {
+    if (window.innerWidth <= 991) {
+      const isClickInsideSidebar = sidebar.contains(e.target);
+      const isClickOnToggleBtn = mobileSidebarOpen.contains(e.target);
+      
+      if (!isClickInsideSidebar && !isClickOnToggleBtn && sidebar.classList.contains("drawer-open")) {
+        sidebar.classList.remove("drawer-open");
+        mobileSidebarOpen.setAttribute("aria-expanded", "false");
       }
     }
   });
 
-  function showError(message) {
-    if (errorMessageText) errorMessageText.textContent = message;
-    if (loginErrorPanel) loginErrorPanel.style.display = "flex";
-    
-    passwordInput.select();
-    passwordInput.focus();
+  // Escape key hides mobile navigation drawer
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && sidebar.classList.contains("drawer-open")) {
+      sidebar.classList.remove("drawer-open");
+      mobileSidebarOpen.setAttribute("aria-expanded", "false");
+    }
+  });
+}
+
+// Start core execution once document is ready
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
+
+function applyUIPermissions() {
+  const user = getCurrentUser();
+  if (!user) return;
+
+  // Update topbar profile labels
+  const topbarRoleElements = document.querySelectorAll(".user-role");
+  const topbarLabelElements = document.querySelectorAll(".user-label");
+  topbarRoleElements.forEach(el => {
+    el.textContent = user.displayName || user.username;
+  });
+  topbarLabelElements.forEach(el => {
+    el.textContent = user.roleName || "User";
+  });
+
+  const mustChange = sessionStorage.getItem("mustChangePassword") === "true";
+
+  const navDashboard = $("nav-item-dashboard");
+  const navVehicles = $("nav-item-vehicles");
+  const navSettings = $("nav-item-settings");
+  const navUsers = $("nav-item-users");
+  const navRoles = $("nav-item-roles");
+  const navProfile = $("nav-item-profile");
+
+  if (mustChange) {
+    // If password change is mandatory, hide all other views
+    if (navDashboard) navDashboard.style.display = "none";
+    if (navVehicles) navVehicles.style.display = "none";
+    if (navSettings) navSettings.style.display = "none";
+    if (navUsers) navUsers.style.display = "none";
+    if (navRoles) navRoles.style.display = "none";
+    if (navProfile) navProfile.style.display = "flex";
+  } else {
+    // Show normal based on permissions
+    if (navDashboard) navDashboard.style.display = "flex";
+    if (navVehicles) navVehicles.style.display = "flex";
+    if (navSettings) navSettings.style.display = "flex";
+    if (navUsers) navUsers.style.display = hasPermission("users.manage") ? "flex" : "none";
+    if (navRoles) navRoles.style.display = hasPermission("roles.manage") ? "flex" : "none";
+    if (navProfile) navProfile.style.display = "flex";
   }
 }
 
-/**
- * Binds click listeners to logout buttons to terminate session.
- * @param {Function} onLogoutSuccess - Callback function executed upon sign out
- */
-export function bindLogoutEvents(onLogoutSuccess) {
-  const btnSidebarLogout = $("btn-sidebar-logout");
-  const btnTopbarLogout = $("btn-topbar-logout");
+function showDashboardView() {
+  const loginView = $("login-view");
+  const adminLayout = $("admin-layout");
 
-  const handleLogout = () => {
-    clearToken();
-    if (onLogoutSuccess) onLogoutSuccess();
-  };
+  if (loginView) loginView.style.display = "none";
+  if (adminLayout) adminLayout.style.display = "grid";
 
-  if (btnSidebarLogout) {
-    btnSidebarLogout.addEventListener("click", handleLogout);
-  }
-
-  if (btnTopbarLogout) {
-    btnTopbarLogout.addEventListener("click", handleLogout);
-  }
-}
-
-/**
- * Verifies that the stored token is still valid.
- * If invalid, clears the session.
- *
- * @returns {Promise<boolean>}
- */
-export async function validateSession() {
-  if (!isAuthenticated()) {
-    return false;
-  }
-
-  try {
-    const response = await apiFetch("/api/v1/admin/settings");
-
-  if (!response.ok) {
-    return false;
-  }
-
-  return true;
-    return response.ok;
-  
-  } catch {
-    clearToken();
-    return false;
-  }
+  applyUIPermissions();
+  navigationController.init();
 }
