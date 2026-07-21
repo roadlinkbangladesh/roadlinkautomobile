@@ -9,8 +9,18 @@ import {
     updateUser,
     deleteUser,
     resetPassword,
-    changePassword
+    changePassword,
+    getProfile,
+    updateProfile
 } from "./routes/admin/users.js";
+import {
+    listRoles,
+    getRole,
+    createRole,
+    updateRole,
+    deleteRole,
+    listPermissions
+} from "./routes/admin/roles.js";
 
 const routes = {
 
@@ -30,6 +40,18 @@ const routes = {
     [`POST:${API.ADMIN}/users/:id/reset-password`]: resetPassword,
     [`PUT:${API.ADMIN}/users/change-password`]: changePassword,
     [`PUT:${API.ADMIN}/change-password`]: changePassword,
+
+    // Profile Management
+    [`GET:${API.ADMIN}/profile`]: getProfile,
+    [`PUT:${API.ADMIN}/profile`]: updateProfile,
+
+    // Roles & Permissions Management
+    [`GET:${API.ADMIN}/permissions`]: listPermissions,
+    [`GET:${API.ADMIN}/roles`]: listRoles,
+    [`POST:${API.ADMIN}/roles`]: createRole,
+    [`GET:${API.ADMIN}/roles/:id`]: getRole,
+    [`PUT:${API.ADMIN}/roles/:id`]: updateRole,
+    [`DELETE:${API.ADMIN}/roles/:id`]: deleteRole,
 
 };
 
