@@ -4,7 +4,7 @@
  */
 
 import { getAllVehicles } from "../js/inventory.js";
-import { $, setUnauthorizedHandler } from "./utils.js";
+import { $, setUnauthorizedHandler, apiFetch } from "./utils.js";
 import { isAuthenticated, bindLoginEvents, bindLogoutEvents, validateSession, clearToken, hasPermission, getCurrentUser } from "./auth.js";
 import { initDashboard } from "./dashboard.js";
 import { initVehiclesView } from "./vehicles.js";
@@ -81,7 +81,26 @@ async function init() {
     showLoginView();
   });
 
+  window.applyUIPermissions = applyUIPermissions;
+
   if (isAuthenticated()) {
+    // Dynamic permission fetch first to avoid stale permissions and missing currentUser
+    try {
+      const profRes = await apiFetch("/api/v1/admin/profile");
+      if (profRes.ok) {
+        const result = await profRes.json();
+        if (result.success && result.data) {
+          sessionStorage.setItem("currentUser", JSON.stringify(result.data));
+        }
+      } else if (profRes.status === 401) {
+        clearToken();
+        showLoginView();
+        return;
+      }
+    } catch (e) {
+      console.error("Failed to fetch user profile during init:", e);
+    }
+
     showDashboardView();
 
     const valid = await validateSession();
@@ -153,11 +172,18 @@ function applyUIPermissions() {
   const topbarRoleElements = document.querySelectorAll(".user-role");
   const topbarLabelElements = document.querySelectorAll(".user-label");
   topbarRoleElements.forEach(el => {
-    el.textContent = user.displayName || user.username;
+    el.textContent = user.display_name || user.username;
   });
   topbarLabelElements.forEach(el => {
-    el.textContent = user.roleName || "User";
+    el.textContent = user.role_name || "User";
   });
+
+  // Update topbar user avatar with role name first letter
+  const topbarAvatar = document.querySelector(".user-avatar");
+  if (topbarAvatar) {
+    const roleChar = (user.role_name || "User").charAt(0).toUpperCase();
+    topbarAvatar.innerHTML = `<span style="font-weight: 700; font-size: 0.95rem; font-family: var(--font-display); color: var(--bg-white);">${roleChar}</span>`;
+  }
 
   const mustChange = sessionStorage.getItem("mustChangePassword") === "true";
 
@@ -178,9 +204,9 @@ function applyUIPermissions() {
     if (navProfile) navProfile.style.display = "flex";
   } else {
     // Show normal based on permissions
-    if (navDashboard) navDashboard.style.display = "flex";
-    if (navVehicles) navVehicles.style.display = "flex";
-    if (navSettings) navSettings.style.display = "flex";
+    if (navDashboard) navDashboard.style.display = hasPermission("dashboard.view") ? "flex" : "none";
+    if (navVehicles) navVehicles.style.display = hasPermission("vehicles.view") ? "flex" : "none";
+    if (navSettings) navSettings.style.display = hasPermission("settings.view") ? "flex" : "none";
     if (navUsers) navUsers.style.display = hasPermission("users.manage") ? "flex" : "none";
     if (navRoles) navRoles.style.display = hasPermission("roles.manage") ? "flex" : "none";
     if (navProfile) navProfile.style.display = "flex";
@@ -193,6 +219,9 @@ function showDashboardView() {
 
   if (loginView) loginView.style.display = "none";
   if (adminLayout) adminLayout.style.display = "grid";
+
+  // Reset module selection to dashboard upon login
+  sessionStorage.setItem("active_admin_module", "dashboard");
 
   applyUIPermissions();
   navigationController.init();
