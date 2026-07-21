@@ -27,10 +27,10 @@ CREATE TABLE IF NOT EXISTS role_permissions (
 
 -- 3. Seed Roles
 INSERT OR IGNORE INTO roles (id, name, description, created_at, updated_at) VALUES 
-(1, 'Super Administrator', 'Super Administrator with full access to all system modules, settings, user, and role management.', '2026-07-20T18:00:00.000Z', '2026-07-20T18:00:00.000Z'),
+(1, 'Admin', 'Super Administrator with full access to all system modules, settings, user, and role management.', '2026-07-20T18:00:00.000Z', '2026-07-20T18:00:00.000Z'),
 (2, 'Manager', 'Store Manager with operational permissions to manage vehicles and view dashboard and settings.', '2026-07-20T18:00:00.000Z', '2026-07-20T18:00:00.000Z');
 
--- 4. Seed Permissions for Super Administrator
+-- 4. Seed Permissions for Admin
 INSERT OR IGNORE INTO role_permissions (role_id, permission_key) VALUES 
 (1, 'dashboard.view'),
 (1, 'vehicles.view'),
