@@ -5,6 +5,7 @@
 
 import { getAllVehicles, addVehicle, updateVehicle, deleteVehicle } from "../js/inventory.js";
 import { $ } from "./utils.js";
+import { hasPermission } from "./auth.js";
 import { initDashboard } from "./dashboard.js";
 import { initVehicleTable, renderVehicleTable, populateMakeFilter, state as tableState, saveState as saveTableState } from "./vehicle-table.js";
 
@@ -23,6 +24,12 @@ let vehiclesEventsBound = false;
  */
 export function initVehiclesView() {
   initVehicleTable();
+  
+  const btnAdd = $("btn-add-vehicle");
+  if (btnAdd) {
+    btnAdd.style.display = hasPermission("vehicles.create") ? "inline-flex" : "none";
+  }
+
   if (!vehiclesEventsBound) {
     bindVehicleEvents();
     vehiclesEventsBound = true;
@@ -119,6 +126,10 @@ export function bindVehicleEvents() {
  * Click handler for the Add Vehicle button.
  */
 function handleAddClick() {
+  if (!hasPermission("vehicles.create")) {
+    alert("Access Denied. You do not have permission to add vehicles.");
+    return;
+  }
   openVehicleModal();
 }
 
@@ -134,9 +145,17 @@ function handleTableActions(e) {
     const vehicleId = thumbImg.getAttribute("data-id");
     openImagePreviewModal(vehicleId);
   } else if (editBtn) {
+    if (!hasPermission("vehicles.edit")) {
+      alert("Access Denied. You do not have permission to edit vehicles.");
+      return;
+    }
     const vehicleId = editBtn.getAttribute("data-id");
     openVehicleModal(vehicleId);
   } else if (deleteBtn) {
+    if (!hasPermission("vehicles.delete")) {
+      alert("Access Denied. You do not have permission to delete vehicles.");
+      return;
+    }
     const vehicleId = deleteBtn.getAttribute("data-id");
     openDeleteConfirmation(vehicleId);
   }
@@ -510,6 +529,11 @@ export function closeDeleteModal() {
  */
 function confirmDeleteVehicle() {
   if (!deleteVehicleId) return;
+
+  if (!hasPermission("vehicles.delete")) {
+    alert("Access Denied. You do not have permission to delete vehicles.");
+    return;
+  }
 
   deleteVehicle(deleteVehicleId);
 
