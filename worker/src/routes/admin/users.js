@@ -11,6 +11,8 @@ import {
 import { authenticate, isStrictlyLessPrivileged } from "../../utils/auth.js";
 import { hashPassword, verifyPassword } from "../../utils/password.js";
 import { validatePasswordComplexity } from "../../utils/password-validator.js";
+import { wouldCauseSuperAdminLockout } from "../../utils/lockout.js";
+import { logAudit, getRequestMeta } from "../../utils/audit.js";
 
 /**
  * GET /api/v1/admin/users
@@ -22,7 +24,7 @@ export async function listUsers(request, env) {
     try {
         const users = await env.DB
             .prepare(`
-                SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, u.is_active, u.last_login_at, u.created_at, u.updated_at, u.must_change_password
+                SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, r.is_system_role, r.system_role_key, u.is_active, u.last_login_at, u.created_at, u.updated_at, u.must_change_password
                 FROM users u
                 LEFT JOIN roles r ON u.role_id = r.id
                 ORDER BY u.id ASC
@@ -33,7 +35,7 @@ export async function listUsers(request, env) {
 
         // If not Super Administrator, filter list to only show users strictly less privileged than caller's role (plus self)
         let viewableUsers = results;
-        if (auth.user.role_id !== 1) {
+        if (!auth.user.is_super_admin) {
             const filtered = [];
             for (const u of results) {
                 if (u.id === auth.user.id || (await isStrictlyLessPrivileged(env, u.role_id, auth.user.role_id))) {
@@ -43,8 +45,6 @@ export async function listUsers(request, env) {
             viewableUsers = filtered;
         }
 
-        // Convert SQLite 1/0 to true/false for JSON consistency if desired, or keep as integer.
-        // Let's normalize SQLite integers (0/1) to boolean for the frontend representation.
         const list = viewableUsers.map(u => ({
             ...u,
             is_active: u.is_active === 1,
@@ -73,7 +73,7 @@ export async function getUser(request, env, ctx, params) {
     try {
         const user = await env.DB
             .prepare(`
-                SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, u.is_active, u.last_login_at, u.created_at, u.updated_at, u.must_change_password
+                SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, r.is_system_role, r.system_role_key, u.is_active, u.last_login_at, u.created_at, u.updated_at, u.must_change_password
                 FROM users u
                 LEFT JOIN roles r ON u.role_id = r.id
                 WHERE u.id = ?
@@ -87,7 +87,7 @@ export async function getUser(request, env, ctx, params) {
         }
 
         // Delegated Administrator Guard: Cannot view details of someone equal or more privileged
-        if (auth.user.role_id !== 1) {
+        if (!auth.user.is_super_admin) {
             if (id !== auth.user.id && !(await isStrictlyLessPrivileged(env, user.role_id, auth.user.role_id))) {
                 return forbidden("Access denied. You do not have permission to view this user's details.");
             }
@@ -111,6 +111,8 @@ export async function createUser(request, env) {
     const auth = await authenticate(request, env, "users.manage");
     if (auth.errorResponse) return auth.errorResponse;
 
+    const { ipAddress, userAgent } = getRequestMeta(request);
+
     try {
         const body = await request.json();
         const username = body.username?.trim();
@@ -124,7 +126,7 @@ export async function createUser(request, env) {
 
         // Validate role exists
         const roleExists = await env.DB
-            .prepare(`SELECT id, name FROM roles WHERE id = ? LIMIT 1`)
+            .prepare(`SELECT id, name, is_system_role, system_role_key FROM roles WHERE id = ? LIMIT 1`)
             .bind(roleId)
             .first();
 
@@ -132,18 +134,27 @@ export async function createUser(request, env) {
             return badRequest("Invalid role. Selected role does not exist.");
         }
 
-        // Role assignment check: Must be strictly less privileged
-        if (auth.user.role_id !== 1) {
+        // Role assignment check: Non-Super-Admin must only assign strictly less privileged roles
+        if (!auth.user.is_super_admin) {
             if (!(await isStrictlyLessPrivileged(env, roleId, auth.user.role_id))) {
+                await logAudit(env, {
+                    actingUserId: auth.user.id,
+                    actingUsername: auth.user.username,
+                    targetRoleId: roleId,
+                    action: "security.privilege_escalation_attempt",
+                    resourceType: "user",
+                    status: "FAILURE",
+                    reason: "Attempted to assign role with equal or higher privilege",
+                    ipAddress,
+                    userAgent
+                });
                 return forbidden("You can only assign roles that are strictly less privileged than your own.");
             }
         }
 
         // Check unique username
         const existing = await env.DB
-            .prepare(`
-                SELECT id FROM users WHERE LOWER(username) = LOWER(?) LIMIT 1
-            `)
+            .prepare(`SELECT id FROM users WHERE LOWER(username) = LOWER(?) LIMIT 1`)
             .bind(username)
             .first();
 
@@ -184,6 +195,20 @@ export async function createUser(request, env) {
             .bind(username, passwordHash, displayName, roleSlug, roleId, isActive, now, now)
             .first();
 
+        await logAudit(env, {
+            actingUserId: auth.user.id,
+            actingUsername: auth.user.username,
+            targetUserId: result.id,
+            targetRoleId: roleId,
+            action: "user.create",
+            resourceType: "user",
+            resourceId: result.id,
+            status: "SUCCESS",
+            ipAddress,
+            userAgent,
+            details: { username, displayName, roleId, roleName: roleExists.name, isActive: isActive === 1 }
+        });
+
         return created({
             user: {
                 ...result,
@@ -205,6 +230,8 @@ export async function createUser(request, env) {
 export async function updateUser(request, env, ctx, params) {
     const auth = await authenticate(request, env, "users.manage");
     if (auth.errorResponse) return auth.errorResponse;
+
+    const { ipAddress, userAgent } = getRequestMeta(request);
 
     const id = parseInt(params.id);
     if (isNaN(id)) {
@@ -237,15 +264,55 @@ export async function updateUser(request, env, ctx, params) {
         }
 
         // Delegated Administrator Guard: Cannot modify someone equal or more privileged
-        if (auth.user.role_id !== 1) {
+        if (!auth.user.is_super_admin) {
             if (!(await isStrictlyLessPrivileged(env, user.role_id, auth.user.role_id))) {
+                await logAudit(env, {
+                    actingUserId: auth.user.id,
+                    actingUsername: auth.user.username,
+                    targetUserId: id,
+                    action: "security.privilege_escalation_attempt",
+                    resourceType: "user",
+                    status: "FAILURE",
+                    reason: "Attempted to modify user account of equal or higher privilege",
+                    ipAddress,
+                    userAgent
+                });
                 return forbidden("Access denied. You can only modify user accounts that are strictly less privileged than your own.");
             }
 
-            // Also, if changing the role, the new role must be strictly less privileged than their own role
+            // If changing role, new role must be strictly less privileged
             if (roleId !== undefined && !(await isStrictlyLessPrivileged(env, roleId, auth.user.role_id))) {
+                await logAudit(env, {
+                    actingUserId: auth.user.id,
+                    actingUsername: auth.user.username,
+                    targetUserId: id,
+                    targetRoleId: roleId,
+                    action: "security.privilege_escalation_attempt",
+                    resourceType: "user",
+                    status: "FAILURE",
+                    reason: "Attempted to assign role of equal or higher privilege",
+                    ipAddress,
+                    userAgent
+                });
                 return forbidden("You can only assign roles that are strictly less privileged than your own.");
             }
+        }
+
+        // Lockout Prevention Check: ensure active Super Admin count does not drop below 1
+        const causesLockout = await wouldCauseSuperAdminLockout(env, id, isActive, roleId);
+        if (causesLockout) {
+            await logAudit(env, {
+                actingUserId: auth.user.id,
+                actingUsername: auth.user.username,
+                targetUserId: id,
+                action: "user.update",
+                resourceType: "user",
+                status: "FAILURE",
+                reason: "Administrative Lockout Prevention: Operation would leave zero active Super Administrators.",
+                ipAddress,
+                userAgent
+            });
+            return badRequest("Cannot deactivate or reassign the last active Super Administrator. At least one active Super Administrator account must exist.");
         }
 
         const updatedFields = [];
@@ -284,7 +351,6 @@ export async function updateUser(request, env, ctx, params) {
         updatedFields.push("updated_at = ?");
         bindings.push(now);
 
-        // Bind user ID for WHERE clause
         bindings.push(id);
 
         const query = `
@@ -298,6 +364,28 @@ export async function updateUser(request, env, ctx, params) {
             .prepare(query)
             .bind(...bindings)
             .first();
+
+        // Specific action audit
+        let auditAction = "user.update";
+        if (isActive !== undefined && Boolean(user.is_active) !== Boolean(isActive)) {
+            auditAction = isActive ? "user.activate" : "user.deactivate";
+        } else if (roleId !== undefined && user.role_id !== roleId) {
+            auditAction = "role.assignment";
+        }
+
+        await logAudit(env, {
+            actingUserId: auth.user.id,
+            actingUsername: auth.user.username,
+            targetUserId: id,
+            targetRoleId: roleId !== undefined ? roleId : user.role_id,
+            action: auditAction,
+            resourceType: "user",
+            resourceId: id,
+            status: "SUCCESS",
+            ipAddress,
+            userAgent,
+            details: { displayName, roleId, isActive }
+        });
 
         return success({
             ...result,
@@ -317,6 +405,8 @@ export async function deleteUser(request, env, ctx, params) {
     const auth = await authenticate(request, env, "users.manage");
     if (auth.errorResponse) return auth.errorResponse;
 
+    const { ipAddress, userAgent } = getRequestMeta(request);
+
     const id = parseInt(params.id);
     if (isNaN(id)) {
         return badRequest("Invalid user ID.");
@@ -328,7 +418,13 @@ export async function deleteUser(request, env, ctx, params) {
 
     try {
         const user = await env.DB
-            .prepare(`SELECT id, role_id FROM users WHERE id = ? LIMIT 1`)
+            .prepare(`
+                SELECT u.id, u.username, u.role_id, r.is_system_role, r.system_role_key
+                FROM users u
+                JOIN roles r ON u.role_id = r.id
+                WHERE u.id = ?
+                LIMIT 1
+            `)
             .bind(id)
             .first();
 
@@ -336,22 +432,58 @@ export async function deleteUser(request, env, ctx, params) {
             return notFound("User not found.");
         }
 
-        // Super Administrator accounts cannot be deleted
-        if (user.role_id === 1) {
-            return forbidden("Access denied. Super Administrator accounts cannot be deleted.");
-        }
-
         // Delegated Administrator Guard: Cannot delete someone equal or more privileged
-        if (auth.user.role_id !== 1) {
+        if (!auth.user.is_super_admin) {
             if (!(await isStrictlyLessPrivileged(env, user.role_id, auth.user.role_id))) {
+                await logAudit(env, {
+                    actingUserId: auth.user.id,
+                    actingUsername: auth.user.username,
+                    targetUserId: id,
+                    action: "security.privilege_escalation_attempt",
+                    resourceType: "user",
+                    status: "FAILURE",
+                    reason: "Attempted to delete user account of equal or higher privilege",
+                    ipAddress,
+                    userAgent
+                });
                 return forbidden("Access denied. You can only delete user accounts that are strictly less privileged than your own.");
             }
+        }
+
+        // Lockout Prevention Check: Ensure at least one active Super Admin remains
+        const causesLockout = await wouldCauseSuperAdminLockout(env, id);
+        if (causesLockout) {
+            await logAudit(env, {
+                actingUserId: auth.user.id,
+                actingUsername: auth.user.username,
+                targetUserId: id,
+                action: "user.delete",
+                resourceType: "user",
+                status: "FAILURE",
+                reason: "Administrative Lockout Prevention: Cannot delete the last active Super Administrator account.",
+                ipAddress,
+                userAgent
+            });
+            return badRequest("Cannot delete the last active Super Administrator account. At least one active Super Administrator must remain.");
         }
 
         await env.DB
             .prepare(`DELETE FROM users WHERE id = ?`)
             .bind(id)
             .run();
+
+        await logAudit(env, {
+            actingUserId: auth.user.id,
+            actingUsername: auth.user.username,
+            targetUserId: id,
+            action: "user.delete",
+            resourceType: "user",
+            resourceId: id,
+            status: "SUCCESS",
+            ipAddress,
+            userAgent,
+            details: { deletedUsername: user.username }
+        });
 
         return success(null, "User deleted successfully.");
     } catch (error) {
@@ -367,6 +499,8 @@ export async function resetPassword(request, env, ctx, params) {
     const auth = await authenticate(request, env, "users.manage");
     if (auth.errorResponse) return auth.errorResponse;
 
+    const { ipAddress, userAgent } = getRequestMeta(request);
+
     const id = parseInt(params.id);
     if (isNaN(id)) {
         return badRequest("Invalid user ID.");
@@ -378,7 +512,7 @@ export async function resetPassword(request, env, ctx, params) {
 
     try {
         const user = await env.DB
-            .prepare(`SELECT id, role_id FROM users WHERE id = ? LIMIT 1`)
+            .prepare(`SELECT id, username, role_id FROM users WHERE id = ? LIMIT 1`)
             .bind(id)
             .first();
 
@@ -387,8 +521,19 @@ export async function resetPassword(request, env, ctx, params) {
         }
 
         // Delegated Administrator Guard: Cannot reset password for someone equal or more privileged
-        if (auth.user.role_id !== 1) {
+        if (!auth.user.is_super_admin) {
             if (!(await isStrictlyLessPrivileged(env, user.role_id, auth.user.role_id))) {
+                await logAudit(env, {
+                    actingUserId: auth.user.id,
+                    actingUsername: auth.user.username,
+                    targetUserId: id,
+                    action: "security.privilege_escalation_attempt",
+                    resourceType: "user",
+                    status: "FAILURE",
+                    reason: "Attempted password reset on user of equal or higher privilege",
+                    ipAddress,
+                    userAgent
+                });
                 return forbidden("Access denied. You can only reset passwords for users who are strictly less privileged than your own role.");
             }
         }
@@ -424,6 +569,18 @@ export async function resetPassword(request, env, ctx, params) {
             .bind(passwordHash, now, id)
             .run();
 
+        await logAudit(env, {
+            actingUserId: auth.user.id,
+            actingUsername: auth.user.username,
+            targetUserId: id,
+            action: "user.password_reset",
+            resourceType: "user",
+            resourceId: id,
+            status: "SUCCESS",
+            ipAddress,
+            userAgent
+        });
+
         return success({
             temporaryPassword: tempPassword
         });
@@ -442,6 +599,8 @@ export async function changePassword(request, env) {
     const auth = await authenticate(request, env, null, true);
     if (auth.errorResponse) return auth.errorResponse;
 
+    const { ipAddress, userAgent } = getRequestMeta(request);
+
     try {
         const body = await request.json();
         const currentPassword = body.currentPassword;
@@ -453,7 +612,7 @@ export async function changePassword(request, env) {
 
         // Fetch stored password hash
         const storedUser = await env.DB
-            .prepare(`SELECT password_hash FROM users WHERE id = ? LIMIT 1`)
+            .prepare(`SELECT password_hash, username FROM users WHERE id = ? LIMIT 1`)
             .bind(auth.user.id)
             .first();
 
@@ -464,6 +623,17 @@ export async function changePassword(request, env) {
         // Verify current password
         const isCurrentValid = await verifyPassword(currentPassword, storedUser.password_hash);
         if (!isCurrentValid) {
+            await logAudit(env, {
+                actingUserId: auth.user.id,
+                actingUsername: auth.user.username,
+                targetUserId: auth.user.id,
+                action: "user.password_change",
+                resourceType: "user",
+                status: "FAILURE",
+                reason: "Incorrect current password",
+                ipAddress,
+                userAgent
+            });
             return badRequest("Incorrect current password.");
         }
 
@@ -490,6 +660,18 @@ export async function changePassword(request, env) {
             .bind(newHash, now, auth.user.id)
             .run();
 
+        await logAudit(env, {
+            actingUserId: auth.user.id,
+            actingUsername: auth.user.username,
+            targetUserId: auth.user.id,
+            action: "user.password_change",
+            resourceType: "user",
+            resourceId: auth.user.id,
+            status: "SUCCESS",
+            ipAddress,
+            userAgent
+        });
+
         return success(null, "Password changed successfully.");
     } catch (error) {
         console.error("Change password error:", error);
@@ -507,7 +689,7 @@ export async function getProfile(request, env) {
     try {
         const user = await env.DB
             .prepare(`
-                SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, u.is_active, u.created_at, u.last_login_at
+                SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, r.is_system_role, r.system_role_key, u.is_active, u.created_at, u.last_login_at
                 FROM users u
                 LEFT JOIN roles r ON u.role_id = r.id
                 WHERE u.id = ?
@@ -538,6 +720,8 @@ export async function updateProfile(request, env) {
     const auth = await authenticate(request, env);
     if (auth.errorResponse) return auth.errorResponse;
 
+    const { ipAddress, userAgent } = getRequestMeta(request);
+
     try {
         const body = await request.json();
         const displayName = body.display_name?.trim();
@@ -557,6 +741,19 @@ export async function updateProfile(request, env) {
             `)
             .bind(displayName, now, auth.user.id)
             .first();
+
+        await logAudit(env, {
+            actingUserId: auth.user.id,
+            actingUsername: auth.user.username,
+            targetUserId: auth.user.id,
+            action: "user.profile_update",
+            resourceType: "user",
+            resourceId: auth.user.id,
+            status: "SUCCESS",
+            ipAddress,
+            userAgent,
+            details: { displayName }
+        });
 
         return success({
             ...result,
