@@ -21,6 +21,10 @@ import {
     deleteRole,
     listPermissions
 } from "./routes/admin/roles.js";
+import {
+    listAuditLogs,
+    exportAuditLogs
+} from "./routes/admin/audit_logs.js";
 
 const routes = {
 
@@ -52,6 +56,10 @@ const routes = {
     [`GET:${API.ADMIN}/roles/:id`]: getRole,
     [`PUT:${API.ADMIN}/roles/:id`]: updateRole,
     [`DELETE:${API.ADMIN}/roles/:id`]: deleteRole,
+
+    // Security Audit Logs (Append-Only)
+    [`GET:${API.ADMIN}/audit-logs`]: listAuditLogs,
+    [`GET:${API.ADMIN}/audit-logs/export`]: exportAuditLogs,
 
 };
 
