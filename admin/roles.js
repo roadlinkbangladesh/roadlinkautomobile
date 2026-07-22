@@ -109,21 +109,20 @@ export async function loadRolesList() {
         const permCount = role.permissions_count !== undefined ? role.permissions_count : (Array.isArray(role.permissions) ? role.permissions.length : 0);
         const userCount = role.users_count !== undefined ? role.users_count : 0;
         
-        const isAdminRole = role.id === 1 || role.name.toLowerCase() === "super administrator" || role.name.toLowerCase() === "admin";
-        const actionButtons = isAdminRole 
-          ? `
-              <button class="btn btn-view-site btn-edit-role" data-id="${role.id}" data-view-only="true" style="padding: 6px 12px; margin: 0; font-size: 0.85rem;">
-                View
-              </button>
-            `
+        const isSystemSuperAdmin = role.id === 1;
+        const deleteButtonHtml = isSystemSuperAdmin 
+          ? "" 
           : `
-              <button class="btn btn-view-site btn-edit-role" data-id="${role.id}" style="padding: 6px 12px; margin: 0; font-size: 0.85rem;">
-                Edit
-              </button>
               <button class="btn btn-danger btn-delete-role" data-id="${role.id}" data-name="${role.name}" data-users="${userCount}" style="padding: 6px 12px; margin: 0; font-size: 0.85rem;">
                 Delete
               </button>
             `;
+        const actionButtons = `
+          <button class="btn btn-view-site btn-edit-role" data-id="${role.id}" style="padding: 6px 12px; margin: 0; font-size: 0.85rem;">
+            Edit
+          </button>
+          ${deleteButtonHtml}
+        `;
 
         tr.innerHTML = `
           <td style="font-weight: 700; color: var(--primary-blue);">${role.name}</td>
