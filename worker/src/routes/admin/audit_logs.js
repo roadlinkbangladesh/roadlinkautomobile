@@ -6,13 +6,11 @@ import { authenticate } from "../../utils/auth.js";
  * List append-only audit logs with search, filtering, and pagination.
  */
 export async function listAuditLogs(request, env) {
-    // Audit logs require settings.view or users.manage or roles.manage
+    // Audit logs require audit.view permission or Super Administrator role
     const auth = await authenticate(request, env);
     if (auth.errorResponse) return auth.errorResponse;
 
-    const hasViewPerm = auth.permissions.includes("settings.view") || 
-                        auth.permissions.includes("users.manage") || 
-                        auth.permissions.includes("roles.manage");
+    const hasViewPerm = auth.permissions.includes("audit.view") || auth.user.is_super_admin;
 
     if (!hasViewPerm) {
         return Response.json({
@@ -106,9 +104,7 @@ export async function exportAuditLogs(request, env) {
     const auth = await authenticate(request, env);
     if (auth.errorResponse) return auth.errorResponse;
 
-    const hasViewPerm = auth.permissions.includes("settings.view") || 
-                        auth.permissions.includes("users.manage") || 
-                        auth.permissions.includes("roles.manage");
+    const hasViewPerm = auth.permissions.includes("audit.view") || auth.user.is_super_admin;
 
     if (!hasViewPerm) {
         return Response.json({
