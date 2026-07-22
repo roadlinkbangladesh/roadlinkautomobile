@@ -12,6 +12,7 @@ import { initSettingsView } from "./settings.js";
 import { initUsersView } from "./users.js";
 import { initProfileView } from "./profile.js";
 import { initRolesView } from "./roles.js";
+import { initAuditLogsView } from "./audit-logs.js";
 import { showLoginView } from "./ui.js";
 import { navigationController } from "./navigation.js";
 import { initIdleTimeout } from "./idle-timeout.js";
@@ -68,6 +69,13 @@ async function init() {
     btnId: "nav-item-roles",
     title: "Roles & Permissions",
     init: () => initRolesView()
+  });
+
+  navigationController.registerModule("auditLogs", {
+    panelId: "audit-logs-view-panel",
+    btnId: "nav-item-audit-logs",
+    title: "Security Audit Logs",
+    init: () => initAuditLogsView()
   });
 
   bindSidebarEvents();
@@ -189,6 +197,7 @@ function applyUIPermissions() {
   const navSettings = $("nav-item-settings");
   const navUsers = $("nav-item-users");
   const navRoles = $("nav-item-roles");
+  const navAuditLogs = $("nav-item-audit-logs");
   const navProfile = $("nav-item-profile");
 
   if (mustChange) {
@@ -198,6 +207,7 @@ function applyUIPermissions() {
     if (navSettings) navSettings.style.display = "none";
     if (navUsers) navUsers.style.display = "none";
     if (navRoles) navRoles.style.display = "none";
+    if (navAuditLogs) navAuditLogs.style.display = "none";
     if (navProfile) navProfile.style.display = "flex";
   } else {
     // Show normal based on permissions
@@ -206,6 +216,7 @@ function applyUIPermissions() {
     if (navSettings) navSettings.style.display = hasPermission("settings.view") ? "flex" : "none";
     if (navUsers) navUsers.style.display = hasPermission("users.manage") ? "flex" : "none";
     if (navRoles) navRoles.style.display = hasPermission("roles.manage") ? "flex" : "none";
+    if (navAuditLogs) navAuditLogs.style.display = (hasPermission("settings.view") || hasPermission("users.manage") || hasPermission("roles.manage")) ? "flex" : "none";
     if (navProfile) navProfile.style.display = "flex";
   }
 }
