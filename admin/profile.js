@@ -14,11 +14,27 @@ let profileEventsBound = false;
  * Initializes the Profile and resets both Personal Info and Change Password forms.
  */
 export function initProfileView() {
+  updateForcedPasswordPromptState();
   loadProfileData();
   resetProfileForms();
   if (!profileEventsBound) {
     bindProfileEvents();
     profileEventsBound = true;
+  }
+}
+
+function updateForcedPasswordPromptState(isMustChangeOverride) {
+  const promptBanner = $("forced-password-prompt");
+  if (!promptBanner) return;
+
+  const isMustChange = isMustChangeOverride !== undefined 
+    ? isMustChangeOverride 
+    : sessionStorage.getItem("mustChangePassword") === "true";
+
+  if (isMustChange) {
+    promptBanner.style.display = "block";
+  } else {
+    promptBanner.style.display = "none";
   }
 }
 
@@ -35,6 +51,12 @@ async function loadProfileData() {
       
       // Update local sessionStorage cache
       sessionStorage.setItem("currentUser", JSON.stringify(user));
+      if (user.must_change_password) {
+        sessionStorage.setItem("mustChangePassword", "true");
+        updateForcedPasswordPromptState(true);
+      } else {
+        updateForcedPasswordPromptState();
+      }
       
       // Update topbar profile view labels if they exist
       const topbarRoleElements = document.querySelectorAll(".user-role");
@@ -298,6 +320,10 @@ function bindProfileEvents() {
 
         // Clear mustChangePassword restriction on success
         sessionStorage.removeItem("mustChangePassword");
+        updateForcedPasswordPromptState(false);
+        if (typeof window.applyUIPermissions === "function") {
+          window.applyUIPermissions();
+        }
 
         // Stagger navigation so user sees success alert
         setTimeout(() => {
