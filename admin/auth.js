@@ -39,6 +39,11 @@ export function clearToken() {
   sessionStorage.removeItem("mustChangePassword");
   sessionStorage.removeItem("currentUser");
   sessionStorage.removeItem("active_admin_module");
+  sessionStorage.removeItem("redirect_route");
+  
+  if (window.location.hash && window.location.hash !== "#/login") {
+    history.replaceState(null, "", "#/login");
+  }
 }
 
 /**

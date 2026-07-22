@@ -23,9 +23,29 @@ let vehiclesEventsBound = false;
 
 /**
  * Initializes the Vehicles management view panel.
+ * @param {Object} query - Optional route query parameters e.g. { status: "available" }
  */
-export function initVehiclesView() {
+export function initVehiclesView(query = {}) {
   initVehicleTable();
+
+  if (query && query.status) {
+    const statusVal = query.status.toLowerCase();
+    tableState.statusFilter = statusVal;
+    tableState.currentPage = 1;
+    saveTableState();
+
+    const statusFilterSelect = $("vehicle-status-filter");
+    if (statusFilterSelect) {
+      statusFilterSelect.value = statusVal;
+    }
+    renderVehicleTable();
+  } else {
+    // Sync input UI with tableState if statusFilter was set
+    const statusFilterSelect = $("vehicle-status-filter");
+    if (statusFilterSelect && statusFilterSelect.value !== tableState.statusFilter) {
+      statusFilterSelect.value = tableState.statusFilter;
+    }
+  }
   
   const btnAdd = $("btn-add-vehicle");
   if (btnAdd) {

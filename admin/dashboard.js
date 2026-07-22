@@ -58,22 +58,11 @@ function bindMetricCardEvents() {
   const cardSold = document.querySelector(".bg-card-charcoal");
 
   const navigateAndFilter = (status) => {
-    // Update the vehicles table state
-    tableState.statusFilter = status;
-    tableState.currentPage = 1;
-    saveTableState();
-
-    // Sync input UI if it exists
-    const filterSelect = $("vehicle-status-filter");
-    if (filterSelect) {
-      filterSelect.value = status;
+    if (status === "all") {
+      navigationController.navigateTo("vehicles", { query: {} });
+    } else {
+      navigationController.navigateTo("vehicles", { query: { status } });
     }
-
-    // Render table with new filter
-    renderVehicleTable();
-
-    // Navigate to vehicles module
-    navigationController.navigateTo("vehicles");
   };
 
   if (cardTotal) {

@@ -122,6 +122,10 @@ async function init() {
       return;
     }
   } else {
+    // Preserve requested route for deep linking if hash exists
+    if (window.location.hash && window.location.hash !== "#/" && window.location.hash !== "#/login") {
+      sessionStorage.setItem("redirect_route", window.location.hash);
+    }
     showLoginView();
   }
 }
@@ -228,9 +232,13 @@ function showDashboardView() {
   if (loginView) loginView.style.display = "none";
   if (adminLayout) adminLayout.style.display = "grid";
 
-  // Reset module selection to dashboard upon login
-  sessionStorage.setItem("active_admin_module", "dashboard");
-
   applyUIPermissions();
-  navigationController.init();
+
+  const redirectRoute = sessionStorage.getItem("redirect_route");
+  if (redirectRoute) {
+    sessionStorage.removeItem("redirect_route");
+    navigationController.navigateToHash(redirectRoute);
+  } else {
+    navigationController.init();
+  }
 }
