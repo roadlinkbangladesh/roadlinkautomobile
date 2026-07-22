@@ -13,7 +13,8 @@ export const SYSTEM_PERMISSIONS = [
     { key: "settings.edit", group: "Settings", description: "Modify system settings" },
     { key: "users.manage", group: "Users", description: "Manage administrative users" },
     { key: "roles.manage", group: "Roles", description: "Manage roles and permissions" },
-    { key: "reports.accounting.view", group: "Reports", description: "View future accounting reports" }
+    { key: "reports.accounting.view", group: "Reports", description: "View future accounting reports" },
+    { key: "audit.view", group: "Audit Logs", description: "View security audit logs" }
 ];
 
 export async function listPermissions(request, env) {
