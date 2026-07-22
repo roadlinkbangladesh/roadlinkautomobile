@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Narrow:ital,wght@0,700;1,700&family=Inter:wght@300;400;500;600;700&family=Montserrat:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 :root {
   /* Colors */
@@ -18,6 +18,7 @@
   --whatsapp-green-hover: #128C7E;
   
   /* Typography */
+  --font-brand: 'Arial Narrow', 'Archivo Narrow', 'Arial Narrow OS', 'Helvetica Neue Condensed', 'Arial Condensed', 'Liberation Sans Narrow', sans-serif-condensed, sans-serif;
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-display: 'Space Grotesk', var(--font-sans);
 
@@ -179,7 +180,8 @@ section {
 }
 
 .logo-text {
-  font-family: 'Arial Narrow', 'Nimbus Sans L', sans-serif;
+  font-family: var(--font-brand);
+  font-stretch: condensed;
   font-size: 25px;
   font-weight: 700;
   font-style: normal;
@@ -191,6 +193,9 @@ section {
 }
 
 .logo-text .brand-name {
+  font-family: var(--font-brand);
+  font-stretch: condensed;
+  font-weight: 700;
   display: flex;
   align-items: center;
 }
@@ -204,7 +209,8 @@ section {
 }
 
 .logo-text .brand-subtext {
-  font-family: 'Arial Narrow', 'Nimbus Sans L', sans-serif;
+  font-family: var(--font-brand);
+  font-stretch: condensed;
   font-size: 10px;
   font-weight: 700;
   font-style: normal;
