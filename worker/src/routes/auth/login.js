@@ -2,11 +2,12 @@ import { badRequest, unauthorized, serverError, success } from "../../utils/resp
 import { verifyPassword } from "../../utils/password.js";
 import { createToken } from "../../utils/jwt.js";
 import { JWT } from "../../config/constants.js";
+import { logAudit, getRequestMeta } from "../../utils/audit.js";
 
 export async function login(request, env) {
+    const { ipAddress, userAgent } = getRequestMeta(request);
 
     try {
-        
         const body = await request.json();
         
         const username = body.username?.trim();
@@ -14,14 +15,12 @@ export async function login(request, env) {
         const rememberMe = body.rememberMe === true;
         
         if (!username || !password) {
-            return badRequest(
-                "Username and password are required."
-            );
+            return badRequest("Username and password are required.");
         }
 
         const user = await env.DB
             .prepare(`
-                SELECT u.*, r.name as role_name
+                SELECT u.*, r.name as role_name, r.is_system_role, r.system_role_key
                 FROM users u
                 LEFT JOIN roles r ON u.role_id = r.id
                 WHERE u.username = ?
@@ -31,9 +30,16 @@ export async function login(request, env) {
             .first();
         
         if (!user) {
-            return unauthorized(
-                "Invalid username or password."
-            );
+            await logAudit(env, {
+                actingUsername: username,
+                action: "login.failure",
+                resourceType: "auth",
+                status: "FAILURE",
+                reason: "User not found",
+                ipAddress,
+                userAgent
+            });
+            return unauthorized("Invalid username or password.");
         }
         
         const validPassword = await verifyPassword(
@@ -42,13 +48,37 @@ export async function login(request, env) {
         );
         
         if (!validPassword) {
-            return unauthorized(
-                "Invalid username or password."
-            );
+            await logAudit(env, {
+                actingUserId: user.id,
+                actingUsername: user.username,
+                action: "login.failure",
+                resourceType: "auth",
+                status: "FAILURE",
+                reason: "Incorrect password",
+                ipAddress,
+                userAgent
+            });
+            return unauthorized("Invalid username or password.");
+        }
+
+        if (user.is_active !== 1) {
+            await logAudit(env, {
+                actingUserId: user.id,
+                actingUsername: user.username,
+                action: "login.failure",
+                resourceType: "auth",
+                status: "FAILURE",
+                reason: "User account deactivated",
+                ipAddress,
+                userAgent
+            });
+            return Response.json({
+                success: false,
+                message: "Your account is deactivated."
+            }, { status: 403 });
         }
         
         // Determine token lifetime based on Remember Me selection
-        
         const expiresIn = rememberMe
             ? JWT.REMEMBER_ME_EXPIRES_IN
             : JWT.SESSION_EXPIRES_IN;
@@ -75,6 +105,18 @@ export async function login(request, env) {
             expiresIn
         );
         
+        // Log successful login audit record
+        await logAudit(env, {
+            actingUserId: user.id,
+            actingUsername: user.username,
+            action: "login.success",
+            resourceType: "auth",
+            status: "SUCCESS",
+            ipAddress,
+            userAgent,
+            details: { rememberMe }
+        });
+
         return success({
             token,
             mustChangePassword: user.must_change_password === 1 || user.must_change_password === true,
@@ -83,17 +125,15 @@ export async function login(request, env) {
                 username: user.username,
                 role_id: user.role_id,
                 role_name: user.role_name,
+                is_system_role: user.is_system_role === 1,
+                system_role_key: user.system_role_key,
                 display_name: user.display_name,
                 permissions: permissions
             }
         });
         
     } catch (error) {
-
         console.error(error);
-
         return serverError();
-
     }
-
 }
