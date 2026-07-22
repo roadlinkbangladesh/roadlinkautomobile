@@ -70,6 +70,8 @@ class NavigationController {
         name = "dashboard";
       } else if (name === "roles" && !hasPermission("roles.manage")) {
         name = "dashboard";
+      } else if (name === "auditLogs" && !(hasPermission("settings.view") || hasPermission("users.manage") || hasPermission("roles.manage"))) {
+        name = "dashboard";
       } else if (name === "vehicles" && !hasPermission("vehicles.view")) {
         name = "dashboard";
       }
