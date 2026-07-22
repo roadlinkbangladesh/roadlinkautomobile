@@ -173,14 +173,15 @@ export async function createUser(request, env) {
         // Hash password
         const passwordHash = await hashPassword(tempPassword);
         const now = new Date().toISOString();
+        const roleSlug = roleExists.name.toLowerCase();
 
         const result = await env.DB
             .prepare(`
-                INSERT INTO users (username, password_hash, display_name, role_id, is_active, must_change_password, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+                INSERT INTO users (username, password_hash, display_name, role, role_id, is_active, must_change_password, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
                 RETURNING id, username, display_name, role_id, is_active, must_change_password, created_at, updated_at
             `)
-            .bind(username, passwordHash, displayName, roleId, isActive, now, now)
+            .bind(username, passwordHash, displayName, roleSlug, roleId, isActive, now, now)
             .first();
 
         return created({
@@ -257,13 +258,15 @@ export async function updateUser(request, env, ctx, params) {
 
         if (roleId !== undefined) {
             const roleExists = await env.DB
-                .prepare(`SELECT id FROM roles WHERE id = ? LIMIT 1`)
+                .prepare(`SELECT id, name FROM roles WHERE id = ? LIMIT 1`)
                 .bind(roleId)
                 .first();
 
             if (!roleExists) {
                 return badRequest("Invalid role. Selected role does not exist.");
             }
+            updatedFields.push("role = ?");
+            bindings.push(roleExists.name.toLowerCase());
             updatedFields.push("role_id = ?");
             bindings.push(roleId);
         }
@@ -331,6 +334,11 @@ export async function deleteUser(request, env, ctx, params) {
 
         if (!user) {
             return notFound("User not found.");
+        }
+
+        // Super Administrator accounts cannot be deleted
+        if (user.role_id === 1) {
+            return forbidden("Access denied. Super Administrator accounts cannot be deleted.");
         }
 
         // Delegated Administrator Guard: Cannot delete someone equal or more privileged
