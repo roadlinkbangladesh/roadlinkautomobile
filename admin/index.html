@@ -500,6 +500,29 @@
                 </div>
               </div>
 
+              <!-- Mandatory Password Change Instruction Prompt Banner -->
+              <div id="forced-password-prompt" style="display: none; background: #fff8e6; border: 1.5px solid #ffe082; border-left: 5px solid #f59e0b; border-radius: var(--radius-md); padding: 18px 20px; margin-bottom: 24px;">
+                <div style="display: flex; gap: 14px; align-items: flex-start;">
+                  <div style="width: 38px; height: 38px; border-radius: 50%; background: #fef3c7; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                  </div>
+                  <div style="flex: 1;">
+                    <h4 style="margin: 0 0 6px 0; font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; color: #78350f;">Password Change Required</h4>
+                    <p style="margin: 0; font-size: 0.9rem; color: #92400e; line-height: 1.5;">
+                      You are logging in with a new account or a temporary password that was reset by an administrator. For security reasons, you must change your password before accessing the administrative dashboard.
+                    </p>
+                    <div style="margin-top: 10px; padding: 10px 14px; background: rgba(255, 255, 255, 0.7); border-radius: var(--radius-sm); border: 1px solid #fde68a;">
+                      <strong style="font-size: 0.85rem; color: #78350f; display: block; margin-bottom: 4px;">Password Security Guidelines:</strong>
+                      <ul style="margin: 0; padding-left: 18px; font-size: 0.825rem; color: #92400e; line-height: 1.4;">
+                        <li>Minimum length of 8 characters</li>
+                        <li>Must contain an uppercase letter, lowercase letter, number, and special symbol</li>
+                        <li>Cannot match your current password</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div class="profile-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
                 
                 <!-- Card 1: Profile Information -->
