@@ -216,7 +216,7 @@ function applyUIPermissions() {
     if (navSettings) navSettings.style.display = hasPermission("settings.view") ? "flex" : "none";
     if (navUsers) navUsers.style.display = hasPermission("users.manage") ? "flex" : "none";
     if (navRoles) navRoles.style.display = hasPermission("roles.manage") ? "flex" : "none";
-    if (navAuditLogs) navAuditLogs.style.display = (hasPermission("settings.view") || hasPermission("users.manage") || hasPermission("roles.manage")) ? "flex" : "none";
+    if (navAuditLogs) navAuditLogs.style.display = hasPermission("audit.view") ? "flex" : "none";
     if (navProfile) navProfile.style.display = "flex";
   }
 }
