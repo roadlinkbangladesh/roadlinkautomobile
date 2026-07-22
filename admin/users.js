@@ -129,9 +129,15 @@ function renderUsersTable() {
       }
     }
 
-    // Disable Actions for self
+    // Disable Actions for self and Super Admin
     const isSelf = u.id === currentUserId;
-    const deleteDisabled = isSelf ? "disabled title='You cannot delete your own account'" : "";
+    const isSuperAdminUser = u.role_id === 1 || u.role_name === "Super Administrator";
+    let deleteDisabled = "";
+    if (isSelf) {
+      deleteDisabled = "disabled title='You cannot delete your own account'";
+    } else if (isSuperAdminUser) {
+      deleteDisabled = "disabled title='Super Administrator accounts cannot be deleted'";
+    }
     const resetDisabled = isSelf ? "disabled title='You cannot reset your own password here'" : "";
 
     row.innerHTML = `
