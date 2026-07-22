@@ -123,11 +123,6 @@ export async function createRole(request, env) {
     const auth = await authenticate(request, env, "roles.manage");
     if (auth.errorResponse) return auth.errorResponse;
 
-    // Only Super Administrators may create roles
-    if (auth.user.role_id !== 1) {
-        return forbidden("Access denied. Only Super Administrators may create roles.");
-    }
-
     try {
         const body = await request.json();
         const name = body.name?.trim();
@@ -136,6 +131,14 @@ export async function createRole(request, env) {
 
         if (!name) {
             return badRequest("Role name is required.");
+        }
+
+        // Delegated Administrator Guard: non-super-admins can only grant permissions they possess
+        if (auth.user.role_id !== 1 && Array.isArray(permissions)) {
+            const unpossessed = permissions.filter(p => !auth.permissions.includes(p));
+            if (unpossessed.length > 0) {
+                return forbidden("Access denied. You cannot grant permissions that your own role does not possess.");
+            }
         }
 
         // Validate unique name
@@ -185,18 +188,14 @@ export async function updateRole(request, env, ctx, params) {
     const auth = await authenticate(request, env, "roles.manage");
     if (auth.errorResponse) return auth.errorResponse;
 
-    // Only Super Administrators may edit roles
-    if (auth.user.role_id !== 1) {
-        return forbidden("Access denied. Only Super Administrators may modify roles.");
-    }
-
     const id = parseInt(params.id);
     if (isNaN(id)) {
         return badRequest("Invalid role ID.");
     }
 
-    if (id === 1) {
-        return badRequest("The system default Super Administrator role cannot be modified.");
+    // Delegated Administrator Guard: non-super-admins can only edit roles strictly less privileged than their own
+    if (auth.user.role_id !== 1 && !(await isStrictlyLessPrivileged(env, id, auth.user.role_id))) {
+        return forbidden("Access denied. You can only modify roles that are strictly less privileged than your own role.");
     }
 
     try {
@@ -216,6 +215,14 @@ export async function updateRole(request, env, ctx, params) {
 
         if (!name) {
             return badRequest("Role name is required.");
+        }
+
+        // Delegated Administrator Guard: non-super-admins can only grant permissions they possess
+        if (auth.user.role_id !== 1 && Array.isArray(permissions)) {
+            const unpossessed = permissions.filter(p => !auth.permissions.includes(p));
+            if (unpossessed.length > 0) {
+                return forbidden("Access denied. You cannot grant permissions that your own role does not possess.");
+            }
         }
 
         // Validate unique name excluding current role
@@ -275,19 +282,19 @@ export async function deleteRole(request, env, ctx, params) {
     const auth = await authenticate(request, env, "roles.manage");
     if (auth.errorResponse) return auth.errorResponse;
 
-    // Only Super Administrators may delete roles
-    if (auth.user.role_id !== 1) {
-        return forbidden("Access denied. Only Super Administrators may delete roles.");
-    }
-
     const id = parseInt(params.id);
     if (isNaN(id)) {
         return badRequest("Invalid role ID.");
     }
 
-    // Protect core roles (e.g., Admin role with id=1 should not be deleted)
+    // Protect system default Super Administrator role from deletion
     if (id === 1) {
         return badRequest("The system default Super Administrator role cannot be deleted.");
+    }
+
+    // Delegated Administrator Guard: non-super-admins can only delete roles strictly less privileged than their own
+    if (auth.user.role_id !== 1 && !(await isStrictlyLessPrivileged(env, id, auth.user.role_id))) {
+        return forbidden("Access denied. You can only delete roles that are strictly less privileged than your own role.");
     }
 
     try {
