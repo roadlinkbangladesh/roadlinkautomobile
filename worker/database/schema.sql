@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS roles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
     description TEXT,
+    is_system_role INTEGER NOT NULL DEFAULT 0 CHECK(is_system_role IN (0,1)),
+    system_role_key TEXT UNIQUE,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -141,3 +143,27 @@ CREATE TABLE IF NOT EXISTS activity_logs (
 CREATE INDEX IF NOT EXISTS idx_activity_user ON activity_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_activity_entity ON activity_logs(entity,entity_id);
 CREATE INDEX IF NOT EXISTS idx_activity_created ON activity_logs(created_at);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp TEXT NOT NULL,
+    acting_user_id INTEGER,
+    acting_username TEXT,
+    target_user_id INTEGER,
+    target_role_id INTEGER,
+    action TEXT NOT NULL,
+    resource_type TEXT NOT NULL,
+    resource_id TEXT,
+    status TEXT NOT NULL,
+    reason TEXT,
+    ip_address TEXT,
+    user_agent TEXT,
+    details TEXT,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_acting_user ON audit_logs(acting_user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_status ON audit_logs(status);
+
