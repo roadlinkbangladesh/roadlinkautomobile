@@ -1378,48 +1378,45 @@ input:disabled, select:disabled, textarea:disabled {
     width: 100% !important;
   }
 
-  /* Specific TD alignments to look like a clean card */
-  /* TD 1: Thumbnail */
-  .inventory-table td:nth-child(1) {
+  /* Specific TD alignments to look like clean cards per module */
+  /* Vehicle Inventory Table Card Rules */
+  .vehicle-inventory-table td:nth-child(1) {
     display: flex;
     justify-content: center;
     border-bottom: 1px solid var(--border-color) !important;
     padding-bottom: 12px !important;
   }
   
-  .inventory-table td:nth-child(1) .thumb-img {
+  .vehicle-inventory-table td:nth-child(1) .thumb-img {
     width: 100%;
     height: 180px;
     object-fit: cover;
     border-radius: var(--radius-sm);
   }
 
-  /* TD 2: Stock ID */
-  .inventory-table td:nth-child(2) {
+  .vehicle-inventory-table td:nth-child(2) {
     font-size: 0.8rem;
     color: var(--text-muted);
   }
-  .inventory-table td:nth-child(2)::before {
+  .vehicle-inventory-table td:nth-child(2)::before {
     content: "Stock No: ";
     font-weight: 600;
     margin-right: 6px;
     color: var(--text-dark);
   }
 
-  /* TD 3: Vehicle Name */
-  .inventory-table td:nth-child(3) {
+  .vehicle-inventory-table td:nth-child(3) {
     font-size: 1.1rem;
     font-weight: 700;
     color: var(--primary-blue);
   }
 
-  /* TD 4: Price */
-  .inventory-table td:nth-child(4) {
+  .vehicle-inventory-table td:nth-child(4) {
     font-size: 1.15rem;
     font-weight: 700;
     color: var(--primary-red) !important;
   }
-  .inventory-table td:nth-child(4)::before {
+  .vehicle-inventory-table td:nth-child(4)::before {
     content: "Price: ";
     font-weight: 600;
     font-size: 0.85rem;
@@ -1427,31 +1424,222 @@ input:disabled, select:disabled, textarea:disabled {
     margin-right: 6px;
   }
 
-  /* TD 5: Status */
-  .inventory-table td:nth-child(5) {
+  .vehicle-inventory-table td:nth-child(5) {
     display: flex;
     justify-content: flex-start;
   }
   
-  /* TD 6: Actions */
-  .inventory-table td:nth-child(6) {
+  .vehicle-inventory-table td:nth-child(6) {
     border-top: 1px solid var(--border-color) !important;
     padding-top: 12px !important;
     margin-top: 4px;
   }
   
-  .inventory-table .action-buttons {
+  .vehicle-inventory-table .action-buttons {
     width: 100%;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
   }
   
-  .inventory-table .action-buttons .btn-action-edit,
-  .inventory-table .action-buttons .btn-action-delete {
+  .vehicle-inventory-table .action-buttons .btn-action-edit,
+  .vehicle-inventory-table .action-buttons .btn-action-delete {
     width: 100%;
     justify-content: center;
     padding: 10px;
+  }
+
+  /* User Inventory Table Card Rules */
+  .user-inventory-table td:nth-child(1) {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-blue);
+    border-bottom: 1px dashed var(--border-color) !important;
+    padding-bottom: 8px !important;
+  }
+
+  .user-inventory-table td:nth-child(2) {
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--primary-blue);
+  }
+  .user-inventory-table td:nth-child(2)::before {
+    content: "Username: ";
+    font-weight: 600;
+    font-family: var(--font-sans);
+    margin-right: 6px;
+    color: var(--text-dark);
+  }
+
+  .user-inventory-table td:nth-child(3) {
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  .user-inventory-table td:nth-child(3)::before {
+    content: "Role: ";
+    font-weight: 600;
+    margin-right: 6px;
+    color: var(--text-dark);
+  }
+
+  .user-inventory-table td:nth-child(4) {
+    display: flex;
+    align-items: center;
+  }
+  .user-inventory-table td:nth-child(4)::before {
+    content: "Status: ";
+    font-weight: 600;
+    margin-right: 6px;
+    color: var(--text-dark);
+    font-size: 0.85rem;
+  }
+
+  .user-inventory-table td:nth-child(5) {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  .user-inventory-table td:nth-child(5)::before {
+    content: "Last Login: ";
+    font-weight: 600;
+    margin-right: 6px;
+    color: var(--text-dark);
+  }
+
+  .user-inventory-table td:nth-child(6) {
+    border-top: 1px solid var(--border-color) !important;
+    padding-top: 12px !important;
+    margin-top: 4px;
+  }
+  .user-inventory-table .action-buttons {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-start !important;
+  }
+  .user-inventory-table .action-buttons button {
+    flex: 1;
+    min-width: 90px;
+    justify-content: center;
+  }
+
+  /* Role Inventory Table Card Rules */
+  .role-inventory-table td:nth-child(1) {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-blue);
+    border-bottom: 1px dashed var(--border-color) !important;
+    padding-bottom: 8px !important;
+  }
+
+  .role-inventory-table td:nth-child(2) {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+  .role-inventory-table td:nth-child(2)::before {
+    content: "Description: ";
+    font-weight: 600;
+    margin-right: 6px;
+    color: var(--text-dark);
+    flex-shrink: 0;
+  }
+
+  .role-inventory-table td:nth-child(3) {
+    font-size: 0.9rem;
+    text-align: left !important;
+  }
+  .role-inventory-table td:nth-child(3)::before {
+    content: "Permissions: ";
+    font-weight: 600;
+    margin-right: 6px;
+    color: var(--text-dark);
+  }
+
+  .role-inventory-table td:nth-child(4) {
+    font-size: 0.9rem;
+    text-align: left !important;
+  }
+  .role-inventory-table td:nth-child(4)::before {
+    content: "Assigned Users: ";
+    font-weight: 600;
+    margin-right: 6px;
+    color: var(--text-dark);
+  }
+
+  .role-inventory-table td:nth-child(5) {
+    border-top: 1px solid var(--border-color) !important;
+    padding-top: 12px !important;
+    margin-top: 4px;
+    text-align: left !important;
+  }
+  .role-inventory-table td:nth-child(5) > div {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-start !important;
+  }
+  .role-inventory-table td:nth-child(5) button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Audit Logs Table Card Rules */
+  .audit-inventory-table td:nth-child(1) {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--primary-blue);
+    border-bottom: 1px dashed var(--border-color) !important;
+    padding-bottom: 6px !important;
+  }
+  .audit-inventory-table td:nth-child(1)::before {
+    content: "Timestamp: ";
+    font-weight: 600;
+    margin-right: 6px;
+    color: var(--text-dark);
+  }
+
+  .audit-inventory-table td:nth-child(2)::before {
+    content: "User: ";
+    font-weight: 600;
+    margin-right: 6px;
+    color: var(--text-dark);
+  }
+
+  .audit-inventory-table td:nth-child(3)::before {
+    content: "Action: ";
+    font-weight: 600;
+    margin-right: 6px;
+    color: var(--text-dark);
+  }
+
+  .audit-inventory-table td:nth-child(4)::before {
+    content: "Resource: ";
+    font-weight: 600;
+    margin-right: 6px;
+    color: var(--text-dark);
+  }
+
+  .audit-inventory-table td:nth-child(5)::before {
+    content: "Status: ";
+    font-weight: 600;
+    margin-right: 6px;
+    color: var(--text-dark);
+  }
+
+  .audit-inventory-table td:nth-child(6)::before {
+    content: "IP: ";
+    font-weight: 600;
+    margin-right: 6px;
+    color: var(--text-dark);
+  }
+
+  .audit-inventory-table td:nth-child(7)::before {
+    content: "Details: ";
+    font-weight: 600;
+    margin-right: 6px;
+    color: var(--text-dark);
   }
 }
 
@@ -1810,6 +1998,34 @@ input:disabled, select:disabled, textarea:disabled {
 @media (min-width: 768px) {
   .details-grid-responsive {
     grid-template-columns: 1.1fr 0.9fr !important;
+  }
+}
+
+/* Profile Page Grid Responsiveness & Mobile Layout Adjustments */
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 991px) {
+  .profile-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .profile-grid .settings-section-card {
+    padding: 20px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-container-pad {
+    padding: 16px;
+    padding-bottom: 90px;
+  }
+  .profile-grid .btn-login-submit {
+    width: 100% !important;
   }
 }
 
