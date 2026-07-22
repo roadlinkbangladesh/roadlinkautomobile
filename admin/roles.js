@@ -15,7 +15,8 @@ const PERMISSION_DESCRIPTIONS = {
   "vehicles.manage": "Manage Vehicles Inventory",
   "settings.manage": "Manage System Settings",
   "settings.view": "View System Settings Only",
-  "reports.accounting.view": "View Accounting Reports"
+  "reports.accounting.view": "View Accounting Reports",
+  "audit.view": "View Security Audit Logs"
 };
 
 /**
