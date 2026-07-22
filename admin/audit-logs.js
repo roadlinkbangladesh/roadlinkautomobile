@@ -134,19 +134,23 @@ export async function loadAuditLogs(page = 1) {
           detailsText = sanitizeHTML(String(log.details));
         }
       }
+
+      let detailsHtml = detailsText;
       if (log.reason) {
-        detailsText = `<span class="text-danger">${sanitizeHTML(log.reason)}</span> ${detailsText !== "-" ? "(" + detailsText + ")" : ""}`;
+        detailsHtml = `<span class="text-danger" style="color:#e31b23; font-weight:600;">${sanitizeHTML(log.reason)}</span> ${detailsText !== "-" ? "(" + detailsText + ")" : ""}`;
       }
+
+      const rawTooltipText = sanitizeHTML(String(log.reason ? `${log.reason} - ${log.details || ''}` : (log.details || '')));
 
       return `
         <tr>
           <td><small class="text-muted">${sanitizeHTML(formattedTime)}</small></td>
           <td><strong>${sanitizeHTML(log.acting_username || log.acting_user_id || "System")}</strong></td>
           <td><code>${sanitizeHTML(log.action || "")}</code></td>
-          <td><span class="text-muted">${sanitizeHTML(log.resource_type || "")}${log.resource_id ? " #" + log.resource_id : ""}</span></td>
+          <td><span class="text-muted">${sanitizeHTML(log.resource_type || "")}${log.resource_id ? " #" + sanitizeHTML(log.resource_id) : ""}</span></td>
           <td>${statusBadge}</td>
           <td><small class="text-muted">${sanitizeHTML(log.ip_address || "N/A")}</small></td>
-          <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${detailsText}">${detailsText}</td>
+          <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${rawTooltipText}">${detailsHtml}</td>
         </tr>
       `;
     }).join("");
