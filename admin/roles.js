@@ -205,6 +205,9 @@ async function openRoleModal(roleId = null, viewOnly = false) {
   if (descField) descField.disabled = viewOnly;
   if (saveBtn) saveBtn.style.display = viewOnly ? "none" : "block";
 
+  const toggleBtns = $("role-permissions-toggle-btns");
+  if (toggleBtns) toggleBtns.style.display = viewOnly ? "none" : "flex";
+
   if (roleId) {
     if (modalTitle) modalTitle.textContent = viewOnly ? "View Role" : "Edit Role";
     try {
@@ -320,6 +323,29 @@ function bindRolesEvents() {
 
   if (searchInput) {
     searchInput.addEventListener("input", () => filterRolesTable(searchInput.value));
+  }
+
+  const selectAllBtn = $("btn-select-all-permissions");
+  const deselectAllBtn = $("btn-deselect-all-permissions");
+
+  if (selectAllBtn) {
+    selectAllBtn.addEventListener("click", () => {
+      const checkboxes = document.querySelectorAll("#role-permissions-checkboxes input[type='checkbox']");
+      checkboxes.forEach(chk => {
+        if (!chk.disabled) chk.checked = true;
+      });
+      const permErr = $("r-permissions-error");
+      if (permErr) permErr.style.display = "none";
+    });
+  }
+
+  if (deselectAllBtn) {
+    deselectAllBtn.addEventListener("click", () => {
+      const checkboxes = document.querySelectorAll("#role-permissions-checkboxes input[type='checkbox']");
+      checkboxes.forEach(chk => {
+        if (!chk.disabled) chk.checked = false;
+      });
+    });
   }
 
   const hideModal = () => {
