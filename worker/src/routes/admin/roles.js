@@ -1,5 +1,6 @@
 import { success, badRequest, notFound, conflict, serverError, forbidden } from "../../utils/response.js";
 import { authenticate, isStrictlyLessPrivileged } from "../../utils/auth.js";
+import { logAudit, getRequestMeta } from "../../utils/audit.js";
 
 export const SYSTEM_PERMISSIONS = [
     { key: "dashboard.view", group: "Dashboard", description: "View dashboard widgets and charts" },
@@ -38,7 +39,7 @@ export async function listRoles(request, env) {
         
         // If not Super Administrator, filter roles to only show those strictly less privileged than the caller's role
         let viewableRoles = list;
-        if (auth.user.role_id !== 1) {
+        if (!auth.user.is_super_admin) {
             const filtered = [];
             for (const r of list) {
                 if (await isStrictlyLessPrivileged(env, r.id, auth.user.role_id)) {
@@ -48,7 +49,6 @@ export async function listRoles(request, env) {
             viewableRoles = filtered;
         }
 
-        // Load assigned permissions count and user count for each role
         const enriched = [];
         for (const role of viewableRoles) {
             const permsQuery = await env.DB
@@ -62,6 +62,7 @@ export async function listRoles(request, env) {
             
             enriched.push({
                 ...role,
+                is_system_role: role.is_system_role === 1,
                 permissions_count: permsQuery?.count || 0,
                 users_count: usersQuery?.count || 0
             });
@@ -88,7 +89,7 @@ export async function getRole(request, env, ctx, params) {
     }
 
     // If not Super Administrator, verify the requested role is strictly less privileged
-    if (auth.user.role_id !== 1 && !(await isStrictlyLessPrivileged(env, id, auth.user.role_id))) {
+    if (!auth.user.is_super_admin && !(await isStrictlyLessPrivileged(env, id, auth.user.role_id))) {
         return forbidden("Access denied. You do not have permission to view this role.");
     }
 
@@ -111,6 +112,7 @@ export async function getRole(request, env, ctx, params) {
 
         return success({
             ...role,
+            is_system_role: role.is_system_role === 1,
             permissions
         });
     } catch (error) {
@@ -123,6 +125,8 @@ export async function createRole(request, env) {
     const auth = await authenticate(request, env, "roles.manage");
     if (auth.errorResponse) return auth.errorResponse;
 
+    const { ipAddress, userAgent } = getRequestMeta(request);
+
     try {
         const body = await request.json();
         const name = body.name?.trim();
@@ -134,9 +138,19 @@ export async function createRole(request, env) {
         }
 
         // Delegated Administrator Guard: non-super-admins can only grant permissions they possess
-        if (auth.user.role_id !== 1 && Array.isArray(permissions)) {
+        if (!auth.user.is_super_admin && Array.isArray(permissions)) {
             const unpossessed = permissions.filter(p => !auth.permissions.includes(p));
             if (unpossessed.length > 0) {
+                await logAudit(env, {
+                    actingUserId: auth.user.id,
+                    actingUsername: auth.user.username,
+                    action: "security.privilege_escalation_attempt",
+                    resourceType: "role",
+                    status: "FAILURE",
+                    reason: "Attempted to grant permissions not possessed by caller",
+                    ipAddress,
+                    userAgent
+                });
                 return forbidden("Access denied. You cannot grant permissions that your own role does not possess.");
             }
         }
@@ -156,9 +170,9 @@ export async function createRole(request, env) {
         // Insert role
         const role = await env.DB
             .prepare(`
-                INSERT INTO roles (name, description, created_at, updated_at)
-                VALUES (?, ?, ?, ?)
-                RETURNING id, name, description, created_at, updated_at
+                INSERT INTO roles (name, description, is_system_role, created_at, updated_at)
+                VALUES (?, ?, 0, ?, ?)
+                RETURNING id, name, description, is_system_role, created_at, updated_at
             `)
             .bind(name, description, now, now)
             .first();
@@ -174,8 +188,22 @@ export async function createRole(request, env) {
             }
         }
 
+        await logAudit(env, {
+            actingUserId: auth.user.id,
+            actingUsername: auth.user.username,
+            targetRoleId: role.id,
+            action: "role.create",
+            resourceType: "role",
+            resourceId: role.id,
+            status: "SUCCESS",
+            ipAddress,
+            userAgent,
+            details: { name, permissions }
+        });
+
         return success({
             ...role,
+            is_system_role: false,
             permissions
         }, "Role created successfully.");
     } catch (error) {
@@ -188,13 +216,26 @@ export async function updateRole(request, env, ctx, params) {
     const auth = await authenticate(request, env, "roles.manage");
     if (auth.errorResponse) return auth.errorResponse;
 
+    const { ipAddress, userAgent } = getRequestMeta(request);
+
     const id = parseInt(params.id);
     if (isNaN(id)) {
         return badRequest("Invalid role ID.");
     }
 
     // Delegated Administrator Guard: non-super-admins can only edit roles strictly less privileged than their own
-    if (auth.user.role_id !== 1 && !(await isStrictlyLessPrivileged(env, id, auth.user.role_id))) {
+    if (!auth.user.is_super_admin && !(await isStrictlyLessPrivileged(env, id, auth.user.role_id))) {
+        await logAudit(env, {
+            actingUserId: auth.user.id,
+            actingUsername: auth.user.username,
+            targetRoleId: id,
+            action: "security.privilege_escalation_attempt",
+            resourceType: "role",
+            status: "FAILURE",
+            reason: "Attempted to modify role of equal or higher privilege",
+            ipAddress,
+            userAgent
+        });
         return forbidden("Access denied. You can only modify roles that are strictly less privileged than your own role.");
     }
 
@@ -208,6 +249,8 @@ export async function updateRole(request, env, ctx, params) {
             return notFound("Role not found.");
         }
 
+        const isSystemRole = role.is_system_role === 1 || role.system_role_key === "SUPER_ADMIN";
+
         const body = await request.json();
         const name = body.name?.trim();
         const description = body.description?.trim();
@@ -218,9 +261,20 @@ export async function updateRole(request, env, ctx, params) {
         }
 
         // Delegated Administrator Guard: non-super-admins can only grant permissions they possess
-        if (auth.user.role_id !== 1 && Array.isArray(permissions)) {
+        if (!auth.user.is_super_admin && Array.isArray(permissions)) {
             const unpossessed = permissions.filter(p => !auth.permissions.includes(p));
             if (unpossessed.length > 0) {
+                await logAudit(env, {
+                    actingUserId: auth.user.id,
+                    actingUsername: auth.user.username,
+                    targetRoleId: id,
+                    action: "security.privilege_escalation_attempt",
+                    resourceType: "role",
+                    status: "FAILURE",
+                    reason: "Attempted to grant unpossessed permissions",
+                    ipAddress,
+                    userAgent
+                });
                 return forbidden("Access denied. You cannot grant permissions that your own role does not possess.");
             }
         }
@@ -237,13 +291,13 @@ export async function updateRole(request, env, ctx, params) {
 
         const now = new Date().toISOString();
 
-        // Update role
+        // System role immutability: preserve system role attributes
         const updated = await env.DB
             .prepare(`
                 UPDATE roles
                 SET name = ?, description = ?, updated_at = ?
                 WHERE id = ?
-                RETURNING id, name, description, created_at, updated_at
+                RETURNING id, name, description, is_system_role, system_role_key, created_at, updated_at
             `)
             .bind(name, description, now, id)
             .first();
@@ -268,8 +322,22 @@ export async function updateRole(request, env, ctx, params) {
             }
         }
 
+        await logAudit(env, {
+            actingUserId: auth.user.id,
+            actingUsername: auth.user.username,
+            targetRoleId: id,
+            action: "role.update",
+            resourceType: "role",
+            resourceId: id,
+            status: "SUCCESS",
+            ipAddress,
+            userAgent,
+            details: { name, description, permissions }
+        });
+
         return success({
             ...updated,
+            is_system_role: isSystemRole,
             permissions: permissions || []
         }, "Role updated successfully.");
     } catch (error) {
@@ -282,29 +350,53 @@ export async function deleteRole(request, env, ctx, params) {
     const auth = await authenticate(request, env, "roles.manage");
     if (auth.errorResponse) return auth.errorResponse;
 
+    const { ipAddress, userAgent } = getRequestMeta(request);
+
     const id = parseInt(params.id);
     if (isNaN(id)) {
         return badRequest("Invalid role ID.");
     }
 
-    // Protect system default Super Administrator role from deletion
-    if (id === 1) {
-        return badRequest("The system default Super Administrator role cannot be deleted.");
-    }
-
-    // Delegated Administrator Guard: non-super-admins can only delete roles strictly less privileged than their own
-    if (auth.user.role_id !== 1 && !(await isStrictlyLessPrivileged(env, id, auth.user.role_id))) {
-        return forbidden("Access denied. You can only delete roles that are strictly less privileged than your own role.");
-    }
-
     try {
         const role = await env.DB
-            .prepare(`SELECT id FROM roles WHERE id = ? LIMIT 1`)
+            .prepare(`SELECT * FROM roles WHERE id = ? LIMIT 1`)
             .bind(id)
             .first();
 
         if (!role) {
             return notFound("Role not found.");
+        }
+
+        // System Role Immutability Guard: System roles can NEVER be deleted
+        if (role.is_system_role === 1 || role.system_role_key === "SUPER_ADMIN") {
+            await logAudit(env, {
+                actingUserId: auth.user.id,
+                actingUsername: auth.user.username,
+                targetRoleId: id,
+                action: "role.delete",
+                resourceType: "role",
+                status: "FAILURE",
+                reason: "System roles cannot be deleted.",
+                ipAddress,
+                userAgent
+            });
+            return badRequest("System roles (such as Super Administrator) are immutable and cannot be deleted.");
+        }
+
+        // Delegated Administrator Guard: non-super-admins can only delete roles strictly less privileged than their own
+        if (!auth.user.is_super_admin && !(await isStrictlyLessPrivileged(env, id, auth.user.role_id))) {
+            await logAudit(env, {
+                actingUserId: auth.user.id,
+                actingUsername: auth.user.username,
+                targetRoleId: id,
+                action: "security.privilege_escalation_attempt",
+                resourceType: "role",
+                status: "FAILURE",
+                reason: "Attempted to delete role of equal or higher privilege",
+                ipAddress,
+                userAgent
+            });
+            return forbidden("Access denied. You can only delete roles that are strictly less privileged than your own role.");
         }
 
         // Check if assigned to any users
@@ -327,6 +419,19 @@ export async function deleteRole(request, env, ctx, params) {
             .prepare(`DELETE FROM roles WHERE id = ?`)
             .bind(id)
             .run();
+
+        await logAudit(env, {
+            actingUserId: auth.user.id,
+            actingUsername: auth.user.username,
+            targetRoleId: id,
+            action: "role.delete",
+            resourceType: "role",
+            resourceId: id,
+            status: "SUCCESS",
+            ipAddress,
+            userAgent,
+            details: { deletedRoleName: role.name }
+        });
 
         return success(null, "Role deleted successfully.");
     } catch (error) {
