@@ -1,12 +1,11 @@
 /**
  * Roadlink Automobiles - Admin Dashboard Module
- * Handles dashboard statistics calculation and rendering.
+ * Handles dashboard statistics calculation and rendering via Backend REST API.
  */
 
-import { $ } from "./utils.js";
+import { $, apiFetch } from "./utils.js";
 import { getAllVehicles } from "../js/inventory.js";
 import { navigationController } from "./navigation.js";
-import { state as tableState, saveState as saveTableState, renderVehicleTable } from "./vehicle-table.js";
 
 let dashboardEventsBound = false;
 
@@ -40,11 +39,11 @@ export function renderDashboardStatistics(stats) {
   const statReserved = $("stat-reserved");
   const statSold = $("stat-sold");
 
-  if (statTotal) statTotal.textContent = stats.total.toString();
-  if (statAvailable) statAvailable.textContent = stats.available.toString();
-  if (statIncoming) statIncoming.textContent = stats.incoming.toString();
-  if (statReserved) statReserved.textContent = stats.reserved.toString();
-  if (statSold) statSold.textContent = stats.sold.toString();
+  if (statTotal) statTotal.textContent = (stats.total || 0).toString();
+  if (statAvailable) statAvailable.textContent = (stats.available || 0).toString();
+  if (statIncoming) statIncoming.textContent = (stats.incoming || 0).toString();
+  if (statReserved) statReserved.textContent = (stats.reserved || 0).toString();
+  if (statSold) statSold.textContent = (stats.sold || 0).toString();
 }
 
 /**
@@ -88,13 +87,29 @@ function bindMetricCardEvents() {
 }
 
 /**
- * Initializes and updates the dashboard metrics.
+ * Initializes and updates the dashboard metrics from API endpoint.
  */
-export function initDashboard() {
-  const vehicles = getAllVehicles();
-  const stats = calculateVehicleStatistics(vehicles);
-  renderDashboardStatistics(stats);
-  
+export async function initDashboard() {
+  try {
+    const res = await apiFetch("/api/v1/admin/dashboard/stats");
+    if (res.ok) {
+      const payload = await res.json();
+      if (payload && payload.success && payload.data) {
+        renderDashboardStatistics(payload.data);
+      } else {
+        const vehicles = getAllVehicles();
+        renderDashboardStatistics(calculateVehicleStatistics(vehicles));
+      }
+    } else {
+      const vehicles = getAllVehicles();
+      renderDashboardStatistics(calculateVehicleStatistics(vehicles));
+    }
+  } catch (err) {
+    console.error("Failed to fetch dashboard stats from API:", err);
+    const vehicles = getAllVehicles();
+    renderDashboardStatistics(calculateVehicleStatistics(vehicles));
+  }
+
   if (!dashboardEventsBound) {
     bindMetricCardEvents();
     dashboardEventsBound = true;
