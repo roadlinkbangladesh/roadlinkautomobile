@@ -262,12 +262,20 @@ export function hydratePageContacts() {
   document.querySelectorAll("a").forEach(link => {
     const href = link.getAttribute("href") || "";
     
-    if (href.startsWith("tel:")) {
+    if (href.startsWith("tel:") || link.classList.contains("btn-call-action")) {
       const targetPhone = settings.showroomPhone || settings.phone;
       if (targetPhone) {
         const cleanPhone = targetPhone.replace(/[^0-9+]/g, "");
         link.href = `tel:${cleanPhone}`;
-        if (link.textContent.trim().includes("+880") || link.textContent.trim().includes("1311")) {
+        if (link.classList.contains("btn-call-action")) {
+          // Keep inner SVG, update text
+          const svg = link.querySelector("svg");
+          if (svg) {
+            link.innerHTML = svg.outerHTML + ` Call ${targetPhone}`;
+          } else {
+            link.textContent = `Call ${targetPhone}`;
+          }
+        } else if (link.textContent.trim().includes("+880") || link.textContent.trim().includes("1311")) {
           link.textContent = targetPhone;
         }
       }
@@ -292,6 +300,24 @@ export function hydratePageContacts() {
       if (settings.facebookUrl) link.href = settings.facebookUrl;
     } else if (href.includes("youtube.com/") || link.classList.contains("youtube-link")) {
       if (settings.youtubeUrl) link.href = settings.youtubeUrl;
+    }
+  });
+
+  // 8. Hydrate JSON-LD Structured Data
+  document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+    try {
+      const json = JSON.parse(script.textContent);
+      if (json['@type'] === 'AutoDealer' || json['@type'] === 'Organization') {
+        if (settings.companyName) json.name = settings.companyName;
+        if (settings.showroomPhone || settings.phone) json.telephone = settings.showroomPhone || settings.phone;
+        if (settings.email) json.email = settings.email;
+        if (json.address && (settings.showroomAddress || settings.address)) {
+          json.address.streetAddress = settings.showroomAddress || settings.address;
+        }
+        script.textContent = JSON.stringify(json, null, 2);
+      }
+    } catch (e) {
+      // Ignore JSON parse errors for non-matching scripts
     }
   });
 }
