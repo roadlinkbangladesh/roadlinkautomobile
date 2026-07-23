@@ -13,8 +13,19 @@ const SYSTEM_DEFAULTS = {
   companyName: "Roadlink Automobiles",
   address: "169 (Level 2), Fakirerpool, Dhaka 1000",
   phone: "+880 1311-503840",
+  showroomAddress: "169 (Level 2), Fakirerpool, Dhaka 1000",
+  showroomPhone: "+880 1311-503840",
+  showShowroom: true,
+  corporateAddress: "House 42, Road 11, Block D, Banani, Dhaka 1213",
+  corporatePhone: "+880 1711-998877",
+  showCorporate: false,
+  contactName: "Sales Helpline / Managing Officer",
+  contactPhone: "+880 1311-503840",
+  showPrimaryContact: false,
   whatsapp: "8801311503840",
+  showWhatsapp: true,
   email: "roadlinkbangladesh@gmail.com",
+  showEmail: true,
   facebookUrl: "https://www.facebook.com/roadlinkautomobiles",
   youtubeUrl: "https://www.youtube.com/@roadlinkautomobiles9168",
   displayTimezone: "Asia/Dhaka",
@@ -105,28 +116,68 @@ async function loadSettings() {
  */
 function populateForm(data) {
   const companyField = $("set-company-name");
-  const addressField = $("set-address");
-  const phoneField = $("set-phone");
+  
+  // Showroom
+  const showroomAddressField = $("set-showroom-address");
+  const showroomPhoneField = $("set-showroom-phone");
+  const showShowroomCheck = $("set-show-showroom");
+
+  // Corporate Office
+  const corporateAddressField = $("set-corporate-address");
+  const corporatePhoneField = $("set-corporate-phone");
+  const showCorporateCheck = $("set-show-corporate");
+
+  // Primary Contact
+  const contactNameField = $("set-contact-name");
+  const contactPhoneField = $("set-contact-phone");
+  const showPrimaryContactCheck = $("set-show-primary-contact");
+
+  // WhatsApp
   const whatsappField = $("set-whatsapp");
+  const showWhatsappCheck = $("set-show-whatsapp");
+
+  // Email
   const emailField = $("set-email");
+  const showEmailCheck = $("set-show-email");
+
+  // Social & SEO
   const facebookField = $("set-facebook");
   const youtubeField = $("set-youtube");
   const seoSuffixField = $("set-seo-suffix");
   const seoKeywordsField = $("set-seo-keywords");
   const seoDescField = $("set-seo-desc");
 
-  // New settings fields from database schema
+  // System settings
   const displayTimezoneField = $("set-display-timezone");
   const displayLocaleField = $("set-display-locale");
   const defaultCurrencyField = $("set-default-currency");
 
-  // Populate fields handling both camelCase and snake_case backend schemas
   if (companyField) companyField.value = data.companyName || data.company_name || "";
-  if (addressField) addressField.value = data.address || "";
-  if (phoneField) phoneField.value = data.phone || "";
+
+  // Populate Showroom
+  if (showroomAddressField) showroomAddressField.value = data.showroomAddress || data.showroom_address || data.address || "";
+  if (showroomPhoneField) showroomPhoneField.value = data.showroomPhone || data.showroom_phone || data.phone || "";
+  if (showShowroomCheck) showShowroomCheck.checked = (data.showShowroom ?? data.show_showroom ?? 1) == 1;
+
+  // Populate Corporate
+  if (corporateAddressField) corporateAddressField.value = data.corporateAddress || data.corporate_address || "";
+  if (corporatePhoneField) corporatePhoneField.value = data.corporatePhone || data.corporate_phone || "";
+  if (showCorporateCheck) showCorporateCheck.checked = (data.showCorporate ?? data.show_corporate ?? 0) == 1;
+
+  // Populate Primary Contact
+  if (contactNameField) contactNameField.value = data.contactName || data.contact_name || "";
+  if (contactPhoneField) contactPhoneField.value = data.contactPhone || data.contact_phone || "";
+  if (showPrimaryContactCheck) showPrimaryContactCheck.checked = (data.showPrimaryContact ?? data.show_primary_contact ?? 0) == 1;
+
+  // Populate WhatsApp
   if (whatsappField) whatsappField.value = data.whatsapp || "";
+  if (showWhatsappCheck) showWhatsappCheck.checked = (data.showWhatsapp ?? data.show_whatsapp ?? 1) == 1;
+
+  // Populate Email
   if (emailField) emailField.value = data.email || "";
-  
+  if (showEmailCheck) showEmailCheck.checked = (data.showEmail ?? data.show_email ?? 1) == 1;
+
+  // Social & SEO
   if (facebookField) facebookField.value = data.facebookUrl || data.facebook_url || data.facebook || "";
   if (youtubeField) youtubeField.value = data.youtubeUrl || data.youtube_url || data.youtube || "";
   
@@ -194,10 +245,25 @@ async function handleSettingsSubmit(e) {
   if (errorAlert) errorAlert.style.display = "none";
 
   const companyName = $("set-company-name")?.value || "";
-  const address = $("set-address")?.value || "";
-  const phone = $("set-phone")?.value || "";
+  
+  const showroomAddress = $("set-showroom-address")?.value || "";
+  const showroomPhone = $("set-showroom-phone")?.value || "";
+  const showShowroom = $("set-show-showroom")?.checked ?? true;
+
+  const corporateAddress = $("set-corporate-address")?.value || "";
+  const corporatePhone = $("set-corporate-phone")?.value || "";
+  const showCorporate = $("set-show-corporate")?.checked ?? false;
+
+  const contactName = $("set-contact-name")?.value || "";
+  const contactPhone = $("set-contact-phone")?.value || "";
+  const showPrimaryContact = $("set-show-primary-contact")?.checked ?? false;
+
   const whatsapp = $("set-whatsapp")?.value || "";
+  const showWhatsapp = $("set-show-whatsapp")?.checked ?? true;
+
   const email = $("set-email")?.value || "";
+  const showEmail = $("set-show-email")?.checked ?? true;
+
   const facebookUrl = $("set-facebook")?.value || "";
   const youtubeUrl = $("set-youtube")?.value || "";
   const displayTimezone = $("set-display-timezone")?.value || "";
@@ -207,7 +273,7 @@ async function handleSettingsSubmit(e) {
   const seoDefaultKeywords = $("set-seo-keywords")?.value || "";
   const seoDefaultDescription = $("set-seo-desc")?.value || "";
 
-  if (!companyName || !address || !phone || !email) {
+  if (!companyName) {
     if (errorAlert) {
       errorAlert.textContent = "Please fill in all required fields marked with *.";
       errorAlert.style.display = "block";
@@ -224,7 +290,12 @@ async function handleSettingsSubmit(e) {
     const response = await apiFetch("/api/v1/admin/settings", {
       method: "PUT",
       body: JSON.stringify({
-        companyName, address, phone, whatsapp, email,
+        companyName,
+        showroomAddress, showroomPhone, showShowroom,
+        corporateAddress, corporatePhone, showCorporate,
+        contactName, contactPhone, showPrimaryContact,
+        whatsapp, showWhatsapp,
+        email, showEmail,
         facebookUrl, youtubeUrl, displayTimezone, displayLocale,
         defaultCurrency,
         seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription
