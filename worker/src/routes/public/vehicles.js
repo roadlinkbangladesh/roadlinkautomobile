@@ -16,7 +16,7 @@ export async function listPublicVehicles(request, env) {
     const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
     const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || "100", 10)));
 
-    let sqlWhere = [`is_published = 1 AND archived_at IS NULL`];
+    let sqlWhere = [`is_published = 1 AND archived_at IS NULL AND LOWER(status) NOT IN ('draft', 'sold')`];
     let params = [];
 
     if (search) {
