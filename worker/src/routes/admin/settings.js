@@ -28,6 +28,22 @@ export async function updateSettings(request, env) {
         const body = await request.json();
         const now = new Date().toISOString();
 
+        const companyName = body.company_name || body.companyName || "";
+        const phone = body.phone || "";
+        const whatsapp = body.whatsapp || "";
+        const email = body.email || "";
+        const address = body.address || "";
+        const facebook = body.facebook || body.facebookUrl || "";
+        const youtube = body.youtube || body.youtubeUrl || "";
+        const displayTimezone = body.display_timezone || body.displayTimezone || "Asia/Dhaka";
+        const displayLocale = body.display_locale || body.displayLocale || "en-BD";
+        const defaultCurrency = body.default_currency || body.defaultCurrency || "BDT";
+        const sessionTimeoutMinutes = body.session_timeout_minutes || body.sessionTimeoutMinutes || 30;
+        const archiveRetentionDays = body.archive_retention_days || body.archiveRetentionDays || 180;
+        const seoTitleSuffix = body.seo_title_suffix || body.seoTitleSuffix || "";
+        const seoDefaultKeywords = body.seo_default_keywords || body.seoDefaultKeywords || "";
+        const seoDefaultDescription = body.seo_default_description || body.seoDefaultDescription || "";
+
         await env.DB
             .prepare(`
                 UPDATE settings
@@ -39,10 +55,10 @@ export async function updateSettings(request, env) {
                 WHERE id = 1
             `)
             .bind(
-                body.company_name, body.phone, body.whatsapp, body.email, body.address,
-                body.facebook, body.youtube, body.display_timezone, body.display_locale,
-                body.default_currency, body.session_timeout_minutes, body.archive_retention_days,
-                body.seo_title_suffix, body.seo_default_keywords, body.seo_default_description,
+                companyName, phone, whatsapp, email, address,
+                facebook, youtube, displayTimezone, displayLocale,
+                defaultCurrency, sessionTimeoutMinutes, archiveRetentionDays,
+                seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription,
                 now
             )
             .run();
