@@ -110,17 +110,7 @@ export function hydratePageContacts() {
     el.innerHTML = `&copy; ${year} ${settings.companyName}. All Rights Reserved.`;
   });
 
-  // 4. Update Brand Title Text in Navigation / Header / Footer if present
-  document.querySelectorAll(".brand-name").forEach(el => {
-    const words = settings.companyName.split(" ");
-    if (words.length >= 2) {
-      el.innerHTML = `<span class="road">${words[0].toUpperCase()}</span><span class="link">${words.slice(1).join(" ").toUpperCase()}</span>`;
-    } else {
-      el.textContent = settings.companyName;
-    }
-  });
-
-  // 5. Update Homepage Location/Contact Section (#dyn-contact-list)
+  // 4. Update Homepage Location/Contact Section (#dyn-contact-list)
   const contactList = document.getElementById("dyn-contact-list");
   if (contactList) {
     const itemsHtml = [];
