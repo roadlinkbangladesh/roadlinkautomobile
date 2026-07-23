@@ -3,7 +3,7 @@
  * Handles Phase 1 of vehicle list display, in-memory searches, adding/editing, and deleting vehicles.
  */
 
-import { getAllVehicles, loadVehiclesAsync, addVehicleAsync, updateVehicleAsync, deleteVehicleAsync, updateVehicleStatusAsync, uploadFileAsync } from "../js/inventory.js";
+import { getAllVehicles, loadVehiclesAsync, loadAdminVehiclesAsync, addVehicleAsync, updateVehicleAsync, deleteVehicleAsync, updateVehicleStatusAsync, uploadFileAsync } from "../js/inventory.js";
 import { $ } from "./utils.js";
 import { hasPermission } from "./auth.js";
 import { initDashboard } from "./dashboard.js";
@@ -26,7 +26,7 @@ let vehiclesEventsBound = false;
  * @param {Object} query - Optional route query parameters e.g. { status: "available" }
  */
 export async function initVehiclesView(query = {}) {
-  await loadVehiclesAsync();
+  await loadAdminVehiclesAsync();
   initVehicleTable();
 
   if (query && query.status) {
@@ -506,7 +506,7 @@ export function closeVehicleModal() {
 /**
  * Form submit handler for saving a vehicle.
  */
-function handleFormSubmit(e) {
+async function handleFormSubmit(e) {
   e.preventDefault();
   const form = $("vehicle-form");
   const validationError = $("v-validation-error");
