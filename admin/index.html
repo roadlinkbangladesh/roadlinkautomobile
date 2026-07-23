@@ -251,20 +251,20 @@
               <div class="inventory-controls">
                 <div class="search-box-wrapper">
                   <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
-                  <input type="text" id="vehicle-search" placeholder="Search ID, Make, Model, Chassis..." class="form-control-search">
+                  <input type="text" id="vehicle-search" placeholder="Search ID, Make, Model, Chassis..." class="form-control-search" aria-label="Search vehicles by ID, Make, Model, or Chassis">
                 </div>
                 <div class="filters-wrapper">
-                  <select id="vehicle-status-filter" class="form-control-select" title="Filter by Status">
+                  <select id="vehicle-status-filter" class="form-control-select" title="Filter by Status" aria-label="Filter vehicles by status">
                     <option value="all">All Statuses</option>
                     <option value="available">Available</option>
                     <option value="incoming">Incoming</option>
                     <option value="reserved">Reserved</option>
                     <option value="sold">Sold</option>
                   </select>
-                  <select id="vehicle-make-filter" class="form-control-select" title="Filter by Make">
+                  <select id="vehicle-make-filter" class="form-control-select" title="Filter by Make" aria-label="Filter vehicles by make">
                     <option value="all">All Makes</option>
                   </select>
-                  <select id="vehicle-sort" class="form-control-select" title="Sort vehicles">
+                  <select id="vehicle-sort" class="form-control-select" title="Sort vehicles" aria-label="Sort vehicles">
                     <option value="date-desc">Date Added (Newest)</option>
                     <option value="date-asc">Date Added (Oldest)</option>
                     <option value="stock-asc">Stock ID (A-Z)</option>
@@ -545,7 +545,7 @@
               <div class="inventory-controls" style="margin-bottom: 24px; gap: 12px; align-items: center;">
                 <div class="search-box-wrapper" style="flex: 1;">
                   <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
-                  <input type="text" id="user-search" placeholder="Search by username, name or role..." class="form-control-search">
+                  <input type="text" id="user-search" placeholder="Search by username, name or role..." class="form-control-search" aria-label="Search users by username, name, or role">
                 </div>
                 <div>
                   <button id="btn-refresh-users" class="btn btn-view-site" style="height: 42px; margin-bottom: 0; width: auto; font-size: 0.9rem; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; padding: 0 16px; border: 1px solid var(--border-color); background: var(--bg-white);">
@@ -740,11 +740,11 @@
               <div class="inventory-controls" style="margin-bottom: 24px; gap: 12px; align-items: center; flex-wrap: wrap;">
                 <div class="search-box-wrapper" style="flex: 2; min-width: 200px;">
                   <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
-                  <input type="text" id="audit-log-search" placeholder="Search by user, action, resource..." class="form-control-search">
+                  <input type="text" id="audit-log-search" placeholder="Search by user, action, resource..." class="form-control-search" aria-label="Search audit logs by user, action, or resource">
                 </div>
                 
                 <div style="flex: 1; min-width: 150px;">
-                  <select id="audit-log-action-filter" style="width: 100%; padding: 10px 12px; border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.9rem; background: var(--bg-white); font-weight: 500;">
+                  <select id="audit-log-action-filter" aria-label="Filter audit logs by action" style="width: 100%; padding: 10px 12px; border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.9rem; background: var(--bg-white); font-weight: 500;">
                     <option value="">All Actions</option>
                     <option value="LOGIN">LOGIN</option>
                     <option value="CREATE_USER">CREATE_USER</option>
@@ -757,7 +757,7 @@
                 </div>
 
                 <div style="flex: 1; min-width: 130px;">
-                  <select id="audit-log-status-filter" style="width: 100%; padding: 10px 12px; border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.9rem; background: var(--bg-white); font-weight: 500;">
+                  <select id="audit-log-status-filter" aria-label="Filter audit logs by status" style="width: 100%; padding: 10px 12px; border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.9rem; background: var(--bg-white); font-weight: 500;">
                     <option value="">All Statuses</option>
                     <option value="SUCCESS">SUCCESS</option>
                     <option value="FAILURE">FAILURE</option>
@@ -815,7 +815,7 @@
               <div class="inventory-controls" style="margin-bottom: 24px; gap: 12px; align-items: center;">
                 <div class="search-box-wrapper" style="flex: 1;">
                   <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
-                  <input type="text" id="role-search" placeholder="Search roles..." class="form-control-search">
+                  <input type="text" id="role-search" placeholder="Search roles..." class="form-control-search" aria-label="Search roles">
                 </div>
                 <div>
                   <button id="btn-refresh-roles" class="btn btn-view-site" style="height: 42px; margin-bottom: 0; width: auto; font-size: 0.9rem; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; padding: 0 16px; border: 1px solid var(--border-color); background: var(--bg-white);">
@@ -1052,7 +1052,7 @@
             <label for="v-auction-sheet-url">Auction Sheet Document (Upload File or Enter URL)</label>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
               <input type="text" id="v-auction-sheet-url" name="auctionSheetUrl" placeholder="e.g. https://... or click Upload Document" style="flex: 1; min-width: 220px;">
-              <input type="file" id="v-auction-sheet-file-input" accept="image/*,.pdf" style="display: none;">
+              <input type="file" id="v-auction-sheet-file-input" accept="image/*,.pdf" style="display: none;" aria-label="Upload auction sheet document">
               <button type="button" id="btn-upload-auction-sheet" class="btn btn-view-site" style="width: auto; margin: 0; padding: 10px 14px; font-size: 0.85rem; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-up"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 12v6"/><path d="m15 15-3-3-3 3"/></svg>
                 <span>Upload Sheet</span>

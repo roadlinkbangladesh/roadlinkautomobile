@@ -234,8 +234,7 @@ class NavigationController {
         if (panel) panel.style.display = "block";
         if (btn) btn.classList.add("active");
         if (pageTitle) pageTitle.textContent = item.title;
-        const companyName = window.cachedAdminSettings?.companyName || "Roadlink Automobiles";
-        document.title = `${item.title} - ${companyName} Admin`;
+        document.title = `${item.title} - Roadlink Automobiles Admin`;
         
         // Execute dynamic initialization or reload with query options
         if (typeof item.init === "function") {
