@@ -25,8 +25,30 @@ import {
     listAuditLogs,
     exportAuditLogs
 } from "./routes/admin/audit_logs.js";
+import {
+    listAdminVehicles,
+    getAdminVehicle,
+    createAdminVehicle,
+    updateAdminVehicle,
+    deleteAdminVehicle,
+    updateAdminVehicleStatus,
+    getDashboardStats,
+    uploadFile
+} from "./routes/admin/vehicles.js";
+import {
+    listPublicVehicles,
+    getPublicVehicle,
+    getPublicSettings,
+    getPublicImage
+} from "./routes/public/vehicles.js";
 
 const routes = {
+
+    // Public API
+    [`GET:${API.PUBLIC}/vehicles`]: listPublicVehicles,
+    [`GET:${API.PUBLIC}/vehicles/:identifier`]: getPublicVehicle,
+    [`GET:${API.PUBLIC}/settings`]: getPublicSettings,
+    [`GET:${API.PUBLIC}/images/:key`]: getPublicImage,
 
     // Authentication
     [`POST:${API.AUTH}/login`]: login,
@@ -34,6 +56,20 @@ const routes = {
     // Settings
     [`GET:${API.ADMIN}/settings`]: getSettings,
     [`PUT:${API.ADMIN}/settings`]: updateSettings,
+
+    // Dashboard Statistics
+    [`GET:${API.ADMIN}/dashboard/stats`]: getDashboardStats,
+
+    // File Upload (R2 Storage)
+    [`POST:${API.ADMIN}/upload`]: uploadFile,
+
+    // Vehicle Management
+    [`GET:${API.ADMIN}/vehicles`]: listAdminVehicles,
+    [`POST:${API.ADMIN}/vehicles`]: createAdminVehicle,
+    [`GET:${API.ADMIN}/vehicles/:id`]: getAdminVehicle,
+    [`PUT:${API.ADMIN}/vehicles/:id`]: updateAdminVehicle,
+    [`DELETE:${API.ADMIN}/vehicles/:id`]: deleteAdminVehicle,
+    [`PUT:${API.ADMIN}/vehicles/:id/status`]: updateAdminVehicleStatus,
 
     // User Management
     [`GET:${API.ADMIN}/users`]: listUsers,
