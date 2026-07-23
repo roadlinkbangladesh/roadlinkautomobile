@@ -15,12 +15,10 @@ function getToken() {
 }
 
 /**
- * Fetches all vehicles from the Worker API backend.
- * Uses /api/v1/admin/vehicles if admin token is present, otherwise /api/v1/public/vehicles.
+ * Fetches published vehicles from the public REST API backend.
  */
 export async function loadVehiclesAsync(params = {}) {
-  const token = getToken();
-  let endpoint = token ? "/api/v1/admin/vehicles" : "/api/v1/public/vehicles";
+  let endpoint = "/api/v1/public/vehicles";
   
   const queryParts = [];
   if (params.search) queryParts.push(`search=${encodeURIComponent(params.search)}`);
@@ -35,10 +33,7 @@ export async function loadVehiclesAsync(params = {}) {
   }
 
   try {
-    const headers = {};
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-
-    const response = await fetch(endpoint, { headers });
+    const response = await fetch(endpoint);
     if (response.ok) {
       const payload = await response.json();
       if (payload && payload.success && payload.data) {
@@ -48,7 +43,7 @@ export async function loadVehiclesAsync(params = {}) {
       }
     }
   } catch (err) {
-    console.error("Failed to load vehicles from Worker API:", err);
+    console.error("Failed to load vehicles from Public Worker API:", err);
   }
 
   return cachedVehicles;
@@ -79,17 +74,13 @@ export function saveVehicles(vehicles) {
 }
 
 /**
- * Retrieves a single vehicle by ID or stock number from API.
+ * Retrieves a single published vehicle by ID or stock number from the public REST API.
  */
 export async function getVehicleByIdAsync(id) {
-  const token = getToken();
-  const endpoint = token ? `/api/v1/admin/vehicles/${encodeURIComponent(id)}` : `/api/v1/public/vehicles/${encodeURIComponent(id)}`;
+  const endpoint = `/api/v1/public/vehicles/${encodeURIComponent(id)}`;
   
   try {
-    const headers = {};
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-
-    const response = await fetch(endpoint, { headers });
+    const response = await fetch(endpoint);
     if (response.ok) {
       const payload = await response.json();
       if (payload && payload.success && payload.data) {
@@ -97,7 +88,7 @@ export async function getVehicleByIdAsync(id) {
       }
     }
   } catch (err) {
-    console.error("Failed to get vehicle by ID from Worker API:", err);
+    console.error("Failed to get vehicle by ID from Public Worker API:", err);
   }
 
   return cachedVehicles.find(v => v.id === id || v.stockNumber === id) || null;
