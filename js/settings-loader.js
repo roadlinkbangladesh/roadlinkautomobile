@@ -24,7 +24,8 @@ let cachedSettings = { ...DEFAULT_SETTINGS };
 export async function fetchPublicSettings() {
   try {
     const res = await fetch("/api/v1/public/settings");
-    if (res.ok) {
+    const contentType = res.headers.get("content-type") || "";
+    if (res.ok && contentType.includes("application/json")) {
       const payload = await res.json();
       if (payload && payload.success && payload.data) {
         const data = payload.data;
