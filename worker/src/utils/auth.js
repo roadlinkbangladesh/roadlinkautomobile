@@ -94,7 +94,7 @@ export async function authenticate(request, env, requiredPermission = null, isCh
         };
     }
 
-    if (requiredPermission && !permissions.includes(requiredPermission)) {
+    if (requiredPermission && !user.is_super_admin && !permissions.includes(requiredPermission)) {
         await logAudit(env, {
             actingUserId: user.id,
             actingUsername: user.username,
