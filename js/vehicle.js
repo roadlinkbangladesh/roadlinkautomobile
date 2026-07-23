@@ -3,7 +3,7 @@
  * Highly optimized, responsive, accessible, and written in vanilla ES Modules.
  */
 
-import { getAllVehicles } from './inventory.js';
+import { getAllVehicles, loadVehiclesAsync } from './inventory.js';
 import './settings-loader.js';
 
 // App State for the current page
@@ -11,72 +11,69 @@ let currentVehicle = null;
 let currentGalleryImages = [];
 let currentGalleryIndex = 0;
 
-document.addEventListener('DOMContentLoaded', async () => {
-  // Mobile Header navigation toggle
-  initMobileMenu();
+if (typeof window !== "undefined" && typeof document !== "undefined") {
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Mobile Header navigation toggle
+    initMobileMenu();
 
-  // Load and render vehicle based on URL param ?stock=RL-xxxx
-  try {
-    const urlParams = new URLSearchParams(window.location.search);
-    const stockNo = urlParams.get('stock');
+    // Load and render vehicle based on URL param ?stock=RL-xxxx
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const stockNo = urlParams.get('stock');
 
-    if (!stockNo) {
-      showErrorState("No Reference Number", "Please provide a valid vehicle stock reference number in the URL parameter (e.g. ?stock=RL-8821) to view specifications.");
-      return;
+      if (!stockNo) {
+        showErrorState("No Reference Number", "Please provide a valid vehicle stock reference number in the URL parameter (e.g. ?stock=RL-8821) to view specifications.");
+        return;
+      }
+
+      // Load vehicle data
+      currentVehicle = await fetchVehicleByStock(stockNo);
+
+      if (!currentVehicle) {
+        showErrorState("Vehicle Not Found", `We couldn't locate any vehicle matching stock number "${stockNo}" in our current verified inventory.`);
+        return;
+      }
+
+      // Hydrate Page Sections
+      hydrateSEO(currentVehicle);
+      hydrateBreadcrumbs(currentVehicle);
+      hydrateStickyContactPanel(currentVehicle);
+      hydrateMainMedia(currentVehicle);
+      hydrateSpecifications(currentVehicle);
+      hydrateFeatures(currentVehicle);
+      hydrateDescription(currentVehicle);
+      hydrateAuctionSheet(currentVehicle);
+      hydratePromotionalPoster(currentVehicle);
+      hydrateYoutubeEmbed(currentVehicle);
+      
+      // Hydrate Related Vehicles section
+      hydrateRelatedVehicles(currentVehicle);
+
+      // Initialize interactive handlers
+      initLightbox();
+      initShareHandler(currentVehicle);
+
+      // Transition views
+      document.getElementById('loading-state-overlay').style.display = 'none';
+      document.getElementById('vehicle-details-wrapper').style.display = 'block';
+
+    } catch (err) {
+      console.error("Critical error displaying vehicle details:", err);
+      showErrorState("System Error", "An unexpected error occurred while compiling vehicle specifications. Please reload or contact Roadlink support.");
     }
-
-    // Load vehicle data
-    currentVehicle = await fetchVehicleByStock(stockNo);
-
-    if (!currentVehicle) {
-      showErrorState("Vehicle Not Found", `We couldn't locate any vehicle matching stock number "${stockNo}" in our current verified inventory.`);
-      return;
-    }
-
-    // Hydrate Page Sections
-    hydrateSEO(currentVehicle);
-    hydrateBreadcrumbs(currentVehicle);
-    hydrateStickyContactPanel(currentVehicle);
-    hydrateMainMedia(currentVehicle);
-    hydrateSpecifications(currentVehicle);
-    hydrateFeatures(currentVehicle);
-    hydrateDescription(currentVehicle);
-    hydrateAuctionSheet(currentVehicle);
-    hydratePromotionalPoster(currentVehicle);
-    hydrateYoutubeEmbed(currentVehicle);
-    
-    // Hydrate Related Vehicles section
-    hydrateRelatedVehicles(currentVehicle);
-
-    // Initialize interactive handlers
-    initLightbox();
-    initShareHandler(currentVehicle);
-
-    // Transition views
-    document.getElementById('loading-state-overlay').style.display = 'none';
-    document.getElementById('vehicle-details-wrapper').style.display = 'block';
-
-  } catch (err) {
-    console.error("Critical error displaying vehicle details:", err);
-    showErrorState("System Error", "An unexpected error occurred while compiling vehicle specifications. Please reload or contact Roadlink support.");
-  }
-});
+  });
+}
 
 /**
  * Fetch vehicle by stock reference number
  * Fully ready to be swapped with a real fetch API call in future
  */
 async function fetchVehicleByStock(stockNumber) {
-  return new Promise((resolve) => {
-    // Simulate minor loading delay to allow smooth transition
-    setTimeout(() => {
-      const vehicles = getAllVehicles();
-      const match = vehicles.find(
-        car => car.stockNumber && car.stockNumber.toLowerCase() === stockNumber.toLowerCase() && car.published !== false
-      );
-      resolve(match || null);
-    }, 200);
-  });
+  const vehicles = await loadVehiclesAsync();
+  const match = vehicles.find(
+    car => car.stockNumber && car.stockNumber.toLowerCase() === stockNumber.toLowerCase() && car.published !== false
+  );
+  return match || null;
 }
 
 /**
