@@ -3,7 +3,7 @@
  * Handles Phase 1 of vehicle list display, in-memory searches, adding/editing, and deleting vehicles.
  */
 
-import { getAllVehicles, addVehicle, updateVehicle, deleteVehicle } from "../js/inventory.js";
+import { getAllVehicles, loadVehiclesAsync, addVehicleAsync, updateVehicleAsync, deleteVehicleAsync, updateVehicleStatusAsync, uploadFileAsync } from "../js/inventory.js";
 import { $ } from "./utils.js";
 import { hasPermission } from "./auth.js";
 import { initDashboard } from "./dashboard.js";
@@ -25,7 +25,8 @@ let vehiclesEventsBound = false;
  * Initializes the Vehicles management view panel.
  * @param {Object} query - Optional route query parameters e.g. { status: "available" }
  */
-export function initVehiclesView(query = {}) {
+export async function initVehiclesView(query = {}) {
+  await loadVehiclesAsync();
   initVehicleTable();
 
   if (query && query.status) {
@@ -643,7 +644,12 @@ function handleFormSubmit(e) {
       coverImage: coverImg,
       posterImage: coverImg
     };
-    updateVehicle(currentVehicleId, updatedFields);
+    try {
+      await updateVehicleAsync(currentVehicleId, updatedFields);
+    } catch (err) {
+      alert("Error updating vehicle: " + err.message);
+      return;
+    }
   } else {
     // Add new vehicle
     const newId = `${data.make.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${data.model.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -692,11 +698,16 @@ function handleFormSubmit(e) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    addVehicle(newVehicle);
+    try {
+      await addVehicleAsync(newVehicle);
+    } catch (err) {
+      alert("Error adding vehicle: " + err.message);
+      return;
+    }
   }
 
   // Reload current store data
-  const freshVehicles = getAllVehicles();
+  const freshVehicles = await loadVehiclesAsync();
   // Refresh table UI and dashboard statistics live
   const searchInput = $("vehicle-search");
   if (searchInput) searchInput.value = "";
@@ -735,7 +746,7 @@ export function closeDeleteModal() {
 /**
  * Confirms deletion of active vehicle.
  */
-function confirmDeleteVehicle() {
+async function confirmDeleteVehicle() {
   if (!deleteVehicleId) return;
 
   if (!hasPermission("vehicles.delete")) {
@@ -743,10 +754,15 @@ function confirmDeleteVehicle() {
     return;
   }
 
-  deleteVehicle(deleteVehicleId);
+  try {
+    await deleteVehicleAsync(deleteVehicleId);
+  } catch (err) {
+    alert("Error deleting vehicle: " + err.message);
+    return;
+  }
 
   // Reload current store data
-  const freshVehicles = getAllVehicles();
+  const freshVehicles = await loadVehiclesAsync();
   // Refresh table UI and dashboard statistics live
   const searchInput = $("vehicle-search");
   if (searchInput) searchInput.value = "";
@@ -780,49 +796,58 @@ function handleSelectIntImages() {
 }
 
 /**
- * Handles exterior image files selection and converts them to base64.
+ * Handles exterior image files selection and uploads them to R2.
  */
-function handleExtImagesFileChange(e) {
+async function handleExtImagesFileChange(e) {
   const files = Array.from(e.target.files);
   if (files.length === 0) return;
 
-  let loadedCount = 0;
-  files.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = function(event) {
-      const base64Data = event.target.result;
-      activeExteriorImages.push(base64Data);
-      loadedCount++;
-      if (loadedCount === files.length) {
-        renderImagePreviews();
-        e.target.value = "";
+  for (const file of files) {
+    try {
+      const uploaded = await uploadFileAsync(file);
+      if (uploaded && uploaded.url) {
+        activeExteriorImages.push(uploaded.url);
       }
-    };
-    reader.readAsDataURL(file);
-  });
+    } catch (err) {
+      console.error("Failed to upload exterior image:", err);
+      // Fallback to base64 if R2 upload fails
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        activeExteriorImages.push(event.target.result);
+        renderImagePreviews();
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+  renderImagePreviews();
+  e.target.value = "";
 }
 
 /**
- * Handles interior image files selection and converts them to base64.
+ * Handles interior image files selection and uploads them to R2.
  */
-function handleIntImagesFileChange(e) {
+async function handleIntImagesFileChange(e) {
   const files = Array.from(e.target.files);
   if (files.length === 0) return;
 
-  let loadedCount = 0;
-  files.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = function(event) {
-      const base64Data = event.target.result;
-      activeInteriorImages.push(base64Data);
-      loadedCount++;
-      if (loadedCount === files.length) {
-        renderImagePreviews();
-        e.target.value = "";
+  for (const file of files) {
+    try {
+      const uploaded = await uploadFileAsync(file);
+      if (uploaded && uploaded.url) {
+        activeInteriorImages.push(uploaded.url);
       }
-    };
-    reader.readAsDataURL(file);
-  });
+    } catch (err) {
+      console.error("Failed to upload interior image:", err);
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        activeInteriorImages.push(event.target.result);
+        renderImagePreviews();
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+  renderImagePreviews();
+  e.target.value = "";
 }
 
 /**
@@ -998,7 +1023,7 @@ function closeStatusModal() {
 /**
  * Handles saving changes from the status change modal.
  */
-function handleStatusFormSubmit(e) {
+async function handleStatusFormSubmit(e) {
   e.preventDefault();
   if (!statusChangeVehicleId) return;
 
@@ -1024,9 +1049,13 @@ function handleStatusFormSubmit(e) {
   }
 
   if (Object.keys(updatedFields).length > 0) {
-    updateVehicle(statusChangeVehicleId, updatedFields);
-    renderVehicleTable();
-    initDashboard(); // Update dashboard metric counts!
+    try {
+      await updateVehicleStatusAsync(statusChangeVehicleId, updatedFields);
+      renderVehicleTable();
+      initDashboard(); // Update dashboard metric counts!
+    } catch (err) {
+      alert("Failed to update status: " + err.message);
+    }
   }
 
   closeStatusModal();
