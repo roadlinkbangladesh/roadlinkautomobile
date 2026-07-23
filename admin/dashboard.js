@@ -4,7 +4,7 @@
  */
 
 import { $, apiFetch } from "./utils.js";
-import { getAllVehicles } from "../js/inventory.js";
+import { getAllVehicles, loadAdminVehiclesAsync } from "../js/inventory.js";
 import { navigationController } from "./navigation.js";
 
 let dashboardEventsBound = false;
@@ -90,6 +90,7 @@ function bindMetricCardEvents() {
  * Initializes and updates the dashboard metrics from API endpoint.
  */
 export async function initDashboard() {
+  await loadAdminVehiclesAsync();
   try {
     const res = await apiFetch("/api/v1/admin/dashboard/stats");
     if (res.ok) {
