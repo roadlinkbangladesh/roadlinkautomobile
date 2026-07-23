@@ -93,7 +93,8 @@ export async function initDashboard() {
   await loadAdminVehiclesAsync();
   try {
     const res = await apiFetch("/api/v1/admin/dashboard/stats");
-    if (res.ok) {
+    const contentType = res.headers.get("content-type") || "";
+    if (res.ok && contentType.includes("application/json")) {
       const payload = await res.json();
       if (payload && payload.success && payload.data) {
         renderDashboardStatistics(payload.data);
