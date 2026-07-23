@@ -350,29 +350,117 @@
 
               <form id="settings-form" novalidate>
                 <div class="settings-grid">
-                  <!-- CARD 1: Showroom Profile -->
+                  <!-- CARD 1: Contact Information & Company Profile -->
                   <div class="settings-section-card">
-                    <h3 class="settings-section-title">Showroom & Company Profile</h3>
+                    <h3 class="settings-section-title">Contact Information & Company Profile</h3>
+                    
                     <div class="form-group">
                       <label for="set-company-name">Company Name *</label>
                       <input type="text" id="set-company-name" required placeholder="e.g. Roadlink Automobiles">
                     </div>
-                    <div class="form-group">
-                      <label for="set-address">Showroom Location Address *</label>
-                      <input type="text" id="set-address" required placeholder="Showroom location">
+
+                    <!-- 1. Showroom Contact -->
+                    <div style="background-color: var(--bg-neutral); padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 16px;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-weight: 700; font-size: 0.9rem; color: var(--text-heading); display: inline-flex; align-items: center; gap: 6px;">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-store"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/><path d="M18 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/><path d="M14 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/><path d="M10 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/><path d="M6 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/></svg>
+                          Showroom Information
+                        </span>
+                        <label style="font-size: 0.82rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--text-body);">
+                          <input type="checkbox" id="set-show-showroom" checked>
+                          <span>Display on Website</span>
+                        </label>
+                      </div>
+                      <div class="form-group" style="margin-bottom: 10px;">
+                        <label for="set-showroom-address" style="font-size: 0.8rem;">Showroom Address</label>
+                        <input type="text" id="set-showroom-address" placeholder="e.g. 169 (Level 2), Fakirerpool, Dhaka 1000">
+                      </div>
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <label for="set-showroom-phone" style="font-size: 0.8rem;">Showroom Phone Number</label>
+                        <input type="text" id="set-showroom-phone" placeholder="e.g. +880 1311-503840">
+                      </div>
                     </div>
-                    <div class="form-group">
-                      <label for="set-phone">Inquiry Phone *</label>
-                      <input type="text" id="set-phone" required placeholder="e.g. +880 1311-503840">
+
+                    <!-- 2. Corporate Office -->
+                    <div style="background-color: var(--bg-neutral); padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 16px;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-weight: 700; font-size: 0.9rem; color: var(--text-heading); display: inline-flex; align-items: center; gap: 6px;">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-building-2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
+                          Corporate Office
+                        </span>
+                        <label style="font-size: 0.82rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--text-body);">
+                          <input type="checkbox" id="set-show-corporate">
+                          <span>Display on Website</span>
+                        </label>
+                      </div>
+                      <div class="form-group" style="margin-bottom: 10px;">
+                        <label for="set-corporate-address" style="font-size: 0.8rem;">Corporate Office Address</label>
+                        <input type="text" id="set-corporate-address" placeholder="e.g. House 42, Road 11, Block D, Banani, Dhaka 1213">
+                      </div>
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <label for="set-corporate-phone" style="font-size: 0.8rem;">Corporate Phone Number</label>
+                        <input type="text" id="set-corporate-phone" placeholder="e.g. +880 1711-998877">
+                      </div>
                     </div>
-                    <div class="form-group">
-                      <label for="set-whatsapp">WhatsApp Contact Number *</label>
-                      <input type="text" id="set-whatsapp" required placeholder="e.g. 8801311503840" style="font-family: var(--font-mono);">
+
+                    <!-- 3. Primary Contact Person -->
+                    <div style="background-color: var(--bg-neutral); padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 16px;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-weight: 700; font-size: 0.9rem; color: var(--text-heading); display: inline-flex; align-items: center; gap: 6px;">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                          Primary Contact Person
+                        </span>
+                        <label style="font-size: 0.82rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--text-body);">
+                          <input type="checkbox" id="set-show-primary-contact">
+                          <span>Display on Website</span>
+                        </label>
+                      </div>
+                      <div class="form-group" style="margin-bottom: 10px;">
+                        <label for="set-contact-name" style="font-size: 0.8rem;">Contact Name / Title</label>
+                        <input type="text" id="set-contact-name" placeholder="e.g. Sales Helpline / Managing Officer">
+                      </div>
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <label for="set-contact-phone" style="font-size: 0.8rem;">Direct Contact Phone</label>
+                        <input type="text" id="set-contact-phone" placeholder="e.g. +880 1311-503840">
+                      </div>
                     </div>
-                    <div class="form-group">
-                      <label for="set-email">Inquiry Email *</label>
-                      <input type="email" id="set-email" required placeholder="e.g. roadlinkbangladesh@gmail.com">
+
+                    <!-- 4. WhatsApp -->
+                    <div style="background-color: var(--bg-neutral); padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 16px;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-weight: 700; font-size: 0.9rem; color: var(--text-heading); display: inline-flex; align-items: center; gap: 6px;">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                          WhatsApp Hotline
+                        </span>
+                        <label style="font-size: 0.82rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--text-body);">
+                          <input type="checkbox" id="set-show-whatsapp" checked>
+                          <span>Display on Website</span>
+                        </label>
+                      </div>
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <label for="set-whatsapp" style="font-size: 0.8rem;">WhatsApp Number</label>
+                        <input type="text" id="set-whatsapp" placeholder="e.g. 8801311503840" style="font-family: var(--font-mono);">
+                      </div>
                     </div>
+
+                    <!-- 5. Email -->
+                    <div style="background-color: var(--bg-neutral); padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 0;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="font-weight: 700; font-size: 0.9rem; color: var(--text-heading); display: inline-flex; align-items: center; gap: 6px;">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                          Inquiry Email
+                        </span>
+                        <label style="font-size: 0.82rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--text-body);">
+                          <input type="checkbox" id="set-show-email" checked>
+                          <span>Display on Website</span>
+                        </label>
+                      </div>
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <label for="set-email" style="font-size: 0.8rem;">Email Address</label>
+                        <input type="email" id="set-email" placeholder="e.g. roadlinkbangladesh@gmail.com">
+                      </div>
+                    </div>
+
                   </div>
 
                   <!-- CARD 2: Social Media & SEO -->
