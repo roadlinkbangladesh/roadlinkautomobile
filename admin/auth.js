@@ -98,7 +98,11 @@ export async function login(username, password, rememberMe) {
       body: JSON.stringify({ username, password, rememberMe }),
     });
 
-    const result = await response.json();
+    const contentType = response.headers.get("content-type") || "";
+    let result = {};
+    if (contentType.includes("application/json")) {
+      result = await response.json();
+    }
     return {
       status: response.status,
       ...result,
