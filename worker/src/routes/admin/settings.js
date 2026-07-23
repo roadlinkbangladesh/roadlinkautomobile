@@ -29,10 +29,6 @@ export async function updateSettings(request, env) {
         const now = new Date().toISOString();
 
         const companyName = body.company_name || body.companyName || "";
-        const phone = body.phone || "";
-        const whatsapp = body.whatsapp || "";
-        const email = body.email || "";
-        const address = body.address || "";
         const facebook = body.facebook || body.facebookUrl || "";
         const youtube = body.youtube || body.youtubeUrl || "";
         const displayTimezone = body.display_timezone || body.displayTimezone || "Asia/Dhaka";
@@ -44,6 +40,29 @@ export async function updateSettings(request, env) {
         const seoDefaultKeywords = body.seo_default_keywords || body.seoDefaultKeywords || "";
         const seoDefaultDescription = body.seo_default_description || body.seoDefaultDescription || "";
 
+        // Contact Methods
+        const showroomAddress = body.showroom_address ?? body.showroomAddress ?? body.address ?? "";
+        const showroomPhone = body.showroom_phone ?? body.showroomPhone ?? body.phone ?? "";
+        const showShowroom = (body.show_showroom ?? body.showShowroom ?? true) ? 1 : 0;
+
+        const corporateAddress = body.corporate_address ?? body.corporateAddress ?? "";
+        const corporatePhone = body.corporate_phone ?? body.corporatePhone ?? "";
+        const showCorporate = (body.show_corporate ?? body.showCorporate ?? false) ? 1 : 0;
+
+        const contactName = body.contact_name ?? body.contactName ?? "";
+        const contactPhone = body.contact_phone ?? body.contactPhone ?? "";
+        const showPrimaryContact = (body.show_primary_contact ?? body.showPrimaryContact ?? false) ? 1 : 0;
+
+        const whatsapp = body.whatsapp ?? "";
+        const showWhatsapp = (body.show_whatsapp ?? body.showWhatsapp ?? true) ? 1 : 0;
+
+        const email = body.email ?? "";
+        const showEmail = (body.show_email ?? body.showEmail ?? true) ? 1 : 0;
+
+        // Legacy compatibility aliases
+        const phone = showroomPhone || contactPhone || body.phone || "";
+        const address = showroomAddress || corporateAddress || body.address || "";
+
         await env.DB
             .prepare(`
                 UPDATE settings
@@ -51,6 +70,10 @@ export async function updateSettings(request, env) {
                     facebook = ?, youtube = ?, display_timezone = ?, display_locale = ?,
                     default_currency = ?, session_timeout_minutes = ?, archive_retention_days = ?,
                     seo_title_suffix = ?, seo_default_keywords = ?, seo_default_description = ?,
+                    showroom_address = ?, showroom_phone = ?, show_showroom = ?,
+                    corporate_address = ?, corporate_phone = ?, show_corporate = ?,
+                    contact_name = ?, contact_phone = ?, show_primary_contact = ?,
+                    show_whatsapp = ?, show_email = ?,
                     updated_at = ?
                 WHERE id = 1
             `)
@@ -59,6 +82,10 @@ export async function updateSettings(request, env) {
                 facebook, youtube, displayTimezone, displayLocale,
                 defaultCurrency, sessionTimeoutMinutes, archiveRetentionDays,
                 seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription,
+                showroomAddress, showroomPhone, showShowroom,
+                corporateAddress, corporatePhone, showCorporate,
+                contactName, contactPhone, showPrimaryContact,
+                showWhatsapp, showEmail,
                 now
             )
             .run();
