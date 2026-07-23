@@ -3,6 +3,8 @@
  * Replaces localStorage persistence with Cloudflare Worker D1/R2 REST APIs.
  */
 
+import { apiRequest } from "./shared/api.js";
+
 let cachedVehicles = [];
 let publicVehicles = [];
 let adminVehicles = [];
@@ -46,7 +48,7 @@ export async function loadVehiclesAsync(params = {}, forceAdmin = false) {
   }
 
   try {
-    const response = await fetch(endpoint);
+    const response = await apiRequest(endpoint);
     const contentType = response.headers.get("content-type") || "";
     
     if (response.ok && contentType.includes("application/json")) {
@@ -100,7 +102,7 @@ export async function loadAdminVehiclesAsync(params = {}) {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const response = await fetch(endpoint, { headers });
+    const response = await apiRequest(endpoint, { headers });
     const contentType = response.headers.get("content-type") || "";
 
     if (response.ok && contentType.includes("application/json")) {
@@ -172,7 +174,7 @@ export async function getVehicleByIdAsync(id) {
   const endpoint = `/api/v1/public/vehicles/${encodeURIComponent(id)}`;
   
   try {
-    const response = await fetch(endpoint);
+    const response = await apiRequest(endpoint);
     const contentType = response.headers.get("content-type") || "";
     if (response.ok && contentType.includes("application/json")) {
       const payload = await response.json();
@@ -198,10 +200,9 @@ export async function addVehicleAsync(vehicle) {
   const token = getToken();
   if (!token) throw new Error("Unauthorized: Admin login token required.");
 
-  const response = await fetch("/api/v1/admin/vehicles", {
+  const response = await apiRequest("/api/v1/admin/vehicles", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`
     },
     body: JSON.stringify(vehicle)
@@ -233,10 +234,9 @@ export async function updateVehicleAsync(id, updatedFields) {
   const token = getToken();
   if (!token) throw new Error("Unauthorized: Admin login token required.");
 
-  const response = await fetch(`/api/v1/admin/vehicles/${encodeURIComponent(id)}`, {
+  const response = await apiRequest(`/api/v1/admin/vehicles/${encodeURIComponent(id)}`, {
     method: "PUT",
     headers: {
-      "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`
     },
     body: JSON.stringify(updatedFields)
@@ -268,7 +268,7 @@ export async function deleteVehicleAsync(id) {
   const token = getToken();
   if (!token) throw new Error("Unauthorized: Admin login token required.");
 
-  const response = await fetch(`/api/v1/admin/vehicles/${encodeURIComponent(id)}`, {
+  const response = await apiRequest(`/api/v1/admin/vehicles/${encodeURIComponent(id)}`, {
     method: "DELETE",
     headers: {
       "Authorization": `Bearer ${token}`
@@ -301,10 +301,9 @@ export async function updateVehicleStatusAsync(id, statusData) {
   const token = getToken();
   if (!token) throw new Error("Unauthorized: Admin login token required.");
 
-  const response = await fetch(`/api/v1/admin/vehicles/${encodeURIComponent(id)}/status`, {
+  const response = await apiRequest(`/api/v1/admin/vehicles/${encodeURIComponent(id)}/status`, {
     method: "PUT",
     headers: {
-      "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`
     },
     body: JSON.stringify(statusData)
@@ -334,7 +333,7 @@ export async function uploadFileAsync(file) {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch("/api/v1/admin/upload", {
+  const response = await apiRequest("/api/v1/admin/upload", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${token}`
