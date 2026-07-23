@@ -12,7 +12,7 @@ let currentGalleryImages = [];
 let currentGalleryIndex = 0;
 
 if (typeof window !== "undefined" && typeof document !== "undefined") {
-  document.addEventListener('DOMContentLoaded', async () => {
+  const initVehicleDetail = async () => {
     // Mobile Header navigation toggle
     initMobileMenu();
 
@@ -61,7 +61,13 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
       console.error("Critical error displaying vehicle details:", err);
       showErrorState("System Error", "An unexpected error occurred while compiling vehicle specifications. Please reload or contact Roadlink support.");
     }
-  });
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener('DOMContentLoaded', initVehicleDetail);
+  } else {
+    initVehicleDetail();
+  }
 }
 
 /**
