@@ -4,7 +4,7 @@
  */
 
 import "./settings-loader.js";
-import { getAllVehicles } from "./inventory.js";
+import { getAllVehicles, loadVehiclesAsync } from "./inventory.js";
 
 // Production-ready mock vehicles database using the required exact field structures
 export const MOCK_VEHICLES = [
@@ -491,44 +491,41 @@ let filteredVehicles = [];
 let currentLimit = 9;
 const LIMIT_INCREMENT = 9;
 
-document.addEventListener('DOMContentLoaded', async () => {
-  // Guard: Only execute on stock listing page
-  if (!document.getElementById('filter-make')) {
-    return;
-  }
+if (typeof window !== "undefined" && typeof document !== "undefined") {
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Guard: Only execute on stock listing page
+    if (!document.getElementById('filter-make')) {
+      return;
+    }
 
-  // Sticky navigation setup
-  initStickyHeader();
+    // Sticky navigation setup
+    initStickyHeader();
 
-  // Mobile navigation setup
-  initMobileMenu();
+    // Mobile navigation setup
+    initMobileMenu();
 
-  // Load and initial render of vehicles
-  try {
-    allVehicles = (await loadVehicles()).filter(v => v.published !== false);
-    populateDynamicFilters(); // Dynamically populates Make, Body Type, and Fuel filters
-    setupFilters();
-    applyFiltersAndRender(true); // reset pagination limit on fresh setup
-  } catch (error) {
-    console.error("Failed to load vehicle inventory:", error);
-    showErrorMessage();
-  }
+    // Load and initial render of vehicles
+    try {
+      allVehicles = (await loadVehicles()).filter(v => v.published !== false);
+      populateDynamicFilters(); // Dynamically populates Make, Body Type, and Fuel filters
+      setupFilters();
+      applyFiltersAndRender(true); // reset pagination limit on fresh setup
+    } catch (error) {
+      console.error("Failed to load vehicle inventory:", error);
+      showErrorMessage();
+    }
 
-  // Setup click actions on filter panel and reset button
-  setupEventListeners();
-});
+    // Setup click actions on filter panel and reset button
+    setupEventListeners();
+  });
+}
 
 /**
  * Simulates loading vehicle data from an API endpoint
  * Resolves with the vehicles array from the shared inventory store
  */
-function loadVehicles() {
-  return new Promise((resolve) => {
-    // Simulate minor network delay for realism and transition triggers
-    setTimeout(() => {
-      resolve(getAllVehicles());
-    }, 150);
-  });
+async function loadVehicles() {
+  return await loadVehiclesAsync();
 }
 
 /**
