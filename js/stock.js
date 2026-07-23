@@ -13,7 +13,7 @@ let currentLimit = 9;
 const LIMIT_INCREMENT = 9;
 
 if (typeof window !== "undefined" && typeof document !== "undefined") {
-  document.addEventListener('DOMContentLoaded', async () => {
+  const initStock = async () => {
     // Guard: Only execute on stock listing page
     if (!document.getElementById('filter-make')) {
       return;
@@ -38,7 +38,13 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
 
     // Setup click actions on filter panel and reset button
     setupEventListeners();
-  });
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener('DOMContentLoaded', initStock);
+  } else {
+    initStock();
+  }
 }
 
 /**
