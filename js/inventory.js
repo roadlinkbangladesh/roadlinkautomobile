@@ -14,11 +14,21 @@ function getToken() {
   return null;
 }
 
+function isAdminContext() {
+  if (typeof window !== "undefined") {
+    return window.location.pathname.includes("/admin");
+  }
+  return false;
+}
+
 /**
- * Fetches published vehicles from the public REST API backend.
+ * Fetches vehicles from REST API backend.
+ * Automatically selects Admin or Public endpoint based on window context or forceAdmin flag.
  */
-export async function loadVehiclesAsync(params = {}) {
-  let endpoint = "/api/v1/public/vehicles";
+export async function loadVehiclesAsync(params = {}, forceAdmin = false) {
+  const useAdmin = forceAdmin || isAdminContext();
+  const token = getToken();
+  let endpoint = useAdmin ? "/api/v1/admin/vehicles" : "/api/v1/public/vehicles";
   
   const queryParts = [];
   if (params.search) queryParts.push(`search=${encodeURIComponent(params.search)}`);
@@ -33,29 +43,66 @@ export async function loadVehiclesAsync(params = {}) {
   }
 
   try {
-    const response = await fetch(endpoint);
+    const headers = {};
+    if (useAdmin && token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(endpoint, { headers });
     if (response.ok) {
       const payload = await response.json();
       if (payload && payload.success && payload.data) {
-        cachedVehicles = payload.data.items || [];
+        let items = payload.data.items || [];
+        if (!useAdmin) {
+          // Public portal inventory filtering: Exclude unpublished, draft, and sold vehicles
+          items = items.filter(v => 
+            v.published !== false && 
+            v.isPublished !== false &&
+            v.status?.toLowerCase() !== 'draft' && 
+            v.status?.toLowerCase() !== 'sold'
+          );
+        }
+        cachedVehicles = items;
         isLoaded = true;
         return cachedVehicles;
       }
     }
   } catch (err) {
-    console.error("Failed to load vehicles from Public Worker API:", err);
+    console.error(`Failed to load vehicles from ${useAdmin ? "Admin" : "Public"} Worker API:`, err);
   }
 
   return cachedVehicles;
 }
 
 /**
+ * Explicit helper to fetch all vehicles from Admin REST API.
+ */
+export async function loadAdminVehiclesAsync(params = {}) {
+  return loadVehiclesAsync(params, true);
+}
+
+/**
  * Returns cached vehicles or triggers async load.
+ * For public portal viewers, filters out unpublished, draft, and sold vehicles.
  */
 export function getAllVehicles() {
   if (!isLoaded && typeof window !== "undefined") {
-    loadVehiclesAsync();
+    if (isAdminContext()) {
+      loadAdminVehiclesAsync();
+    } else {
+      loadVehiclesAsync();
+    }
   }
+
+  if (!isAdminContext()) {
+    return cachedVehicles.filter(v => 
+      v.published !== false && 
+      v.isPublished !== false &&
+      v.status?.toLowerCase() !== 'draft' && 
+      v.status?.toLowerCase() !== 'sold'
+    );
+  }
+
   return cachedVehicles;
 }
 
@@ -74,7 +121,7 @@ export function saveVehicles(vehicles) {
 }
 
 /**
- * Retrieves a single published vehicle by ID or stock number from the public REST API.
+ * Retrieves a single published vehicle by ID or stock number strictly from the public REST API.
  */
 export async function getVehicleByIdAsync(id) {
   const endpoint = `/api/v1/public/vehicles/${encodeURIComponent(id)}`;
@@ -119,7 +166,7 @@ export async function addVehicleAsync(vehicle) {
     throw new Error(payload.message || "Failed to create vehicle.");
   }
 
-  await loadVehiclesAsync();
+  await loadAdminVehiclesAsync();
   return payload.data;
 }
 
@@ -149,7 +196,7 @@ export async function updateVehicleAsync(id, updatedFields) {
     throw new Error(payload.message || "Failed to update vehicle.");
   }
 
-  await loadVehiclesAsync();
+  await loadAdminVehiclesAsync();
   return payload.data;
 }
 
@@ -177,7 +224,7 @@ export async function deleteVehicleAsync(id) {
     throw new Error(payload.message || "Failed to delete vehicle.");
   }
 
-  await loadVehiclesAsync();
+  await loadAdminVehiclesAsync();
   return true;
 }
 
@@ -207,7 +254,7 @@ export async function updateVehicleStatusAsync(id, statusData) {
     throw new Error(payload.message || "Failed to update vehicle status.");
   }
 
-  await loadVehiclesAsync();
+  await loadAdminVehiclesAsync();
   return payload.data;
 }
 
