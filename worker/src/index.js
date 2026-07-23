@@ -136,7 +136,7 @@ export default {
 
                 if (routeMethod !== method) continue;
 
-                const regexPath = routePath.replace(/:[a-zA-Z0-9_]+/g, "([^/]+)");
+                const regexPath = routePath.replace(/:key/g, "(.+)").replace(/:[a-zA-Z0-9_]+/g, "([^/]+)");
                 const regex = new RegExp(`^${regexPath}$`);
                 const match = pathname.match(regex);
 
