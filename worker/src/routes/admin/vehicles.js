@@ -582,6 +582,6 @@ export async function uploadFile(request, env) {
     }, "File uploaded successfully.");
   } catch (error) {
     console.error("Upload error:", error);
-    return serverError("Failed to upload file.");
+    return serverError(`Failed to upload file: ${error.message}`);
   }
 }
