@@ -46,7 +46,7 @@ function getHomeVehicles() {
 }
 
 if (typeof window !== "undefined" && typeof document !== "undefined") {
-  document.addEventListener('DOMContentLoaded', async () => {
+  const initApp = async () => {
     // Initialize Header states
     initStickyHeader();
 
@@ -67,7 +67,13 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
 
     // Active link highlighters on scroll
     initScrollSpy();
-  });
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener('DOMContentLoaded', initApp);
+  } else {
+    initApp();
+  }
 }
 
 /**
