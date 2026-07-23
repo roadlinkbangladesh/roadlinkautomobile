@@ -162,6 +162,18 @@ export function bindVehicleEvents() {
     intImagesFileInput.addEventListener("change", handleIntImagesFileChange);
   }
 
+  // Auction Sheet File Upload Events
+  const btnUploadAuctionSheet = $("btn-upload-auction-sheet");
+  const auctionSheetFileInput = $("v-auction-sheet-file-input");
+  if (btnUploadAuctionSheet) {
+    btnUploadAuctionSheet.removeEventListener("click", handleSelectAuctionSheetFile);
+    btnUploadAuctionSheet.addEventListener("click", handleSelectAuctionSheetFile);
+  }
+  if (auctionSheetFileInput) {
+    auctionSheetFileInput.removeEventListener("change", handleAuctionSheetFileChange);
+    auctionSheetFileInput.addEventListener("change", handleAuctionSheetFileChange);
+  }
+
   // Large Preview Close Event
   if (btnClosePreviewModal) {
     btnClosePreviewModal.removeEventListener("click", closeImagePreviewModal);
@@ -389,17 +401,32 @@ export function openVehicleModal(vehicleId = null) {
     });
   }
 
+  // Reset auction sheet upload status label
+  const sheetStatus = $("auction-sheet-upload-status");
+  if (sheetStatus) {
+    sheetStatus.style.display = "none";
+    sheetStatus.textContent = "";
+  }
+
   // Render previews
   renderImagePreviews();
   modal.style.display = "flex";
 
   // Auto scroll to top when opening (Request #3)
-  modal.scrollTop = 0;
-  const card = modal.querySelector(".modal-card");
-  if (card) {
-    card.scrollTop = 0;
-  }
-  window.scrollTo({ top: 0, behavior: "instant" });
+  const resetScrolls = () => {
+    modal.scrollTop = 0;
+    const card = modal.querySelector(".modal-card");
+    if (card) card.scrollTop = 0;
+    const formGrid = modal.querySelector(".form-grid");
+    if (formGrid) formGrid.scrollTop = 0;
+    const vehicleForm = $("vehicle-form");
+    if (vehicleForm) vehicleForm.scrollTop = 0;
+    window.scrollTo({ top: 0, behavior: "instant" });
+  };
+
+  resetScrolls();
+  requestAnimationFrame(resetScrolls);
+  setTimeout(resetScrolls, 10);
 }
 
 /**
@@ -773,6 +800,66 @@ async function confirmDeleteVehicle() {
 }
 
 /**
+ * Triggers auction sheet file selector click.
+ */
+function handleSelectAuctionSheetFile() {
+  const fileInput = $("v-auction-sheet-file-input");
+  if (fileInput) {
+    fileInput.click();
+  }
+}
+
+/**
+ * Handles auction sheet document upload (PDF or Image).
+ */
+async function handleAuctionSheetFileChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const btn = $("btn-upload-auction-sheet");
+  const statusEl = $("auction-sheet-upload-status");
+  const urlInput = $("v-auction-sheet-url");
+  const checkboxEl = $("v-auction-sheet-available");
+
+  const originalText = btn ? btn.innerHTML : "";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<svg class="spinner-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" x2="12" y1="2" y2="6"/><line x1="12" x2="12" y1="18" y2="22"/><line x1="4.93" x2="7.76" y1="4.93" y2="7.76"/><line x1="16.24" x2="19.07" y1="16.24" y2="19.07"/><line x1="2" x2="6" y1="12" y2="12"/><line x1="18" x2="22" y1="12" y2="12"/></svg> Uploading...`;
+  }
+  if (statusEl) {
+    statusEl.style.display = "block";
+    statusEl.style.color = "var(--primary-blue)";
+    statusEl.textContent = `Uploading ${file.name}...`;
+  }
+
+  try {
+    const uploaded = await uploadFileAsync(file);
+    if (uploaded && uploaded.url) {
+      if (urlInput) urlInput.value = uploaded.url;
+      if (checkboxEl) checkboxEl.checked = true;
+      if (statusEl) {
+        statusEl.style.color = "var(--whatsapp-green-hover)";
+        statusEl.textContent = `✓ Auction sheet document "${file.name}" uploaded successfully!`;
+      }
+    } else {
+      throw new Error("No URL returned from upload server.");
+    }
+  } catch (err) {
+    console.error("Auction sheet upload failed:", err);
+    if (statusEl) {
+      statusEl.style.color = "var(--primary-red)";
+      statusEl.textContent = `Upload failed: ${err.message || "Server error"}. You can enter a URL manually.`;
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+    e.target.value = "";
+  }
+}
+
+/**
  * Triggers exterior file selector click.
  */
 function handleSelectExtImages() {
@@ -799,7 +886,15 @@ async function handleExtImagesFileChange(e) {
   const files = Array.from(e.target.files);
   if (files.length === 0) return;
 
-  for (const file of files) {
+  const btn = $("btn-select-ext-images");
+  const origText = btn ? btn.innerHTML : "";
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `Uploading ${i + 1} of ${files.length}...`;
+    }
     try {
       const uploaded = await uploadFileAsync(file);
       if (uploaded && uploaded.url) {
@@ -807,16 +902,24 @@ async function handleExtImagesFileChange(e) {
       }
     } catch (err) {
       console.error("Failed to upload exterior image:", err);
-      // Fallback to base64 if R2 upload fails
-      const reader = new FileReader();
-      reader.onload = function(event) {
-        activeExteriorImages.push(event.target.result);
-        renderImagePreviews();
-      };
-      reader.readAsDataURL(file);
+      // Fallback to base64 if upload fails
+      await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          activeExteriorImages.push(event.target.result);
+          resolve();
+        };
+        reader.onerror = resolve;
+        reader.readAsDataURL(file);
+      });
     }
+    renderImagePreviews();
   }
-  renderImagePreviews();
+
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = origText;
+  }
   e.target.value = "";
 }
 
@@ -827,7 +930,15 @@ async function handleIntImagesFileChange(e) {
   const files = Array.from(e.target.files);
   if (files.length === 0) return;
 
-  for (const file of files) {
+  const btn = $("btn-select-int-images");
+  const origText = btn ? btn.innerHTML : "";
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `Uploading ${i + 1} of ${files.length}...`;
+    }
     try {
       const uploaded = await uploadFileAsync(file);
       if (uploaded && uploaded.url) {
@@ -835,15 +946,23 @@ async function handleIntImagesFileChange(e) {
       }
     } catch (err) {
       console.error("Failed to upload interior image:", err);
-      const reader = new FileReader();
-      reader.onload = function(event) {
-        activeInteriorImages.push(event.target.result);
-        renderImagePreviews();
-      };
-      reader.readAsDataURL(file);
+      await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          activeInteriorImages.push(event.target.result);
+          resolve();
+        };
+        reader.onerror = resolve;
+        reader.readAsDataURL(file);
+      });
     }
+    renderImagePreviews();
   }
-  renderImagePreviews();
+
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = origText;
+  }
   e.target.value = "";
 }
 
