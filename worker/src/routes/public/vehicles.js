@@ -114,7 +114,7 @@ export async function getPublicVehicle(request, env, ctx, params) {
  */
 export async function getPublicSettings(request, env) {
   try {
-    const settings = await env.DB.prepare(`SELECT company_name, phone, whatsapp, email, address, facebook, youtube, default_currency, seo_title_suffix, seo_default_keywords, seo_default_description FROM settings WHERE id = 1`).first();
+    const settings = await env.DB.prepare(`SELECT company_name, phone, whatsapp, email, address, facebook, youtube, default_currency, seo_title_suffix, seo_default_keywords, seo_default_description, showroom_address, showroom_phone, show_showroom, corporate_address, corporate_phone, show_corporate, contact_name, contact_phone, show_primary_contact, show_whatsapp, show_email FROM settings WHERE id = 1`).first();
     return success(settings);
   } catch (error) {
     console.error("Get public settings error:", error);
