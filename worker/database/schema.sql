@@ -97,6 +97,7 @@ CREATE TABLE IF NOT EXISTS vehicles (
     description TEXT,
     features TEXT,
     auction_sheet_available INTEGER NOT NULL DEFAULT 0 CHECK(auction_sheet_available IN (0,1)),
+    auction_sheet_url TEXT,
     youtube_url TEXT,
     arrival_date TEXT,
     archived_at TEXT,
