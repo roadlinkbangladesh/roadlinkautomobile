@@ -257,7 +257,7 @@ function handleTableActions(e) {
 /**
  * Handles inline vehicle status select box change events.
  */
-function handleTableStatusChange(e) {
+async function handleTableStatusChange(e) {
   const statusSelect = e.target.closest(".status-select-inline");
   if (statusSelect) {
     if (!hasPermission("vehicles.edit")) {
@@ -267,16 +267,13 @@ function handleTableStatusChange(e) {
     }
     const vehicleId = statusSelect.getAttribute("data-id");
     const newStatus = statusSelect.value;
-    const vehicles = getAllVehicles();
-    const idx = vehicles.findIndex(v => v.id === vehicleId);
-    if (idx !== -1) {
-      vehicles[idx].status = newStatus;
-      vehicles[idx].updatedAt = new Date().toISOString();
-      
-      const STORAGE_KEY = "roadlink_vehicles";
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(vehicles));
+    try {
+      await updateVehicleStatusAsync(vehicleId, { status: newStatus });
       renderVehicleTable();
-      initDashboard(); // Update dashboard metric counts!
+      initDashboard();
+    } catch (err) {
+      alert("Error updating status: " + err.message);
+      renderVehicleTable();
     }
   }
 }
@@ -1335,36 +1332,42 @@ function handleDetailsDeleteClick() {
 /**
  * Instantly updates vehicle status from details modal controls.
  */
-function handleQuickStatusChange(e) {
+async function handleQuickStatusChange(e) {
   if (!activeDetailsVehicleId) return;
   const newStatus = e.target.value;
-  updateVehicle(activeDetailsVehicleId, { status: newStatus });
-  
-  showQuickSaveFeedback();
-  renderVehicleTable();
-  initDashboard();
+  try {
+    await updateVehicleStatusAsync(activeDetailsVehicleId, { status: newStatus });
+    showQuickSaveFeedback();
+    renderVehicleTable();
+    initDashboard();
 
-  const vehicle = getAllVehicles().find(v => v.id === activeDetailsVehicleId);
-  if (vehicle) {
-    updateDetailsModalBadges(vehicle);
+    const vehicle = getAllVehicles().find(v => v.id === activeDetailsVehicleId);
+    if (vehicle) {
+      updateDetailsModalBadges(vehicle);
+    }
+  } catch (err) {
+    alert("Failed to update status in DB: " + err.message);
   }
 }
 
 /**
  * Instantly updates vehicle publication state from details modal controls.
  */
-function handleQuickPublishChange(e) {
+async function handleQuickPublishChange(e) {
   if (!activeDetailsVehicleId) return;
   const pubValue = e.target.value === "published";
-  updateVehicle(activeDetailsVehicleId, { published: pubValue, isPublished: pubValue });
+  try {
+    await updateVehicleStatusAsync(activeDetailsVehicleId, { published: pubValue });
+    showQuickSaveFeedback();
+    renderVehicleTable();
+    initDashboard();
 
-  showQuickSaveFeedback();
-  renderVehicleTable();
-  initDashboard();
-
-  const vehicle = getAllVehicles().find(v => v.id === activeDetailsVehicleId);
-  if (vehicle) {
-    updateDetailsModalBadges(vehicle);
+    const vehicle = getAllVehicles().find(v => v.id === activeDetailsVehicleId);
+    if (vehicle) {
+      updateDetailsModalBadges(vehicle);
+    }
+  } catch (err) {
+    alert("Failed to update publish state in DB: " + err.message);
   }
 }
 
