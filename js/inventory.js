@@ -4,6 +4,8 @@
  */
 
 let cachedVehicles = [];
+let publicVehicles = [];
+let adminVehicles = [];
 let isLoaded = false;
 
 function getToken() {
@@ -14,7 +16,7 @@ function getToken() {
   return null;
 }
 
-function isAdminContext() {
+export function isAdminContext() {
   if (typeof window !== "undefined") {
     return window.location.pathname.includes("/admin");
   }
@@ -22,13 +24,14 @@ function isAdminContext() {
 }
 
 /**
- * Fetches vehicles from REST API backend.
- * Automatically selects Admin or Public endpoint based on window context or forceAdmin flag.
+ * Fetches published vehicles for public portal from Public REST API.
  */
 export async function loadVehiclesAsync(params = {}, forceAdmin = false) {
-  const useAdmin = forceAdmin || isAdminContext();
-  const token = getToken();
-  let endpoint = useAdmin ? "/api/v1/admin/vehicles" : "/api/v1/public/vehicles";
+  if (forceAdmin || isAdminContext()) {
+    return loadAdminVehiclesAsync(params);
+  }
+
+  let endpoint = "/api/v1/public/vehicles";
   
   const queryParts = [];
   if (params.search) queryParts.push(`search=${encodeURIComponent(params.search)}`);
@@ -43,67 +46,107 @@ export async function loadVehiclesAsync(params = {}, forceAdmin = false) {
   }
 
   try {
+    const response = await fetch(endpoint);
+    const contentType = response.headers.get("content-type") || "";
+    
+    if (response.ok && contentType.includes("application/json")) {
+      const payload = await response.json();
+      if (payload && payload.success && payload.data) {
+        let items = payload.data.items || [];
+        // Public portal inventory filtering: Exclude unpublished, draft, and sold vehicles
+        items = items.filter(v => 
+          v.published !== false && 
+          v.isPublished !== false &&
+          v.status?.toLowerCase() !== 'draft' && 
+          v.status?.toLowerCase() !== 'sold'
+        );
+        publicVehicles = items;
+        if (!isAdminContext()) {
+          cachedVehicles = items;
+          isLoaded = true;
+        }
+        return items;
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load vehicles from Public Worker API:", err);
+  }
+
+  return publicVehicles.length > 0 ? publicVehicles : cachedVehicles;
+}
+
+/**
+ * Explicit helper to fetch all vehicles (including sold, draft, unpublished) strictly from Admin REST API.
+ */
+export async function loadAdminVehiclesAsync(params = {}) {
+  const token = getToken();
+  let endpoint = "/api/v1/admin/vehicles";
+
+  const queryParts = [];
+  if (params.search) queryParts.push(`search=${encodeURIComponent(params.search)}`);
+  if (params.status) queryParts.push(`status=${encodeURIComponent(params.status)}`);
+  if (params.make) queryParts.push(`make=${encodeURIComponent(params.make)}`);
+  if (params.sort) queryParts.push(`sort=${encodeURIComponent(params.sort)}`);
+  if (params.page) queryParts.push(`page=${params.page}`);
+  if (params.limit) queryParts.push(`limit=${params.limit || 100}`);
+
+  if (queryParts.length > 0) {
+    endpoint += `?${queryParts.join("&")}`;
+  }
+
+  try {
     const headers = {};
-    if (useAdmin && token) {
+    if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
     const response = await fetch(endpoint, { headers });
-    if (response.ok) {
+    const contentType = response.headers.get("content-type") || "";
+
+    if (response.ok && contentType.includes("application/json")) {
       const payload = await response.json();
       if (payload && payload.success && payload.data) {
-        let items = payload.data.items || [];
-        if (!useAdmin) {
-          // Public portal inventory filtering: Exclude unpublished, draft, and sold vehicles
-          items = items.filter(v => 
-            v.published !== false && 
-            v.isPublished !== false &&
-            v.status?.toLowerCase() !== 'draft' && 
-            v.status?.toLowerCase() !== 'sold'
-          );
-        }
+        const items = payload.data.items || [];
+        adminVehicles = items;
         cachedVehicles = items;
         isLoaded = true;
-        return cachedVehicles;
+        return adminVehicles;
       }
+    } else if (!response.ok) {
+      console.warn(`Admin vehicles request returned status ${response.status}`);
     }
   } catch (err) {
-    console.error(`Failed to load vehicles from ${useAdmin ? "Admin" : "Public"} Worker API:`, err);
+    console.error("Failed to load vehicles from Admin Worker API:", err);
   }
 
-  return cachedVehicles;
-}
-
-/**
- * Explicit helper to fetch all vehicles from Admin REST API.
- */
-export async function loadAdminVehiclesAsync(params = {}) {
-  return loadVehiclesAsync(params, true);
+  return adminVehicles.length > 0 ? adminVehicles : cachedVehicles;
 }
 
 /**
  * Returns cached vehicles or triggers async load.
- * For public portal viewers, filters out unpublished, draft, and sold vehicles.
+ * For public portal viewers, returns publicVehicles or filters out unpublished, draft, and sold vehicles.
+ * For admin viewers, returns all adminVehicles (including sold, draft, reserved).
  */
 export function getAllVehicles() {
-  if (!isLoaded && typeof window !== "undefined") {
-    if (isAdminContext()) {
+  if (isAdminContext()) {
+    if (adminVehicles.length > 0) return adminVehicles;
+    if (!isLoaded && typeof window !== "undefined") {
       loadAdminVehiclesAsync();
-    } else {
-      loadVehiclesAsync();
     }
+    return adminVehicles.length > 0 ? adminVehicles : cachedVehicles;
   }
 
-  if (!isAdminContext()) {
-    return cachedVehicles.filter(v => 
-      v.published !== false && 
-      v.isPublished !== false &&
-      v.status?.toLowerCase() !== 'draft' && 
-      v.status?.toLowerCase() !== 'sold'
-    );
+  if (publicVehicles.length > 0) return publicVehicles;
+  if (!isLoaded && typeof window !== "undefined") {
+    loadVehiclesAsync();
   }
 
-  return cachedVehicles;
+  return cachedVehicles.filter(v => 
+    v.published !== false && 
+    v.isPublished !== false &&
+    v.status?.toLowerCase() !== 'draft' && 
+    v.status?.toLowerCase() !== 'sold'
+  );
 }
 
 /**
@@ -118,6 +161,8 @@ export function loadVehicles() {
  */
 export function saveVehicles(vehicles) {
   cachedVehicles = vehicles;
+  if (isAdminContext()) adminVehicles = vehicles;
+  else publicVehicles = vehicles;
 }
 
 /**
@@ -128,7 +173,8 @@ export async function getVehicleByIdAsync(id) {
   
   try {
     const response = await fetch(endpoint);
-    if (response.ok) {
+    const contentType = response.headers.get("content-type") || "";
+    if (response.ok && contentType.includes("application/json")) {
       const payload = await response.json();
       if (payload && payload.success && payload.data) {
         return payload.data;
@@ -138,11 +184,11 @@ export async function getVehicleByIdAsync(id) {
     console.error("Failed to get vehicle by ID from Public Worker API:", err);
   }
 
-  return cachedVehicles.find(v => v.id === id || v.stockNumber === id) || null;
+  return getAllVehicles().find(v => v.id === String(id) || v.stockNumber === String(id)) || null;
 }
 
 export function getVehicleById(id) {
-  return cachedVehicles.find(v => v.id === id || v.stockNumber === id) || null;
+  return getAllVehicles().find(v => v.id === String(id) || v.stockNumber === String(id)) || null;
 }
 
 /**
@@ -161,9 +207,14 @@ export async function addVehicleAsync(vehicle) {
     body: JSON.stringify(vehicle)
   });
 
-  const payload = await response.json();
+  const contentType = response.headers.get("content-type") || "";
+  let payload = {};
+  if (contentType.includes("application/json")) {
+    payload = await response.json();
+  }
+
   if (!response.ok || !payload.success) {
-    throw new Error(payload.message || "Failed to create vehicle.");
+    throw new Error(payload.message || `Failed to create vehicle (HTTP ${response.status}).`);
   }
 
   await loadAdminVehiclesAsync();
@@ -191,9 +242,14 @@ export async function updateVehicleAsync(id, updatedFields) {
     body: JSON.stringify(updatedFields)
   });
 
-  const payload = await response.json();
+  const contentType = response.headers.get("content-type") || "";
+  let payload = {};
+  if (contentType.includes("application/json")) {
+    payload = await response.json();
+  }
+
   if (!response.ok || !payload.success) {
-    throw new Error(payload.message || "Failed to update vehicle.");
+    throw new Error(payload.message || `Failed to update vehicle (HTTP ${response.status}).`);
   }
 
   await loadAdminVehiclesAsync();
@@ -219,9 +275,14 @@ export async function deleteVehicleAsync(id) {
     }
   });
 
-  const payload = await response.json();
+  const contentType = response.headers.get("content-type") || "";
+  let payload = {};
+  if (contentType.includes("application/json")) {
+    payload = await response.json();
+  }
+
   if (!response.ok || !payload.success) {
-    throw new Error(payload.message || "Failed to delete vehicle.");
+    throw new Error(payload.message || `Failed to delete vehicle (HTTP ${response.status}).`);
   }
 
   await loadAdminVehiclesAsync();
@@ -249,9 +310,14 @@ export async function updateVehicleStatusAsync(id, statusData) {
     body: JSON.stringify(statusData)
   });
 
-  const payload = await response.json();
+  const contentType = response.headers.get("content-type") || "";
+  let payload = {};
+  if (contentType.includes("application/json")) {
+    payload = await response.json();
+  }
+
   if (!response.ok || !payload.success) {
-    throw new Error(payload.message || "Failed to update vehicle status.");
+    throw new Error(payload.message || `Failed to update vehicle status (HTTP ${response.status}).`);
   }
 
   await loadAdminVehiclesAsync();
@@ -276,9 +342,14 @@ export async function uploadFileAsync(file) {
     body: formData
   });
 
-  const payload = await response.json();
+  const contentType = response.headers.get("content-type") || "";
+  let payload = {};
+  if (contentType.includes("application/json")) {
+    payload = await response.json();
+  }
+
   if (!response.ok || !payload.success) {
-    throw new Error(payload.message || "Failed to upload file to R2.");
+    throw new Error(payload.message || `Failed to upload file (HTTP ${response.status}).`);
   }
 
   return payload.data; // { url, key, name, type }
