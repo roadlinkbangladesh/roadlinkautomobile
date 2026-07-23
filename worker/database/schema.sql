@@ -59,7 +59,18 @@ CREATE TABLE IF NOT EXISTS settings (
     updated_at TEXT NOT NULL,
     seo_title_suffix TEXT,
     seo_default_keywords TEXT,
-    seo_default_description TEXT
+    seo_default_description TEXT,
+    showroom_address TEXT,
+    showroom_phone TEXT,
+    show_showroom INTEGER NOT NULL DEFAULT 1 CHECK(show_showroom IN (0,1)),
+    corporate_address TEXT,
+    corporate_phone TEXT,
+    show_corporate INTEGER NOT NULL DEFAULT 0 CHECK(show_corporate IN (0,1)),
+    contact_name TEXT,
+    contact_phone TEXT,
+    show_primary_contact INTEGER NOT NULL DEFAULT 0 CHECK(show_primary_contact IN (0,1)),
+    show_whatsapp INTEGER NOT NULL DEFAULT 1 CHECK(show_whatsapp IN (0,1)),
+    show_email INTEGER NOT NULL DEFAULT 1 CHECK(show_email IN (0,1))
 );
 
 CREATE TABLE IF NOT EXISTS vehicles (
