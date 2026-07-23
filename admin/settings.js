@@ -87,6 +87,7 @@ async function loadSettings() {
 
     const payload = await response.json();
     if (payload && payload.success && payload.data) {
+      window.cachedAdminSettings = payload.data;
       // Hide loading, show form, enable form elements, and populate
       if (loadingContainer) loadingContainer.style.display = "none";
       if (form) {
@@ -304,6 +305,22 @@ async function handleSettingsSubmit(e) {
 
     const payload = await response.json();
     if (response.ok && payload.success) {
+      if (payload.data) {
+        window.cachedAdminSettings = payload.data;
+      } else {
+        window.cachedAdminSettings = {
+          ...window.cachedAdminSettings,
+          companyName,
+          showroomAddress, showroomPhone, showShowroom,
+          corporateAddress, corporatePhone, showCorporate,
+          contactName, contactPhone, showPrimaryContact,
+          whatsapp, showWhatsapp,
+          email, showEmail,
+          facebookUrl, youtubeUrl, displayTimezone, displayLocale,
+          defaultCurrency,
+          seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription
+        };
+      }
       if (successAlert) {
         successAlert.style.display = "flex";
         setTimeout(() => {
