@@ -4,7 +4,7 @@
  */
 
 import "./settings-loader.js";
-import { getAllVehicles } from "./inventory.js";
+import { getAllVehicles, loadVehiclesAsync } from "./inventory.js";
 
 /**
  * Maps a standard vehicle object to the presentation format expected by the home page.
@@ -45,25 +45,30 @@ function getHomeVehicles() {
     .map(mapVehicleToHomeFormat);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Initialize Header states
-  initStickyHeader();
+if (typeof window !== "undefined" && typeof document !== "undefined") {
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize Header states
+    initStickyHeader();
 
-  // Initialize Navigation Drawer for Mobile devices
-  initMobileMenu();
+    // Initialize Navigation Drawer for Mobile devices
+    initMobileMenu();
 
-  // Load and render vehicles grid
-  renderVehicles('all');
+    // Load vehicles from API
+    await loadVehiclesAsync();
 
-  // Initialize Filter Categorization controls
-  initFilters();
+    // Load and render vehicles grid
+    renderVehicles('all');
 
-  // Initialize Modal close events
-  initModalEvents();
+    // Initialize Filter Categorization controls
+    initFilters();
 
-  // Active link highlighters on scroll
-  initScrollSpy();
-});
+    // Initialize Modal close events
+    initModalEvents();
+
+    // Active link highlighters on scroll
+    initScrollSpy();
+  });
+}
 
 /**
  * Scroll behavior for Sticky Navigation Header
