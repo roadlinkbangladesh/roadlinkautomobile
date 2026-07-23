@@ -704,7 +704,7 @@ async function handleFormSubmit(e) {
   }
 
   // Reload current store data
-  const freshVehicles = await loadVehiclesAsync();
+  const freshVehicles = await loadAdminVehiclesAsync();
   // Refresh table UI and dashboard statistics live
   const searchInput = $("vehicle-search");
   if (searchInput) searchInput.value = "";
@@ -759,7 +759,7 @@ async function confirmDeleteVehicle() {
   }
 
   // Reload current store data
-  const freshVehicles = await loadVehiclesAsync();
+  const freshVehicles = await loadAdminVehiclesAsync();
   // Refresh table UI and dashboard statistics live
   const searchInput = $("vehicle-search");
   if (searchInput) searchInput.value = "";
