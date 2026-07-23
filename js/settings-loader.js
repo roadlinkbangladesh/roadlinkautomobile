@@ -3,6 +3,8 @@
  * Integrates with Cloudflare Worker Backend API for public website settings.
  */
 
+import { apiRequest } from "./shared/api.js";
+
 export const DEFAULT_SETTINGS = {
   companyName: "Roadlink Automobiles",
   address: "169 (Level 2), Fakirerpool, Dhaka 1000",
@@ -23,7 +25,7 @@ let cachedSettings = { ...DEFAULT_SETTINGS };
  */
 export async function fetchPublicSettings() {
   try {
-    const res = await fetch("/api/v1/public/settings");
+    const res = await apiRequest("/api/v1/public/settings");
     const contentType = res.headers.get("content-type") || "";
     if (res.ok && contentType.includes("application/json")) {
       const payload = await res.json();
