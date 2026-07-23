@@ -1,6 +1,6 @@
 /**
  * Roadlink Automobiles - Global Settings Management
- * Handles persistent storing of showroom contact details, SEO configurations, and admin password.
+ * Integrates with Cloudflare Worker Backend API for public website settings.
  */
 
 export const DEFAULT_SETTINGS = {
@@ -16,37 +16,44 @@ export const DEFAULT_SETTINGS = {
   seoDefaultDescription: "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock."
 };
 
+let cachedSettings = { ...DEFAULT_SETTINGS };
+
 /**
- * Retrieves settings from localStorage, falling back to defaults.
- * @returns {Object} Settings object
+ * Fetches settings from backend public API.
  */
-export function getSettings() {
+export async function fetchPublicSettings() {
   try {
-    const saved = localStorage.getItem("roadlink_settings");
-    if (saved) {
-      return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+    const res = await fetch("/api/v1/public/settings");
+    if (res.ok) {
+      const payload = await res.json();
+      if (payload && payload.success && payload.data) {
+        const data = payload.data;
+        cachedSettings = {
+          companyName: data.company_name || data.companyName || DEFAULT_SETTINGS.companyName,
+          address: data.address || DEFAULT_SETTINGS.address,
+          phone: data.phone || DEFAULT_SETTINGS.phone,
+          whatsapp: data.whatsapp || DEFAULT_SETTINGS.whatsapp,
+          email: data.email || DEFAULT_SETTINGS.email,
+          facebookUrl: data.facebook || data.facebookUrl || DEFAULT_SETTINGS.facebookUrl,
+          youtubeUrl: data.youtube || data.youtubeUrl || DEFAULT_SETTINGS.youtubeUrl,
+          seoTitleSuffix: data.seo_title_suffix || data.seoTitleSuffix || DEFAULT_SETTINGS.seoTitleSuffix,
+          seoDefaultKeywords: data.seo_default_keywords || data.seoDefaultKeywords || DEFAULT_SETTINGS.seoDefaultKeywords,
+          seoDefaultDescription: data.seo_default_description || data.seoDefaultDescription || DEFAULT_SETTINGS.seoDefaultDescription
+        };
+        hydratePageContacts();
+      }
     }
   } catch (err) {
-    console.error("Failed to read settings from localStorage:", err);
+    console.error("Failed to fetch public settings:", err);
   }
-  return { ...DEFAULT_SETTINGS };
+  return cachedSettings;
 }
 
 /**
- * Saves settings to localStorage.
- * @param {Object} settings - New settings object
+ * Synchronous getter returning current cached settings.
  */
-export function saveSettings(settings) {
-  try {
-    localStorage.setItem("roadlink_settings", JSON.stringify(settings));
-    
-    // Fire custom event so other components know settings updated
-    window.dispatchEvent(new CustomEvent("roadlink_settings_updated", { detail: settings }));
-    return true;
-  } catch (err) {
-    console.error("Failed to save settings to localStorage:", err);
-    return false;
-  }
+export function getSettings() {
+  return cachedSettings;
 }
 
 /**
@@ -58,7 +65,6 @@ export function hydratePageContacts() {
   // Hydrate Text Contents
   document.querySelectorAll(".company-address, p:has(a[href*='mailto:'])").forEach(el => {
     if (el.classList.contains("company-address") || el.innerHTML.includes("Fakirerpool")) {
-      // Respect multi-line layouts if any, or keep it clean
       if (el.tagName === "P" && el.innerHTML.includes("<br>")) {
         el.innerHTML = settings.address.replace(", Fakirerpool,", ", Fakirerpool,<br>");
       } else {
@@ -87,7 +93,6 @@ export function hydratePageContacts() {
     if (href.startsWith("tel:")) {
       const cleanPhone = settings.phone.replace(/[^0-9+]/g, "");
       link.href = `tel:${cleanPhone}`;
-      // Update text if it's showing the phone number
       if (link.textContent.trim().includes("+880") || link.textContent.trim().includes("1311")) {
         link.textContent = settings.phone;
       }
@@ -102,7 +107,6 @@ export function hydratePageContacts() {
       if (waMatch) {
         link.href = href.replace(waMatch[1], waNumber);
       } else {
-        // Fallback fallback URL building
         link.href = `https://wa.me/${waNumber}`;
       }
     } else if (href.includes("facebook.com/roadlinkautomobiles") || link.classList.contains("facebook-link")) {
@@ -113,11 +117,13 @@ export function hydratePageContacts() {
   });
 }
 
-// Automatically run on page load if imported directly
+// Automatically run on page load
 if (typeof window !== "undefined") {
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", hydratePageContacts);
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchPublicSettings();
+    });
   } else {
-    hydratePageContacts();
+    fetchPublicSettings();
   }
 }
