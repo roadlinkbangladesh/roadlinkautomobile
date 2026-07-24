@@ -47,7 +47,14 @@ async function init() {
     panelId: "settings-view-panel",
     btnId: "nav-item-settings",
     title: "System Settings",
-    init: () => initSettingsView()
+    init: () => initSettingsView("company")
+  });
+
+  navigationController.registerModule("locations", {
+    panelId: "settings-view-panel",
+    btnId: "nav-item-settings",
+    title: "Business Locations",
+    init: () => initSettingsView("locations")
   });
 
   navigationController.registerModule("users", {
