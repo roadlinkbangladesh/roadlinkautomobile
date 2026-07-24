@@ -251,8 +251,11 @@ function applyFiltersAndRender(resetPagination = false) {
 
     // 1. Search Box
     const matchesSearch = !searchVal || 
-      car.make.toLowerCase().includes(searchVal) || 
-      car.model.toLowerCase().includes(searchVal);
+      (car.make && car.make.toLowerCase().includes(searchVal)) || 
+      (car.model && car.model.toLowerCase().includes(searchVal)) ||
+      (car.package && car.package.toLowerCase().includes(searchVal)) ||
+      (car.stockNumber && car.stockNumber.toLowerCase().includes(searchVal)) ||
+      (car.chassisNumber && car.chassisNumber.toLowerCase().includes(searchVal));
 
     // 1.5. Make Type
     const matchesMake = makeVal === 'All' || car.make === makeVal;
@@ -431,6 +434,7 @@ function renderVehicleCard(car) {
 
   // Dynamic Grade presentation
   const gradeBadge = car.grade ? `<span class="vehicle-badge auction-grade">Grade ${car.grade}</span>` : '';
+  const auctionSheetBadge = (car.auctionSheetAvailable && car.auctionSheetUrl) ? `<span class="vehicle-badge badge-auction-sheet" style="background: #059669; color: white;">Auction Sheet Verified</span>` : '';
 
   // WhatsApp click query assembly
   const whatsappMsg = `Hi Roadlink Automobiles, I am interested in your reconditioned ${car.year} ${car.make} ${car.model} (Stock No: ${car.stockNumber}). Please let me know its availability and pricing options. Thank you.`;
@@ -443,6 +447,7 @@ function renderVehicleCard(car) {
         ${statusBadge}
         ${featuredBadge}
         ${gradeBadge}
+        ${auctionSheetBadge}
         <img src="${car.posterImage || car.images[0]}" alt="${car.year} ${car.make} ${car.model}" class="vehicle-img" loading="lazy">
       </div>
     </a>
