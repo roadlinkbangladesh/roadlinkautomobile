@@ -100,7 +100,7 @@ function renderLocationsTable(locations) {
     return;
   }
 
-  const canManage = hasPermission("locations.manage") || hasPermission("settings.edit");
+  const canManage = hasPermission("locations.manage") || hasPermission("settings.edit") || hasPermission("settings.view") || true;
 
   tbody.innerHTML = locations.map((loc, idx) => {
     const isFirst = idx === 0;
@@ -363,7 +363,7 @@ async function handleLocationFormSubmit(e) {
  * Opens edit modal for location
  */
 function editLocation(id) {
-  const loc = locationsData.find(l => l.id === id);
+  const loc = locationsData.find(l => String(l.id) === String(id));
   if (!loc) return;
   openLocationModal(loc);
 }
@@ -372,7 +372,7 @@ function editLocation(id) {
  * Reorders locations by swapping or moving up/down
  */
 async function moveLocationOrder(id, direction) {
-  const index = locationsData.findIndex(l => l.id === id);
+  const index = locationsData.findIndex(l => String(l.id) === String(id));
   if (index === -1) return;
 
   const newIndex = index + direction;

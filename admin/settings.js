@@ -57,6 +57,13 @@ export function initSettingsView(subtab = "company") {
  */
 export function switchSubtab(tabName) {
   activeSubtab = tabName;
+  if (window.location.hash && window.location.hash.startsWith("#/settings")) {
+    const targetHash = `#/settings?tab=${tabName}`;
+    if (window.location.hash !== targetHash) {
+      history.replaceState(null, "", targetHash);
+    }
+  }
+
   const companyBtn = $("tab-btn-company-profile");
   const locationsBtn = $("tab-btn-locations");
   const carouselBtn = $("tab-btn-carousel");

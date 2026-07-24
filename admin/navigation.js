@@ -32,7 +32,10 @@ class NavigationController {
       "users": "users",
       "roles": "roles",
       "settings": "settings",
-      "locations": "locations",
+      "locations": "settings",
+      "carousel": "settings",
+      "homepage": "settings",
+      "testimonials": "settings",
       "profile": "profile",
       "auditlogs": "auditLogs",
       "audit-logs": "auditLogs"
@@ -53,7 +56,6 @@ class NavigationController {
       "users": "users",
       "roles": "roles",
       "settings": "settings",
-      "locations": "locations",
       "profile": "profile",
       "auditLogs": "audit-logs"
     };
@@ -75,7 +77,8 @@ class NavigationController {
     if (!clean) return { route: "dashboard", query: {} };
 
     const [pathPart, queryPart] = clean.split("?");
-    const route = this.normalizeRoute(pathPart);
+    const normalizedPath = (pathPart || "").toLowerCase().trim();
+    const route = this.normalizeRoute(normalizedPath);
 
     const query = {};
     if (queryPart) {
@@ -83,6 +86,14 @@ class NavigationController {
       for (const [key, value] of searchParams.entries()) {
         query[key] = value;
       }
+    }
+
+    // Map subtab aliases directly into query.tab if needed
+    if (route === "settings" && !query.tab) {
+      if (normalizedPath === "locations") query.tab = "locations";
+      else if (normalizedPath === "carousel" || normalizedPath === "homepage") query.tab = "carousel";
+      else if (normalizedPath === "testimonials") query.tab = "testimonials";
+      else query.tab = "company";
     }
 
     return { route, query };
