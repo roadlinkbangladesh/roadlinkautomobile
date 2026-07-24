@@ -13,6 +13,7 @@ export async function listPublicVehicles(request, env) {
     const make = (url.searchParams.get("make") || "all").toLowerCase();
     const status = url.searchParams.get("status");
     const featured = url.searchParams.get("featured");
+    const includeSold = url.searchParams.get("includeSold") === "true";
     const sort = url.searchParams.get("sort") || "order-asc";
     const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
 
@@ -29,10 +30,17 @@ export async function listPublicVehicles(request, env) {
     let sqlWhere = [`is_published = 1 AND archived_at IS NULL AND LOWER(status) != 'draft'`];
     let params = [];
 
-    if (!showSoldVehicles && (!status || status.toLowerCase() !== "sold")) {
-      sqlWhere.push(`LOWER(status) != 'sold'`);
+    // Include sold vehicles if either:
+    // - Website setting allows it
+    // - Client explicitly requests them
+    // Otherwise exclude them.
+    if (
+        !includeSold &&
+        !showSoldVehicles &&
+        (!status || status.toLowerCase() !== "sold")
+    ) {
+        sqlWhere.push(`LOWER(status) != 'sold'`);
     }
-
     if (search) {
       sqlWhere.push(`(
         LOWER(stock_number) LIKE ? OR
