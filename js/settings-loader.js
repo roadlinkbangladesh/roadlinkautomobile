@@ -88,6 +88,20 @@ export async function fetchPublicLocations() {
   }
 }
 
+// Helper to format WhatsApp number for visual display
+function formatWaDisplay(raw) {
+  if (!raw) return '';
+  const clean = String(raw).trim();
+  if (clean.startsWith('+')) return clean;
+  if (clean.startsWith('880') && clean.length >= 11) {
+    return `+880 ${clean.slice(3, 7)}-${clean.slice(7)}`;
+  }
+  if (clean.startsWith('01') && clean.length === 11) {
+    return `+880 ${clean.slice(1, 5)}-${clean.slice(5)}`;
+  }
+  return `+${clean}`;
+}
+
 /**
  * Hydrates homepage location section and footer contact list from database locations
  */
@@ -160,6 +174,28 @@ function hydrateLocationsUI(locations) {
       directionsBtn.href = navUrl;
       directionsBtn.title = `Get directions to ${title}`;
     }
+
+    // Dynamic WhatsApp update if location has specific WhatsApp
+    const waLink = document.getElementById("contact-action-wa");
+    const locWa = loc?.whatsapp || settings.whatsapp;
+    if (waLink && locWa) {
+      const waSanitized = sanitizePhoneNumber(locWa);
+      const waDisp = formatWaDisplay(locWa);
+      waLink.href = `https://wa.me/${waSanitized}`;
+      waLink.title = `Chat on WhatsApp (${waDisp})`;
+      const waValEl = document.getElementById("wa-display-val");
+      if (waValEl) waValEl.textContent = waDisp;
+    }
+
+    // Dynamic Email update if location has specific Email
+    const emailLink = document.getElementById("contact-action-email");
+    const locEmail = loc?.email || settings.email;
+    if (emailLink && locEmail) {
+      emailLink.href = `mailto:${locEmail}`;
+      emailLink.title = `Send email inquiry to ${locEmail}`;
+      const emailValEl = document.getElementById("email-display-val");
+      if (emailValEl) emailValEl.textContent = locEmail;
+    }
   };
 
   // Bind click handlers to location cards
@@ -175,28 +211,45 @@ function hydrateLocationsUI(locations) {
 
   // 2. Render Contact Actions Bar (#contact-actions-bar)
   if (actionsBar) {
-    const waNumber = settings.whatsapp ? sanitizePhoneNumber(settings.whatsapp) : '';
+    const rawWa = settings.whatsapp || '';
+    const waSanitized = rawWa ? sanitizePhoneNumber(rawWa) : '';
+    const waDisplay = rawWa ? formatWaDisplay(rawWa) : '';
     const email = settings.email || '';
     const initialNavUrl = defaultLoc ? (defaultLoc.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(defaultLoc.title + ' ' + defaultLoc.address)}`) : '#';
 
     actionsBar.innerHTML = `
-      ${settings.showWhatsapp && waNumber ? `
-        <a href="https://wa.me/${waNumber}" target="_blank" class="contact-action-btn wa-action-btn" title="Chat with us on WhatsApp">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <span>WhatsApp Support</span>
+      ${settings.showWhatsapp && waSanitized ? `
+        <a href="https://wa.me/${waSanitized}" target="_blank" id="contact-action-wa" class="contact-info-card wa-info-card" title="Chat on WhatsApp (${waDisplay})">
+          <div class="contact-info-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="contact-info-text">
+            <span class="contact-item-label">WhatsApp</span>
+            <span class="contact-item-value" id="wa-display-val">${waDisplay}</span>
+          </div>
         </a>
       ` : ''}
 
       ${settings.showEmail && email ? `
-        <a href="mailto:${email}" class="contact-action-btn email-action-btn" title="Send us an email inquiry">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          <span>Email Inquiry</span>
+        <a href="mailto:${email}" id="contact-action-email" class="contact-info-card email-info-card" title="Send email inquiry to ${email}">
+          <div class="contact-info-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          </div>
+          <div class="contact-info-text">
+            <span class="contact-item-label">Email Us</span>
+            <span class="contact-item-value" id="email-display-val">${email}</span>
+          </div>
         </a>
       ` : ''}
 
-      <a href="${initialNavUrl}" target="_blank" id="btn-get-directions" class="contact-action-btn directions-action-btn" title="Get Google Maps navigation directions">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-navigation"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-        <span class="btn-text">Get Directions</span>
+      <a href="${initialNavUrl}" target="_blank" id="btn-get-directions" class="contact-info-card directions-action-card" title="Get Google Maps navigation directions">
+        <div class="contact-info-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-navigation"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        </div>
+        <div class="contact-info-text">
+          <span class="contact-item-label">Showroom Navigation</span>
+          <span class="contact-item-value btn-text">Get Directions</span>
+        </div>
       </a>
     `;
   }
