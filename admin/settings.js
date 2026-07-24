@@ -53,7 +53,7 @@ export function initSettingsView(subtab = "company") {
 }
 
 /**
- * Switches between sub-tabs: company, locations, carousel, testimonials
+ * Switches between sub-tabs: company (General & Branding), contact (Contact & Social), seo (SEO Settings), locations, carousel, testimonials
  */
 export function switchSubtab(tabName) {
   activeSubtab = tabName;
@@ -65,17 +65,22 @@ export function switchSubtab(tabName) {
   }
 
   const companyBtn = $("tab-btn-company-profile");
+  const contactBtn = $("tab-btn-contact-social");
+  const seoBtn = $("tab-btn-seo");
   const locationsBtn = $("tab-btn-locations");
   const carouselBtn = $("tab-btn-carousel");
   const testimonialsBtn = $("tab-btn-testimonials");
 
   const companyContent = $("settings-company-tab-content");
+  const contactContent = $("settings-contact-tab-content");
+  const seoContent = $("settings-seo-tab-content");
   const locationsContent = $("settings-locations-tab-content");
   const carouselContent = $("settings-carousel-tab-content");
   const testimonialsContent = $("settings-testimonials-tab-content");
+  const actionsRow = $("settings-form-actions-row");
 
-  const buttons = [companyBtn, locationsBtn, carouselBtn, testimonialsBtn];
-  const contents = [companyContent, locationsContent, carouselContent, testimonialsContent];
+  const buttons = [companyBtn, contactBtn, seoBtn, locationsBtn, carouselBtn, testimonialsBtn];
+  const contents = [companyContent, contactContent, seoContent, locationsContent, carouselContent, testimonialsContent];
 
   buttons.forEach(btn => {
     if (btn) {
@@ -89,37 +94,52 @@ export function switchSubtab(tabName) {
     if (cnt) cnt.style.display = "none";
   });
 
+  const tabBtnMap = {
+    company: companyBtn,
+    contact: contactBtn,
+    seo: seoBtn,
+    locations: locationsBtn,
+    carousel: carouselBtn,
+    testimonials: testimonialsBtn
+  };
+
+  const tabCntMap = {
+    company: companyContent,
+    contact: contactContent,
+    seo: seoContent,
+    locations: locationsContent,
+    carousel: carouselContent,
+    testimonials: testimonialsContent
+  };
+
+  const activeBtn = tabBtnMap[tabName] || companyBtn;
+  const activeCnt = tabCntMap[tabName] || companyContent;
+
+  if (activeBtn) {
+    activeBtn.classList.add("active");
+    activeBtn.style.borderBottomColor = "var(--primary-blue)";
+    activeBtn.style.color = "var(--primary-blue)";
+  }
+
+  if (activeCnt) {
+    activeCnt.style.display = "block";
+  }
+
+  // Show form submit footer row for form-based tabs
+  const isFormTab = ["company", "contact", "seo"].includes(tabName);
+  if (actionsRow) {
+    actionsRow.style.display = isFormTab ? "flex" : "none";
+  }
+
   if (tabName === "locations") {
-    if (locationsBtn) {
-      locationsBtn.classList.add("active");
-      locationsBtn.style.borderBottomColor = "var(--primary-blue)";
-      locationsBtn.style.color = "var(--primary-blue)";
-    }
     if (locationsContent) locationsContent.style.display = "block";
     initLocationsView();
   } else if (tabName === "carousel") {
-    if (carouselBtn) {
-      carouselBtn.classList.add("active");
-      carouselBtn.style.borderBottomColor = "var(--primary-blue)";
-      carouselBtn.style.color = "var(--primary-blue)";
-    }
     if (carouselContent) carouselContent.style.display = "block";
     initCarouselView();
   } else if (tabName === "testimonials") {
-    if (testimonialsBtn) {
-      testimonialsBtn.classList.add("active");
-      testimonialsBtn.style.borderBottomColor = "var(--primary-blue)";
-      testimonialsBtn.style.color = "var(--primary-blue)";
-    }
     if (testimonialsContent) testimonialsContent.style.display = "block";
     initTestimonialsView();
-  } else {
-    if (companyBtn) {
-      companyBtn.classList.add("active");
-      companyBtn.style.borderBottomColor = "var(--primary-blue)";
-      companyBtn.style.color = "var(--primary-blue)";
-    }
-    if (companyContent) companyContent.style.display = "block";
   }
 }
 
@@ -544,11 +564,15 @@ function bindSettingsEvents() {
   const btnReset = $("btn-reset-settings");
 
   const companyTabBtn = $("tab-btn-company-profile");
+  const contactTabBtn = $("tab-btn-contact-social");
+  const seoTabBtn = $("tab-btn-seo");
   const locationsTabBtn = $("tab-btn-locations");
   const carouselTabBtn = $("tab-btn-carousel");
   const testimonialsTabBtn = $("tab-btn-testimonials");
 
   if (companyTabBtn) companyTabBtn.addEventListener("click", () => switchSubtab("company"));
+  if (contactTabBtn) contactTabBtn.addEventListener("click", () => switchSubtab("contact"));
+  if (seoTabBtn) seoTabBtn.addEventListener("click", () => switchSubtab("seo"));
   if (locationsTabBtn) locationsTabBtn.addEventListener("click", () => switchSubtab("locations"));
   if (carouselTabBtn) carouselTabBtn.addEventListener("click", () => switchSubtab("carousel"));
   if (testimonialsTabBtn) testimonialsTabBtn.addEventListener("click", () => switchSubtab("testimonials"));
