@@ -32,6 +32,7 @@ class NavigationController {
       "users": "users",
       "roles": "roles",
       "settings": "settings",
+      "locations": "locations",
       "profile": "profile",
       "auditlogs": "auditLogs",
       "audit-logs": "auditLogs"
@@ -52,6 +53,7 @@ class NavigationController {
       "users": "users",
       "roles": "roles",
       "settings": "settings",
+      "locations": "locations",
       "profile": "profile",
       "auditLogs": "audit-logs"
     };
