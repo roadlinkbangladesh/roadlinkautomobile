@@ -278,6 +278,11 @@ function populateForm(data) {
     faviconUrlField.value = data.faviconUrl || data.favicon_url || "";
     updateBrandingPreview("favicon", faviconUrlField.value);
   }
+  const stockBannerUrlField = $("set-stock-banner-url");
+  if (stockBannerUrlField) {
+    stockBannerUrlField.value = data.stockBannerUrl || data.stock_banner_url || "";
+    updateBrandingPreview("stock-banner", stockBannerUrlField.value);
+  }
 
   if (displayTimezoneField) displayTimezoneField.value = data.displayTimezone || data.display_timezone || "Asia/Dhaka";
   if (displayLocaleField) displayLocaleField.value = data.displayLocale || data.display_locale || "en-BD";
@@ -285,8 +290,17 @@ function populateForm(data) {
 }
 
 function updateBrandingPreview(type, key) {
-  const container = $(type === "logo" ? "logo-preview-container" : "favicon-preview-container");
-  const img = $(type === "logo" ? "logo-preview-img" : "favicon-preview-img");
+  let containerId = "logo-preview-container";
+  let imgId = "logo-preview-img";
+  if (type === "favicon") {
+    containerId = "favicon-preview-container";
+    imgId = "favicon-preview-img";
+  } else if (type === "stock-banner") {
+    containerId = "stock-banner-preview-container";
+    imgId = "stock-banner-preview-img";
+  }
+  const container = $(containerId);
+  const img = $(imgId);
   if (container && img) {
     if (key) {
       img.src = getPublicFileUrl(key);
@@ -384,6 +398,7 @@ async function handleSettingsSubmit(e) {
   const showSoldVehicles = $("set-show-sold-vehicles")?.checked ?? true;
   const companyLogoUrl = $("set-logo-url")?.value || "";
   const faviconUrl = $("set-favicon-url")?.value || "";
+  const stockBannerUrl = $("set-stock-banner-url")?.value || "";
 
   if (!companyName) {
     if (errorAlert) {
@@ -412,7 +427,7 @@ async function handleSettingsSubmit(e) {
         defaultCurrency,
         seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription,
         featuredVehiclesLimit, showSoldVehicles,
-        companyLogoUrl, faviconUrl
+        companyLogoUrl, faviconUrl, stockBannerUrl
       })
     });
 
@@ -482,7 +497,20 @@ async function handleBrandingFileUpload(type, fileInput) {
     }
   }
 
-  const btnUpload = $(type === "logo" ? "btn-upload-logo" : "btn-upload-favicon");
+  let btnId = "btn-upload-logo";
+  let urlInputId = "set-logo-url";
+  let uploadLabel = "Logo";
+  if (type === "favicon") {
+    btnId = "btn-upload-favicon";
+    urlInputId = "set-favicon-url";
+    uploadLabel = "Favicon";
+  } else if (type === "stock-banner") {
+    btnId = "btn-upload-stock-banner";
+    urlInputId = "set-stock-banner-url";
+    uploadLabel = "Stock Banner";
+  }
+
+  const btnUpload = $(btnId);
   if (btnUpload) {
     btnUpload.disabled = true;
     btnUpload.textContent = "Uploading...";
@@ -491,17 +519,17 @@ async function handleBrandingFileUpload(type, fileInput) {
   try {
     const uploaded = await uploadFileAsync(file, type === "logo" ? "logo" : "branding");
     const key = (typeof uploaded === "string") ? uploaded : (uploaded?.key || uploaded?.url || "");
-    const urlInput = $(type === "logo" ? "set-logo-url" : "set-favicon-url");
+    const urlInput = $(urlInputId);
     if (urlInput) {
       urlInput.value = key;
     }
     updateBrandingPreview(type, key);
   } catch (err) {
-    alert(`Upload failed for ${type}: ` + err.message);
+    alert(`Upload failed for ${uploadLabel}: ` + err.message);
   } finally {
     if (btnUpload) {
       btnUpload.disabled = false;
-      btnUpload.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg><span>Upload ${type === "logo" ? "Logo" : "Favicon"}</span>`;
+      btnUpload.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg><span>Upload ${uploadLabel}</span>`;
     }
     fileInput.value = "";
   }
@@ -538,6 +566,13 @@ function bindSettingsEvents() {
   if (btnUploadFavicon && faviconFileInput) {
     btnUploadFavicon.onclick = () => faviconFileInput.click();
     faviconFileInput.onchange = () => handleBrandingFileUpload("favicon", faviconFileInput);
+  }
+
+  const btnUploadStockBanner = $("btn-upload-stock-banner");
+  const stockBannerFileInput = $("set-stock-banner-file-input");
+  if (btnUploadStockBanner && stockBannerFileInput) {
+    btnUploadStockBanner.onclick = () => stockBannerFileInput.click();
+    stockBannerFileInput.onchange = () => handleBrandingFileUpload("stock-banner", stockBannerFileInput);
   }
 
   if (form) {
