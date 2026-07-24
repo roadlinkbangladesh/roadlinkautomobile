@@ -100,4 +100,5 @@ SELECT 1, '+880 1311-503840', 1
 WHERE NOT EXISTS (SELECT 1 FROM business_location_phones WHERE location_id = 1);
 
 -- 4. Grant locations permission to admin roles
-INSERT OR IGNORE INTO role_permissions (role_id, permission_key) VALUES (1, 'locations.manage'), (2, 'locations.manage');
+INSERT OR IGNORE INTO role_permissions (role_id, permission_key)
+SELECT id, 'locations.manage' FROM roles;
