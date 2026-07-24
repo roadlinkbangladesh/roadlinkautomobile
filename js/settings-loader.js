@@ -30,6 +30,7 @@ export const DEFAULT_SETTINGS = {
 };
 
 let cachedSettings = { ...DEFAULT_SETTINGS };
+let cachedLocations = [];
 
 /**
  * Fetches settings from backend public API.
@@ -66,12 +67,179 @@ export async function fetchPublicSettings() {
           seoDefaultDescription: data.seo_default_description || data.seoDefaultDescription || DEFAULT_SETTINGS.seoDefaultDescription
         };
         hydratePageContacts();
+        await fetchPublicLocations();
       }
     }
   } catch (err) {
     console.error("Failed to fetch public settings:", err);
+    await fetchPublicLocations();
   }
   return cachedSettings;
+}
+
+/**
+ * Fetches public business locations from backend API and hydrates location sections & footers
+ */
+export async function fetchPublicLocations() {
+  try {
+    const res = await apiRequest("/api/v1/public/locations");
+    if (!res.ok) return;
+
+    const payload = await res.json();
+    if (!payload || !payload.success || !Array.isArray(payload.data)) return;
+
+    cachedLocations = payload.data;
+    if (cachedLocations.length === 0) return;
+
+    hydrateLocationsUI(cachedLocations);
+  } catch (err) {
+    console.error("Failed to fetch public locations:", err);
+  }
+}
+
+/**
+ * Hydrates homepage contact section and footer contact list from database locations
+ */
+function hydrateLocationsUI(locations) {
+  const settings = getSettings();
+  const defaultLoc = locations.find(l => l.isDefault) || locations[0];
+  const mapIframe = document.getElementById("contact-map-iframe") || document.querySelector(".map-container iframe");
+
+  // 1. Initial Map Iframe setup
+  if (mapIframe && defaultLoc && defaultLoc.mapUrl) {
+    mapIframe.src = defaultLoc.mapUrl;
+  }
+
+  // 2. Homepage Location Cards (#dyn-contact-list)
+  const contactList = document.getElementById("dyn-contact-list");
+  if (contactList) {
+    const cardsHtml = locations.map((loc, idx) => {
+      const isDefault = loc.isDefault;
+      const phonesHtml = (loc.phones || []).map(p => `
+        <a href="tel:${p.replace(/[^0-9+]/g, '')}" style="color: inherit; text-decoration: none; font-weight: 600;">${p}</a>
+      `).join(' &bull; ') || 'Contact sales team';
+
+      return `
+        <li class="location-card-item ${isDefault ? 'active-location' : ''}" data-loc-id="${loc.id}" style="
+          padding: 18px; 
+          border: 1.5px solid ${isDefault ? 'var(--primary-blue)' : 'var(--border-color)'}; 
+          border-radius: var(--radius-md); 
+          background: ${isDefault ? 'rgba(37, 99, 235, 0.03)' : 'var(--bg-white)'}; 
+          margin-bottom: 14px; 
+          transition: all 0.2s ease;
+        ">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+            <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-dark); display: flex; align-items: center; gap: 8px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin" style="color: var(--primary-red); flex-shrink: 0;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span>${loc.title}</span>
+            </div>
+            ${isDefault ? `<span style="font-size: 0.7rem; font-weight: 700; padding: 2px 8px; background: rgba(37, 99, 235, 0.1); color: var(--primary-blue); border-radius: 12px; border: 1px solid rgba(37, 99, 235, 0.2);">Main Branch</span>` : ''}
+          </div>
+
+          <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px; padding-left: 26px;">
+            ${loc.address}
+          </p>
+
+          <div style="font-size: 0.85rem; color: var(--text-dark); display: flex; align-items: center; gap: 8px; padding-left: 26px; margin-bottom: 12px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone" style="color: var(--primary-blue); flex-shrink: 0;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <div>${phonesHtml}</div>
+          </div>
+
+          ${loc.mapUrl ? `
+            <div style="padding-left: 26px; display: flex; gap: 10px; align-items: center;">
+              <button type="button" class="btn-select-map-loc" data-map-url="${loc.mapUrl}" style="
+                background: var(--primary-blue); 
+                color: #fff; 
+                border: none; 
+                padding: 6px 14px; 
+                border-radius: var(--radius-sm); 
+                font-size: 0.8rem; 
+                font-weight: 600; 
+                cursor: pointer; 
+                display: inline-flex; 
+                align-items: center; 
+                gap: 5px;
+              ">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>
+                Show on Map
+              </button>
+              <a href="${loc.mapUrl}" target="_blank" rel="noopener" style="font-size: 0.8rem; color: var(--primary-blue); font-weight: 600; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px;">
+                Open Directions &rarr;
+              </a>
+            </div>
+          ` : ''}
+        </li>
+      `;
+    }).join('');
+
+    contactList.innerHTML = cardsHtml;
+
+    // Add event listeners to "Show on Map" buttons
+    contactList.querySelectorAll(".btn-select-map-loc").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const url = btn.dataset.mapUrl;
+        if (mapIframe && url) {
+          mapIframe.src = url;
+        }
+
+        // Highlight active card
+        const parentCard = btn.closest(".location-card-item");
+        contactList.querySelectorAll(".location-card-item").forEach(card => {
+          card.style.borderColor = "var(--border-color)";
+          card.style.background = "var(--bg-white)";
+        });
+        if (parentCard) {
+          parentCard.style.borderColor = "var(--primary-blue)";
+          parentCard.style.background = "rgba(37, 99, 235, 0.03)";
+        }
+      });
+    });
+  }
+
+  // 3. Footer Contact List (.footer-contact-list) - Display ONLY Default Location
+  if (defaultLoc) {
+    document.querySelectorAll(".footer-contact-list").forEach(list => {
+      const footerItems = [];
+
+      // Address
+      if (defaultLoc.address) {
+        footerItems.push(`
+          <li class="footer-contact-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span><strong>${defaultLoc.title}:</strong> ${defaultLoc.address}</span>
+          </li>
+        `);
+      }
+
+      // Phone numbers
+      if (Array.isArray(defaultLoc.phones) && defaultLoc.phones.length > 0) {
+        const phoneLinks = defaultLoc.phones.map(p => `
+          <a href="tel:${p.replace(/[^0-9+]/g, '')}" style="color: inherit; text-decoration: none;">${p}</a>
+        `).join(', ');
+
+        footerItems.push(`
+          <li class="footer-contact-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <span>${phoneLinks}</span>
+          </li>
+        `);
+      }
+
+      // Email
+      if (settings.showEmail && settings.email) {
+        footerItems.push(`
+          <li class="footer-contact-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <span><a href="mailto:${settings.email}" style="color: inherit; text-decoration: none;">${settings.email}</a></span>
+          </li>
+        `);
+      }
+
+      if (footerItems.length > 0) {
+        list.innerHTML = footerItems.join('');
+      }
+    });
+  }
 }
 
 /**
