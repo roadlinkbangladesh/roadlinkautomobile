@@ -473,6 +473,15 @@ async function handleBrandingFileUpload(type, fileInput) {
   const file = fileInput.files && fileInput.files[0];
   if (!file) return;
 
+  if (type === "logo") {
+    const ext = (file.name || "").split(".").pop().toLowerCase();
+    if (ext !== "png" && file.type !== "image/png") {
+      alert("Logo file must be in PNG format (.png) only.");
+      fileInput.value = "";
+      return;
+    }
+  }
+
   const btnUpload = $(type === "logo" ? "btn-upload-logo" : "btn-upload-favicon");
   if (btnUpload) {
     btnUpload.disabled = true;
@@ -480,12 +489,13 @@ async function handleBrandingFileUpload(type, fileInput) {
   }
 
   try {
-    const uploadedKey = await uploadFileAsync(file, "branding");
+    const uploaded = await uploadFileAsync(file, type === "logo" ? "logo" : "branding");
+    const key = (typeof uploaded === "string") ? uploaded : (uploaded?.key || uploaded?.url || "");
     const urlInput = $(type === "logo" ? "set-logo-url" : "set-favicon-url");
     if (urlInput) {
-      urlInput.value = uploadedKey;
+      urlInput.value = key;
     }
-    updateBrandingPreview(type, uploadedKey);
+    updateBrandingPreview(type, key);
   } catch (err) {
     alert(`Upload failed for ${type}: ` + err.message);
   } finally {

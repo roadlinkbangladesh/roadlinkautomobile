@@ -184,19 +184,19 @@ function renderLocationsTable(locations) {
 
   // Bind Row Action Buttons
   tbody.querySelectorAll(".btn-order-up").forEach(btn => {
-    btn.onclick = () => moveLocationOrder(parseInt(btn.dataset.id, 10), -1);
+    btn.onclick = () => moveLocationOrder(btn.dataset.id, -1);
   });
   tbody.querySelectorAll(".btn-order-down").forEach(btn => {
-    btn.onclick = () => moveLocationOrder(parseInt(btn.dataset.id, 10), 1);
+    btn.onclick = () => moveLocationOrder(btn.dataset.id, 1);
   });
   tbody.querySelectorAll(".btn-make-default").forEach(btn => {
-    btn.onclick = () => handleSetDefault(parseInt(btn.dataset.id, 10));
+    btn.onclick = () => handleSetDefault(btn.dataset.id);
   });
   tbody.querySelectorAll(".btn-edit-loc").forEach(btn => {
-    btn.onclick = () => editLocation(parseInt(btn.dataset.id, 10));
+    btn.onclick = () => editLocation(btn.dataset.id);
   });
   tbody.querySelectorAll(".btn-delete-loc").forEach(btn => {
-    btn.onclick = () => handleDeleteLocation(parseInt(btn.dataset.id, 10));
+    btn.onclick = () => handleDeleteLocation(btn.dataset.id);
   });
 }
 
@@ -401,7 +401,7 @@ async function moveLocationOrder(id, direction) {
  * Sets a location as default
  */
 async function handleSetDefault(id) {
-  const loc = locationsData.find(l => l.id === id);
+  const loc = locationsData.find(l => String(l.id) === String(id));
   if (!loc) return;
 
   if (!confirm(`Are you sure you want to set '${loc.title}' as the primary default business location?`)) {
@@ -427,7 +427,7 @@ async function handleSetDefault(id) {
  * Handles soft deleting a location
  */
 async function handleDeleteLocation(id) {
-  const loc = locationsData.find(l => l.id === id);
+  const loc = locationsData.find(l => String(l.id) === String(id));
   if (!loc) return;
 
   if (loc.isDefault) {
@@ -458,3 +458,8 @@ async function handleDeleteLocation(id) {
     alert(error.message || "Failed to delete location.");
   }
 }
+
+// Window global handlers
+window.editLocation = (id) => editLocation(id);
+window.deleteLocation = (id) => handleDeleteLocation(id);
+window.openLocationModal = (locObj) => openLocationModal(locObj);

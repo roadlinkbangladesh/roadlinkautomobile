@@ -141,12 +141,13 @@ async function handleImageFileUpload(e) {
   }
 
   try {
-    const uploadedKey = await uploadFileAsync(file, "carousel");
+    const uploaded = await uploadFileAsync(file, "carousel");
+    const key = (typeof uploaded === "string") ? uploaded : (uploaded?.key || uploaded?.url || "");
     const imgUrlInput = $("car-image-url");
     if (imgUrlInput) {
-      imgUrlInput.value = uploadedKey;
+      imgUrlInput.value = key;
     }
-    updatePreview(uploadedKey);
+    updatePreview(key);
   } catch (err) {
     alert("Image upload failed: " + err.message);
   } finally {
