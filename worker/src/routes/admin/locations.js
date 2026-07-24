@@ -1,7 +1,7 @@
 import { success, badRequest, notFound, serverError, forbidden } from "../../utils/response.js";
 import { authenticate } from "../../utils/auth.js";
 import { logAudit } from "../../utils/audit.js";
-import { isValidGoogleMapsUrl, deriveEmbedMapUrl, deriveExternalMapUrl } from "../../utils/map-helper.js";
+import { parseAndValidateEmbedMapUrl } from "../../utils/map-helper.js";
 
 /**
  * Helper to fetch phone numbers for a list of location IDs.
@@ -96,8 +96,8 @@ export async function listAdminLocations(request, env) {
 
     const formatted = locations.map(loc => ({
       ...loc,
-      mapEmbedUrl: loc.mapEmbedUrl || deriveEmbedMapUrl(loc.mapUrl, loc.address),
-      mapUrl: loc.mapUrl || deriveExternalMapUrl(loc.mapUrl, loc.address),
+      mapEmbedUrl: loc.mapEmbedUrl || loc.mapUrl || "",
+      mapUrl: loc.mapEmbedUrl || loc.mapUrl || "",
       isVisible: Boolean(loc.isVisible),
       isDefault: Boolean(loc.isDefault),
       phones: phoneMap[loc.id] || []
@@ -121,7 +121,7 @@ export async function createAdminLocation(request, env) {
     const data = await request.json();
     const title = (data.title || "").trim();
     const address = (data.address || "").trim();
-    const mapUrl = (data.mapUrl || data.map_url || "").trim();
+    const rawMapInput = (data.mapEmbedUrl || data.mapUrl || data.map_url || "").trim();
     const isVisible = data.isVisible !== undefined ? (data.isVisible ? 1 : 0) : 1;
     let isDefault = data.isDefault !== undefined ? (data.isDefault ? 1 : 0) : 0;
     const rawPhones = Array.isArray(data.phones) ? data.phones : [];
@@ -130,12 +130,14 @@ export async function createAdminLocation(request, env) {
     if (!title) return badRequest("Location title is required.");
     if (!address) return badRequest("Location full address is required.");
 
-    if (mapUrl && !isValidGoogleMapsUrl(mapUrl)) {
-      return badRequest("Invalid Google Maps URL. Please paste a standard Google Maps link (e.g., https://maps.app.goo.gl/..., https://www.google.com/maps/place/...) or map embed code.");
+    let storedEmbedUrl = "";
+    if (rawMapInput) {
+      const mapCheck = parseAndValidateEmbedMapUrl(rawMapInput);
+      if (!mapCheck.valid) {
+        return badRequest(mapCheck.error);
+      }
+      storedEmbedUrl = mapCheck.embedUrl;
     }
-
-    const storedMapUrl = deriveExternalMapUrl(mapUrl, address);
-    const storedEmbedUrl = deriveEmbedMapUrl(mapUrl, address);
 
     // Check if any default location exists currently
     const currentDefault = await env.DB.prepare(`
@@ -166,7 +168,7 @@ export async function createAdminLocation(request, env) {
       INSERT INTO business_locations (
         slug, title, address, map_url, map_embed_url, is_visible, is_default, display_order, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(slug, title, address, storedMapUrl, storedEmbedUrl, isVisible, isDefault, displayOrder, now, now).run();
+    `).bind(slug, title, address, storedEmbedUrl, storedEmbedUrl, isVisible, isDefault, displayOrder, now, now).run();
 
     const locationId = insertResult.meta.last_row_id;
 
@@ -193,7 +195,7 @@ export async function createAdminLocation(request, env) {
       slug,
       title,
       address,
-      mapUrl: storedMapUrl,
+      mapUrl: storedEmbedUrl,
       mapEmbedUrl: storedEmbedUrl,
       isVisible: Boolean(isVisible),
       isDefault: Boolean(isDefault),
@@ -231,7 +233,7 @@ export async function updateAdminLocation(request, env, ctx, params) {
     const data = await request.json();
     const title = data.title !== undefined ? data.title.trim() : existing.title;
     const address = data.address !== undefined ? data.address.trim() : existing.address;
-    const mapUrl = data.mapUrl !== undefined ? data.mapUrl.trim() : (data.map_url !== undefined ? data.map_url.trim() : (existing.map_url || ""));
+    const rawMapInput = data.mapEmbedUrl !== undefined ? data.mapEmbedUrl.trim() : (data.mapUrl !== undefined ? data.mapUrl.trim() : (data.map_url !== undefined ? data.map_url.trim() : (existing.map_embed_url || existing.map_url || "")));
     const isVisible = data.isVisible !== undefined ? (data.isVisible ? 1 : 0) : existing.is_visible;
     let isDefault = data.isDefault !== undefined ? (data.isDefault ? 1 : 0) : existing.is_default;
     const displayOrder = data.displayOrder !== undefined ? Number(data.displayOrder) : existing.display_order;
@@ -239,12 +241,16 @@ export async function updateAdminLocation(request, env, ctx, params) {
     if (!title) return badRequest("Location title is required.");
     if (!address) return badRequest("Location address is required.");
 
-    if (mapUrl && !isValidGoogleMapsUrl(mapUrl)) {
-      return badRequest("Invalid Google Maps URL. Please paste a standard Google Maps link (e.g., https://maps.app.goo.gl/..., https://www.google.com/maps/place/...) or map embed code.");
+    let storedEmbedUrl = existing.map_embed_url || existing.map_url || "";
+    if (rawMapInput) {
+      const mapCheck = parseAndValidateEmbedMapUrl(rawMapInput);
+      if (!mapCheck.valid) {
+        return badRequest(mapCheck.error);
+      }
+      storedEmbedUrl = mapCheck.embedUrl;
+    } else {
+      storedEmbedUrl = "";
     }
-
-    const storedMapUrl = deriveExternalMapUrl(mapUrl, address);
-    const storedEmbedUrl = deriveEmbedMapUrl(mapUrl, address);
 
     // Handle default location logic
     if (isDefault) {
@@ -275,7 +281,7 @@ export async function updateAdminLocation(request, env, ctx, params) {
         display_order = ?,
         updated_at = ?
       WHERE id = ?
-    `).bind(title, address, storedMapUrl, storedEmbedUrl, isVisible, isDefault, displayOrder, now, id).run();
+    `).bind(title, address, storedEmbedUrl, storedEmbedUrl, isVisible, isDefault, displayOrder, now, id).run();
 
     // Update phone numbers if provided
     let phones = [];
@@ -308,7 +314,7 @@ export async function updateAdminLocation(request, env, ctx, params) {
       slug: existing.slug,
       title,
       address,
-      mapUrl: storedMapUrl,
+      mapUrl: storedEmbedUrl,
       mapEmbedUrl: storedEmbedUrl,
       isVisible: Boolean(isVisible),
       isDefault: Boolean(isDefault),
