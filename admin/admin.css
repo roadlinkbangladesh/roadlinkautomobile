@@ -226,20 +226,40 @@ input:disabled, select:disabled, textarea:disabled {
 
 .admin-sidebar-logo {
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .admin-sidebar-logo .logo-img {
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   background-color: #ffffff;
   padding: 4px;
-  border-radius: 4px;
+  border-radius: 6px;
   box-sizing: border-box;
+  object-fit: contain;
+}
+
+.admin-sidebar-logo .logo-text {
+  font-family: var(--font-brand, "Barlow Condensed", "Arial Narrow", sans-serif);
+  font-stretch: condensed;
+  font-size: 22px;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 0.85;
 }
 
 .admin-sidebar-logo .brand-name {
-  font-size: 1.25rem;
-  color: var(--bg-white);
+  font-family: var(--font-brand, "Barlow Condensed", "Arial Narrow", sans-serif);
+  font-stretch: condensed;
+  font-weight: 700;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  letter-spacing: 0;
 }
 
 .admin-sidebar-logo .brand-name .road {
@@ -247,22 +267,20 @@ input:disabled, select:disabled, textarea:disabled {
 }
 
 .admin-sidebar-logo .brand-name .link {
-  color: #0E4595; /* Logo Solid Deep Blue */
+  color: #ffffff; /* White on dark sidebar background */
 }
 
 .admin-sidebar-logo .brand-subtext {
-  font-family: var(--font-brand);
+  font-family: var(--font-brand, "Barlow Condensed", "Arial Narrow", sans-serif);
   font-stretch: condensed;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  font-style: normal;
-  color: #3A4D62; /* Logo dark slate grey */
-  letter-spacing: 0.45em; /* 4.5px spacing, which is exactly a 12:5.4 ratio (0.45 * font-size) */
-  margin-right: -0.45em; /* Compensate for the letter-spacing on the last letter 'S' to keep it perfectly centered */
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.45em;
+  margin-right: -0.45em;
   text-transform: uppercase;
-  margin-top: 1px;
+  margin-top: 2px;
   line-height: 1;
-  padding-right: 0;
 }
 
 .btn-sidebar-close {
@@ -1128,6 +1146,64 @@ input:disabled, select:disabled, textarea:disabled {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
   background-color: var(--bg-light);
+}
+
+/* Button System Base Classes */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  border: 1px solid var(--border-color);
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background-color: var(--primary-blue);
+  color: #ffffff !important;
+  border-color: var(--primary-blue);
+}
+.btn-primary:hover:not(:disabled) {
+  background-color: #12243e;
+  border-color: #12243e;
+  color: #ffffff !important;
+}
+
+.btn-secondary {
+  background-color: var(--bg-white);
+  color: var(--primary-blue) !important;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--primary-blue);
+  color: #ffffff !important;
+  border-color: var(--primary-blue);
+}
+
+.btn-danger {
+  background-color: var(--bg-white);
+  color: var(--primary-red) !important;
+  border: 1px solid rgba(227, 27, 35, 0.3);
+}
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--primary-red);
+  color: #ffffff !important;
+  border-color: var(--primary-red);
+}
+
+.btn:disabled,
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
 }
 
 /* Actions styling */
