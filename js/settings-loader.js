@@ -95,146 +95,118 @@ function hydrateLocationsUI(locations) {
   const settings = getSettings();
   const defaultLoc = locations.find(l => l.isDefault) || locations[0];
   const mapIframe = document.getElementById("contact-map-iframe") || document.querySelector(".map-container iframe");
-
-  // 1. Initial Map Iframe setup directly using canonical mapEmbedUrl
-  if (mapIframe && defaultLoc && defaultLoc.mapEmbedUrl) {
-    mapIframe.src = defaultLoc.mapEmbedUrl;
-  }
-
-  // 2. Homepage Location Cards & Contact Items (#dyn-contact-list)
   const contactList = document.getElementById("dyn-contact-list");
-  if (contactList) {
-    const items = [];
+  const actionsBar = document.getElementById("contact-actions-bar");
 
-    // Render Location Cards from Business Locations
-    locations.forEach((loc) => {
+  // 1. Homepage Location Cards (#dyn-contact-list)
+  if (contactList && locations.length > 0) {
+    contactList.innerHTML = locations.map((loc) => {
       const isDefault = loc.isDefault;
       const phonesHtml = (loc.phones || []).map(p => `
-        <a href="tel:${sanitizePhoneNumber(p)}" style="color: inherit; text-decoration: none; font-weight: 600;">${p}</a>
+        <a href="tel:${sanitizePhoneNumber(p)}" onclick="event.stopPropagation();" style="color: inherit; text-decoration: none; font-weight: 600;">${p}</a>
       `).join(' &bull; ') || 'Contact sales team';
 
-      items.push(`
-        <li class="location-card-item ${isDefault ? 'active-location' : ''}" data-loc-id="${loc.id}" style="
-          padding: 18px; 
-          border: 1.5px solid ${isDefault ? 'var(--primary-blue)' : 'var(--border-color)'}; 
-          border-radius: var(--radius-md); 
-          background: ${isDefault ? 'rgba(37, 99, 235, 0.03)' : 'var(--bg-white)'}; 
-          margin-bottom: 14px; 
-          transition: all 0.2s ease;
-        ">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-            <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-dark); display: flex; align-items: center; gap: 8px;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin" style="color: var(--primary-red); flex-shrink: 0;"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+      const hoursHtml = (loc.businessHours || loc.openingHours) ? `<p class="loc-extra-info"><strong>Hours:</strong> ${loc.businessHours || loc.openingHours}</p>` : '';
+      const servicesHtml = loc.services ? `<p class="loc-extra-info"><strong>Services:</strong> ${loc.services}</p>` : '';
+
+      const navUrl = loc.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.title + ' ' + loc.address)}`;
+
+      return `
+        <li class="location-card-item ${isDefault ? 'active-location' : ''}" 
+            data-loc-id="${loc.id}" 
+            data-map-embed="${loc.mapEmbedUrl || ''}" 
+            data-nav-url="${navUrl}"
+            data-loc-title="${loc.title}">
+          <div class="loc-card-header">
+            <div class="loc-title-group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin loc-pin-icon"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
               <span>${loc.title}</span>
             </div>
-            ${isDefault ? `<span style="font-size: 0.7rem; font-weight: 700; padding: 2px 8px; background: rgba(37, 99, 235, 0.1); color: var(--primary-blue); border-radius: 12px; border: 1px solid rgba(37, 99, 235, 0.2);">Main Branch</span>` : ''}
+            ${isDefault ? `<span class="branch-badge main-badge">Main Branch</span>` : (loc.branchType ? `<span class="branch-badge">${loc.branchType}</span>` : '')}
           </div>
 
-          <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px; padding-left: 26px;">
-            ${loc.address}
-          </p>
-
-          <p style="font-size: 0.85rem; color: var(--text-dark); margin-bottom: 12px; padding-left: 26px;">
-            <strong>Phone:</strong> ${phonesHtml}
-          </p>
-
-          ${loc.mapEmbedUrl ? `
-            <div style="padding-left: 26px;">
-              <button type="button" class="btn-select-map-loc" data-map-url="${loc.mapEmbedUrl}" style="
-                background: var(--bg-neutral); 
-                border: 1px solid var(--border-color); 
-                padding: 6px 14px; 
-                border-radius: var(--radius-sm); 
-                font-size: 0.8rem; 
-                font-weight: 600; 
-                color: var(--primary-blue); 
-                cursor: pointer;
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-              ">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>
-                Show Map Location
-              </button>
-            </div>
-          ` : ''}
+          <p class="loc-card-address">${loc.address}</p>
+          <p class="loc-card-phone"><strong>Phone:</strong> ${phonesHtml}</p>
+          ${hoursHtml}
+          ${servicesHtml}
         </li>
-      `);
-    });
+      `;
+    }).join('');
+  }
 
-    // Render WhatsApp Item
-    if (settings.showWhatsapp && settings.whatsapp) {
-      const waNumber = sanitizePhoneNumber(settings.whatsapp);
-      items.push(`
-        <li style="padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-neutral); margin-bottom: 12px; display: flex; align-items: flex-start; gap: 12px;">
-          <div style="background: rgba(37, 211, 102, 0.12); color: #16a34a; padding: 10px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          </div>
-          <div>
-            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-dark); margin-bottom: 2px;">WhatsApp Support</div>
-            <p style="margin: 0; font-size: 0.88rem; color: var(--text-muted);">
-              <a href="https://wa.me/${waNumber}" target="_blank" style="color: #16a34a; font-weight: 700; text-decoration: none;">+${waNumber}</a>
-            </p>
-          </div>
-        </li>
-      `);
+  // Helper to select a location card
+  const selectLocationCard = (cardEl, loc) => {
+    if (!cardEl) return;
+    const embedUrl = cardEl.dataset.mapEmbed || loc?.mapEmbedUrl || '';
+    const navUrl = cardEl.dataset.navUrl || loc?.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((loc?.title || '') + ' ' + (loc?.address || ''))}`;
+    const title = cardEl.dataset.locTitle || loc?.title || 'Location';
+
+    // Highlight selected card
+    if (contactList) {
+      contactList.querySelectorAll(".location-card-item").forEach(card => {
+        card.classList.remove("active-location");
+      });
+      cardEl.classList.add("active-location");
     }
 
-    // Render Email Item
-    if (settings.showEmail && settings.email) {
-      items.push(`
-        <li style="padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-neutral); margin-bottom: 12px; display: flex; align-items: flex-start; gap: 12px;">
-          <div style="background: rgba(37, 99, 235, 0.1); color: var(--primary-blue); padding: 10px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          </div>
-          <div>
-            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-dark); margin-bottom: 2px;">Email Inquiry</div>
-            <p style="margin: 0; font-size: 0.88rem; color: var(--text-muted);">
-              <a href="mailto:${settings.email}" style="color: var(--primary-blue); font-weight: 600; text-decoration: none;">${settings.email}</a>
-            </p>
-          </div>
-        </li>
-      `);
+    // Update Map Iframe
+    if (mapIframe && embedUrl) {
+      mapIframe.src = embedUrl;
     }
 
-    // Option to render Primary Contact Person if configured
-    if (settings.showPrimaryContact && (settings.contactPhone || settings.contactName)) {
-      items.push(`
-        <li style="padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-neutral); margin-bottom: 12px; display: flex; align-items: flex-start; gap: 12px;">
-          <div style="background: rgba(37, 99, 235, 0.1); color: var(--primary-blue); padding: 10px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          </div>
-          <div>
-            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-dark); margin-bottom: 2px;">${settings.contactName || 'Primary Officer'}</div>
-            <p style="margin: 0; font-size: 0.88rem; color: var(--text-muted);">
-              <a href="tel:${sanitizePhoneNumber(settings.contactPhone)}" style="color: var(--primary-blue); font-weight: 700; text-decoration: none;">${settings.contactPhone}</a>
-            </p>
-          </div>
-        </li>
-      `);
+    // Update Get Directions button
+    const directionsBtn = document.getElementById("btn-get-directions");
+    if (directionsBtn) {
+      directionsBtn.href = navUrl;
+      directionsBtn.title = `Get directions to ${title}`;
     }
+  };
 
-    contactList.innerHTML = items.join('');
-
-    // Add event listeners to "Show Map Location" buttons
-    contactList.querySelectorAll(".btn-select-map-loc").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const url = btn.dataset.mapUrl;
-        if (mapIframe && url) {
-          mapIframe.src = url;
-        }
-
-        const parentCard = btn.closest(".location-card-item");
-        contactList.querySelectorAll(".location-card-item").forEach(card => {
-          card.style.borderColor = "var(--border-color)";
-          card.style.background = "var(--bg-white)";
-        });
-        if (parentCard) {
-          parentCard.style.borderColor = "var(--primary-blue)";
-          parentCard.style.background = "rgba(37, 99, 235, 0.03)";
-        }
+  // Bind click handlers to location cards
+  if (contactList) {
+    contactList.querySelectorAll(".location-card-item").forEach(card => {
+      card.addEventListener("click", () => {
+        const locId = card.dataset.locId;
+        const locObj = locations.find(l => String(l.id) === String(locId));
+        selectLocationCard(card, locObj);
       });
     });
+  }
+
+  // 2. Render Contact Actions Bar (#contact-actions-bar)
+  if (actionsBar) {
+    const waNumber = settings.whatsapp ? sanitizePhoneNumber(settings.whatsapp) : '';
+    const email = settings.email || '';
+    const initialNavUrl = defaultLoc ? (defaultLoc.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(defaultLoc.title + ' ' + defaultLoc.address)}`) : '#';
+
+    actionsBar.innerHTML = `
+      ${settings.showWhatsapp && waNumber ? `
+        <a href="https://wa.me/${waNumber}" target="_blank" class="contact-action-btn wa-action-btn" title="Chat with us on WhatsApp">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>WhatsApp Support</span>
+        </a>
+      ` : ''}
+
+      ${settings.showEmail && email ? `
+        <a href="mailto:${email}" class="contact-action-btn email-action-btn" title="Send us an email inquiry">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          <span>Email Inquiry</span>
+        </a>
+      ` : ''}
+
+      <a href="${initialNavUrl}" target="_blank" id="btn-get-directions" class="contact-action-btn directions-action-btn" title="Get Google Maps navigation directions">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-navigation"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        <span class="btn-text">Get Directions</span>
+      </a>
+    `;
+  }
+
+  // Set initial default map and directions state
+  if (defaultLoc) {
+    const defaultCard = contactList?.querySelector(`[data-loc-id="${defaultLoc.id}"]`) || contactList?.firstElementChild;
+    if (defaultCard) {
+      selectLocationCard(defaultCard, defaultLoc);
+    }
   }
 
   // 3. Footer Contact List (.footer-contact-list) - Display ONLY Default Location
