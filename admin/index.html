@@ -96,6 +96,10 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-car"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M9 17h6"/><path d="M5 12h14"/></svg>
             <span>Vehicles</span>
           </button>
+          <button id="nav-item-locations" class="sidebar-nav-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span>Business Locations</span>
+          </button>
           <button id="nav-item-settings" class="sidebar-nav-link">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
             <span>Settings</span>
@@ -317,6 +321,40 @@
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right"><polyline points="9 18 15 12 9 6"/></svg>
                     </button>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- BUSINESS LOCATIONS PANEL -->
+            <div id="locations-view-panel" style="display: none;">
+              <div class="view-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                  <h1 class="view-title">Business Locations</h1>
+                  <p class="view-subtitle">Manage physical showrooms, corporate offices, contact phone numbers, and public map visibility.</p>
+                </div>
+                <button id="btn-add-location" class="btn btn-login-submit" style="width: auto; margin-top: 0; padding: 10px 18px; display: inline-flex; align-items: center; gap: 8px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                  <span>Add Business Location</span>
+                </button>
+              </div>
+
+              <div class="card shadow-sm" style="background: var(--bg-white); border-radius: var(--radius-md); border: 1px solid var(--border-color); overflow: hidden;">
+                <div style="padding: 0; overflow-x: auto;">
+                  <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                      <tr style="border-bottom: 1.5px solid var(--border-color); text-align: left; font-size: 0.85rem; color: var(--text-muted); background: var(--bg-neutral);">
+                        <th style="padding: 14px 16px; width: 80px;">Order</th>
+                        <th style="padding: 14px 16px;">Location Name</th>
+                        <th style="padding: 14px 16px;">Address</th>
+                        <th style="padding: 14px 16px;">Contact Numbers</th>
+                        <th style="padding: 14px 16px; text-align: center;">Status</th>
+                        <th style="padding: 14px 16px; text-align: right;">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="locations-table-body">
+                      <!-- Injected via locations.js -->
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -1462,6 +1500,73 @@
         <button id="btn-confirm-delete" class="btn-danger">Yes, Delete Vehicle</button>
         <button id="btn-cancel-delete" class="btn btn-view-site" style="justify-content: center; width: 100%; border-radius: var(--radius-sm); margin-bottom: 0;">Cancel</button>
       </div>
+    </div>
+  </div>
+
+  <!-- BUSINESS LOCATION ADD/EDIT MODAL -->
+  <div class="modal-overlay" id="location-modal" style="display: none;">
+    <div class="modal-card" style="max-width: 650px; padding: 24px; border-radius: var(--radius-md); text-align: left; background: var(--bg-white);">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px;">
+        <h3 id="location-modal-title" style="margin: 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: var(--text-dark);">Add Business Location</h3>
+        <button class="btn-modal-close" id="btn-close-location-modal" aria-label="Close dialog" type="button" style="position: static;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+        </button>
+      </div>
+
+      <form id="location-form" novalidate>
+        <input type="hidden" id="loc-id-input" value="">
+
+        <!-- Title & Slug Info -->
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="loc-title" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Location Title <span style="color: var(--primary-red);">*</span></label>
+          <input type="text" id="loc-title" class="form-control" placeholder="e.g. Main Showroom, Corporate Office, Banani Hub" required style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
+          <small id="loc-slug-hint" style="display: block; color: var(--text-muted); font-size: 0.75rem; margin-top: 4px;">System identifier (slug) will be generated automatically and remain stable.</small>
+        </div>
+
+        <!-- Address -->
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="loc-address" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Full Address <span style="color: var(--primary-red);">*</span></label>
+          <textarea id="loc-address" class="form-control" rows="2" placeholder="e.g. 169 (Level 2), Fakirerpool, Dhaka 1000, Bangladesh" required style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-family: inherit; resize: vertical;"></textarea>
+        </div>
+
+        <!-- Phone Numbers List -->
+        <div class="form-group" style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label style="font-weight: 600; font-size: 0.85rem; margin: 0;">Contact Phone Numbers</label>
+            <button type="button" id="btn-add-phone-field" style="background: none; border: none; color: var(--primary-blue); font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+              Add Phone Number
+            </button>
+          </div>
+          <div id="loc-phones-container" style="display: flex; flex-direction: column; gap: 8px;">
+            <!-- Dynamically managed phone input rows -->
+          </div>
+        </div>
+
+        <!-- Google Maps Embed/URL -->
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="loc-map-url" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Google Maps URL / Embed Link</label>
+          <input type="text" id="loc-map-url" class="form-control" placeholder="https://www.google.com/maps/embed?pb=..." style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
+          <small style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 4px;">Paste Google Maps embed iframe URL or location share link.</small>
+        </div>
+
+        <!-- Settings Checkboxes -->
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 14px; background: var(--bg-neutral); border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-bottom: 20px;">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.88rem; font-weight: 600; color: var(--text-dark);">
+            <input type="checkbox" id="loc-is-visible" checked style="width: 18px; height: 18px; accent-color: var(--primary-blue);">
+            <span>Visible on Public Website</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.88rem; font-weight: 600; color: var(--text-dark);">
+            <input type="checkbox" id="loc-is-default" style="width: 18px; height: 18px; accent-color: var(--primary-blue);">
+            <span>Default Primary Location (Used in Footer & Initial Homepage Map)</span>
+          </label>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+          <button type="button" id="btn-cancel-location" class="btn btn-view-site" style="margin: 0;">Cancel</button>
+          <button type="submit" id="btn-save-location" class="btn btn-login-submit" style="width: auto; padding: 10px 24px; margin: 0;">Save Location</button>
+        </div>
+      </form>
     </div>
   </div>
 
