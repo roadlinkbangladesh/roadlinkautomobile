@@ -162,12 +162,54 @@ function hydrateLocationsUI(locations) {
       `);
     });
 
+    // Render WhatsApp Item
+    if (settings.showWhatsapp && settings.whatsapp) {
+      const waNumber = sanitizePhoneNumber(settings.whatsapp);
+      items.push(`
+        <li style="padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-neutral); margin-bottom: 12px; display: flex; align-items: flex-start; gap: 12px;">
+          <div style="background: rgba(37, 211, 102, 0.12); color: #16a34a; padding: 10px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div>
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-dark); margin-bottom: 2px;">WhatsApp Support</div>
+            <p style="margin: 0; font-size: 0.88rem; color: var(--text-muted);">
+              <a href="https://wa.me/${waNumber}" target="_blank" style="color: #16a34a; font-weight: 700; text-decoration: none;">+${waNumber}</a>
+            </p>
+          </div>
+        </li>
+      `);
+    }
+
+    // Render Email Item
+    if (settings.showEmail && settings.email) {
+      items.push(`
+        <li style="padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-neutral); margin-bottom: 12px; display: flex; align-items: flex-start; gap: 12px;">
+          <div style="background: rgba(37, 99, 235, 0.1); color: var(--primary-blue); padding: 10px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          </div>
+          <div>
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-dark); margin-bottom: 2px;">Email Inquiry</div>
+            <p style="margin: 0; font-size: 0.88rem; color: var(--text-muted);">
+              <a href="mailto:${settings.email}" style="color: var(--primary-blue); font-weight: 600; text-decoration: none;">${settings.email}</a>
+            </p>
+          </div>
+        </li>
+      `);
+    }
+
     // Option to render Primary Contact Person if configured
     if (settings.showPrimaryContact && (settings.contactPhone || settings.contactName)) {
       items.push(`
-        <li style="padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-neutral); margin-top: 10px;">
-          <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-dark); margin-bottom: 4px;">${settings.contactName || 'Primary Officer'}</div>
-          <p style="margin: 2px 0 0 0; font-size: 0.88rem; color: var(--text-muted);"><a href="tel:${sanitizePhoneNumber(settings.contactPhone)}" style="color: var(--primary-blue); font-weight: 700; text-decoration: none;">${settings.contactPhone}</a></p>
+        <li style="padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-neutral); margin-bottom: 12px; display: flex; align-items: flex-start; gap: 12px;">
+          <div style="background: rgba(37, 99, 235, 0.1); color: var(--primary-blue); padding: 10px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </div>
+          <div>
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-dark); margin-bottom: 2px;">${settings.contactName || 'Primary Officer'}</div>
+            <p style="margin: 0; font-size: 0.88rem; color: var(--text-muted);">
+              <a href="tel:${sanitizePhoneNumber(settings.contactPhone)}" style="color: var(--primary-blue); font-weight: 700; text-decoration: none;">${settings.contactPhone}</a>
+            </p>
+          </div>
         </li>
       `);
     }
@@ -220,6 +262,17 @@ function hydrateLocationsUI(locations) {
           <li class="footer-contact-item">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
             <span>${phoneLinks}</span>
+          </li>
+        `);
+      }
+
+      // WhatsApp
+      if (settings.showWhatsapp && settings.whatsapp) {
+        const waNumber = sanitizePhoneNumber(settings.whatsapp);
+        footerItems.push(`
+          <li class="footer-contact-item">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span><strong>WhatsApp:</strong> <a href="https://wa.me/${waNumber}" target="_blank" style="color: inherit; text-decoration: none;">+${waNumber}</a></span>
           </li>
         `);
       }
