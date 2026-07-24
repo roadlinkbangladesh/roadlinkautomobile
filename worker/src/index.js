@@ -39,6 +39,7 @@ import {
     listPublicVehicles,
     getPublicVehicle,
     getPublicSettings,
+    getPublicFile,
     getPublicImage
 } from "./routes/public/vehicles.js";
 
@@ -48,6 +49,7 @@ const routes = {
     [`GET:${API.PUBLIC}/vehicles`]: listPublicVehicles,
     [`GET:${API.PUBLIC}/vehicles/:identifier`]: getPublicVehicle,
     [`GET:${API.PUBLIC}/settings`]: getPublicSettings,
+    [`GET:${API.PUBLIC}/files/:key`]: getPublicFile,
     [`GET:${API.PUBLIC}/images/:key`]: getPublicImage,
 
     // Authentication
