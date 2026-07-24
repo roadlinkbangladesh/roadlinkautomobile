@@ -1,5 +1,6 @@
 import { success, notFound, serverError } from "../../utils/response.js";
 import { mapDbToVehicle, getVehicleByIdOrStock } from "../admin/vehicles.js";
+import { getStorageBucket } from "../../utils/storage.js";
 
 /**
  * GET /api/v1/public/vehicles - Public Vehicle Inventory Listing
@@ -123,34 +124,59 @@ export async function getPublicSettings(request, env) {
 }
 
 /**
- * GET /api/v1/public/images/* - Get image/asset from R2 storage
+ * GET /api/v1/public/files/* & GET /api/v1/public/images/* - Get generic file or asset from R2 storage
  */
-export async function getPublicImage(request, env, ctx, params) {
+export async function getPublicFile(request, env, ctx, params) {
   try {
     const url = new URL(request.url);
-    const key = url.pathname.replace("/api/v1/public/images/", "");
-    if (!key) return notFound("Image key is required.");
+    let key = params?.key;
+    if (!key) {
+      key = url.pathname.replace(/^\/api\/v1\/public\/(files|images)\//, "");
+    }
+    if (!key) return notFound("File key is required.");
 
-    if (!env.IMAGES) {
-      return notFound("Storage not available.");
+    // Clean leading slashes
+    key = key.replace(/^\/+/, "");
+
+    const bucket = getStorageBucket(env);
+    if (!bucket) {
+      return notFound("Storage service not configured.");
     }
 
-    const object = await env.IMAGES.get(key);
+    const object = await bucket.get(key);
     if (!object) {
-      return notFound("Image not found.");
+      return notFound("File not found.");
     }
 
     const headers = new Headers();
-    headers.set("Cache-Control", "public, max-age=31536000");
-    if (key.endsWith(".jpg") || key.endsWith(".jpeg")) headers.set("Content-Type", "image/jpeg");
-    else if (key.endsWith(".png")) headers.set("Content-Type", "image/png");
-    else if (key.endsWith(".webp")) headers.set("Content-Type", "image/webp");
-    else if (key.endsWith(".pdf")) headers.set("Content-Type", "application/pdf");
-    else headers.set("Content-Type", "application/octet-stream");
+    headers.set("Cache-Control", "public, max-age=31536000, immutable");
+
+    const ext = key.split(".").pop().toLowerCase();
+    const mimeTypes = {
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      webp: "image/webp",
+      gif: "image/gif",
+      svg: "image/svg+xml",
+      pdf: "application/pdf",
+      doc: "application/msword",
+      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    };
+
+    const contentType = object.httpMetadata?.contentType || mimeTypes[ext] || "application/octet-stream";
+    headers.set("Content-Type", contentType);
+
+    if (ext === "pdf") {
+      const filename = key.split("/").pop() || "document.pdf";
+      headers.set("Content-Disposition", `inline; filename="${filename}"`);
+    }
 
     return new Response(object.body, { headers });
   } catch (error) {
-    console.error("Get public image error:", error);
-    return notFound("Image not found.");
+    console.error("Get public file error:", error);
+    return notFound("File not found.");
   }
 }
+
+export const getPublicImage = getPublicFile;
