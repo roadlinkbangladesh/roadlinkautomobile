@@ -1,6 +1,8 @@
 import { success, badRequest, notFound, serverError } from "../../utils/response.js";
 import { authenticate } from "../../utils/auth.js";
 import { logAudit } from "../../utils/audit.js";
+import { deleteSupersededMedia } from "../../services/orphan-cleanup.js";
+import { extractObjectKey, deleteStoredFile } from "../../utils/storage.js";
 
 /**
  * GET /api/v1/admin/carousel - List all carousel slides for admin
@@ -108,6 +110,13 @@ export async function updateAdminCarouselSlide(request, env, ctx, params) {
 
     if (!imageUrl) return badRequest("Background image is required.");
     if (!heading) return badRequest("Slide heading is required.");
+    if (isVisible && !imageUrl) {
+      return badRequest("Visible homepage slides require a background image.");
+    }
+
+    if (imageUrl !== existing.image_url) {
+      await deleteSupersededMedia(env, existing.image_url, imageUrl);
+    }
 
     const now = new Date().toISOString();
 
@@ -158,6 +167,11 @@ export async function deleteAdminCarouselSlide(request, env, ctx, params) {
   try {
     const id = parseInt(params.id, 10);
     if (!id || isNaN(id)) return badRequest("Invalid slide ID.");
+
+    const existing = await env.DB.prepare(`SELECT image_url FROM carousel_slides WHERE id = ?`).bind(id).first();
+    if (existing && existing.image_url) {
+      await deleteSupersededMedia(env, existing.image_url, null);
+    }
 
     await env.DB.prepare(`DELETE FROM carousel_slides WHERE id = ?`).bind(id).run();
 
