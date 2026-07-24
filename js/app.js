@@ -3,7 +3,7 @@
  * Highly optimized, vanilla JS only, adhering to W3C and modern standards.
  */
 
-import "./settings-loader.js";
+import { getSettings } from "./settings-loader.js";
 import { getAllVehicles, loadVehiclesAsync } from "./inventory.js";
 
 /**
@@ -67,6 +67,9 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
 
     // Active link highlighters on scroll
     initScrollSpy();
+
+    // Setup smooth anchor navigation and handle initial URL hash
+    initAnchorNavigation();
   };
 
   if (document.readyState === "loading") {
@@ -235,9 +238,15 @@ function openModal(carId) {
   const modalContent = document.getElementById('modal-dyn-content');
   if (!modal || !modalContent) return;
 
-  // Pre-fill a professional sales request in Urdu/Bangla/English
-  const whatsappQuery = `Salam Roadlink Automobiles, I am interested in purchasing the Japanese reconditioned ${car.year} ${car.make} ${car.model} listed for ${car.price} on your website. Please share the auction sheet and booking details.`;
-  const whatsappLink = `https://wa.me/8801311503840?text=${encodeURIComponent(whatsappQuery)}`;
+  const settings = getSettings();
+  const companyName = settings.companyName || "Roadlink Automobiles";
+  const cleanWa = settings.whatsapp ? settings.whatsapp.replace(/[^0-9]/g, '') : "8801311503840";
+  const displayPhone = settings.showroomPhone || settings.phone || "+880 1311-503840";
+  const cleanPhone = displayPhone.replace(/[^0-9+]/g, '');
+
+  // Pre-fill a professional sales request
+  const whatsappQuery = `Salam ${companyName}, I am interested in purchasing the Japanese reconditioned ${car.year} ${car.make} ${car.model} listed for ${car.price} on your website. Please share the auction sheet and booking details.`;
+  const whatsappLink = `https://wa.me/${cleanWa}?text=${encodeURIComponent(whatsappQuery)}`;
 
   modalContent.innerHTML = `
     <div class="modal-gallery">
@@ -299,11 +308,11 @@ function openModal(carId) {
           </svg>
           Inquire on WhatsApp
         </a>
-        <a href="tel:+8801311503840" class="modal-btn-phone">
+        <a href="tel:${cleanPhone}" class="modal-btn-phone">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="lucide lucide-phone">
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
           </svg>
-          Call +880 1311-503840
+          Call ${displayPhone}
         </a>
       </div>
     </div>
@@ -381,6 +390,77 @@ function initScrollSpy() {
           link.classList.add('active');
         }
       });
+    }
+  });
+}
+
+/**
+ * Handles smooth scrolling to anchor sections and URL hash initialization.
+ */
+export function scrollToHash(hash, smooth = true) {
+  if (!hash || hash === "#") return;
+
+  const hashAliases = {
+    "#home": "#hero-section",
+    "#hero": "#hero-section",
+    "#stock": "#featured-section",
+    "#inventory": "#featured-section",
+    "#vehicles": "#featured-section",
+    "#about": "#why-choose-us-section",
+    "#why-us": "#why-choose-us-section",
+    "#contact": "#location-section",
+    "#location": "#location-section"
+  };
+
+  const targetId = hashAliases[hash.toLowerCase()] || hash;
+  const targetEl = document.querySelector(targetId);
+  if (!targetEl) return;
+
+  const header = document.getElementById("main-header");
+  const headerHeight = header ? header.offsetHeight : 80;
+  const targetTop = targetEl.getBoundingClientRect().top + window.pageYOffset - headerHeight - 10;
+
+  window.scrollTo({
+    top: targetTop,
+    behavior: smooth ? "smooth" : "auto"
+  });
+}
+
+function initAnchorNavigation() {
+  // Handle initial page load hash
+  if (window.location.hash) {
+    setTimeout(() => scrollToHash(window.location.hash, true), 100);
+  }
+
+  // Handle hash changes
+  window.addEventListener("hashchange", () => {
+    scrollToHash(window.location.hash, true);
+  });
+
+  // Intercept anchor link clicks for smooth offset scrolling
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest('a[href^="#"]');
+    if (!link) return;
+
+    const href = link.getAttribute("href");
+    if (href && href.startsWith("#") && href.length > 1) {
+      const targetEl = document.querySelector(href) || document.querySelector({
+        "#home": "#hero-section",
+        "#stock": "#featured-section",
+        "#inventory": "#featured-section",
+        "#about": "#why-choose-us-section",
+        "#contact": "#location-section"
+      }[href.toLowerCase()]);
+
+      if (targetEl) {
+        e.preventDefault();
+        scrollToHash(href, true);
+        if (history.pushState) {
+          history.pushState(null, null, href);
+        } else {
+          window.location.hash = href;
+        }
+      }
     }
   });
 }
