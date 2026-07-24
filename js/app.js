@@ -152,13 +152,6 @@ function renderVehicles(category = 'all') {
     ? [...homeVehicles]
     : homeVehicles.filter(car => car.category === category);
 
-  // Sort by displayOrder ascending for consistent ordering throughout the website
-  filteredVehicles.sort((a, b) => {
-    const orderA = typeof a.displayOrder === 'number' ? a.displayOrder : 999999;
-    const orderB = typeof b.displayOrder === 'number' ? b.displayOrder : 999999;
-    return orderA - orderB;
-  });
-
   if (filteredVehicles.length === 0) {
     grid.innerHTML = `
       <div class="no-results" id="no-results-msg" style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
@@ -558,19 +551,29 @@ async function loadHeroCarousel() {
  */
 async function loadTestimonials() {
   const container = document.getElementById("testimonials-grid");
+  const section = document.getElementById("testimonials-section");
+  const navLink = document.getElementById("nav-testimonials-link");
+
   if (!container) return;
 
   try {
     const res = await apiRequest("/api/v1/public/testimonials");
-    if (!res.ok) return;
+    if (!res.ok) {
+      if (section) section.style.display = "none";
+      if (navLink) navLink.style.display = "none";
+      return;
+    }
     const payload = await res.json();
     if (!payload.success || !Array.isArray(payload.data) || payload.data.length === 0) {
-      const section = document.getElementById("testimonials-section");
       if (section) section.style.display = "none";
+      if (navLink) navLink.style.display = "none";
       return;
     }
 
     const items = payload.data;
+    if (section) section.style.display = "block";
+    if (navLink) navLink.style.display = "inline-block";
+
     container.innerHTML = items.map(t => {
       const rating = t.rating || 5;
       const stars = "★".repeat(rating) + "☆".repeat(Math.max(0, 5 - rating));
