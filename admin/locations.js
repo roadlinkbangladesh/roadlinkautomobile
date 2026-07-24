@@ -9,6 +9,8 @@ import { hasPermission } from "./auth.js";
 
 let locationsData = [];
 let isSubmitting = false;
+let locationsEventsBound = false;
+let isDeletingLoc = false;
 
 /**
  * Initializes the Business Locations view
@@ -19,9 +21,11 @@ export async function initLocationsView() {
 }
 
 /**
- * Binds DOM event listeners for locations view
+ * Binds DOM event listeners for locations view (ensured to run only once)
  */
 function bindLocationsEvents() {
+  if (locationsEventsBound) return;
+
   const btnAdd = $("btn-add-location");
   if (btnAdd) {
     btnAdd.onclick = () => openLocationModal();
@@ -41,6 +45,44 @@ function bindLocationsEvents() {
   if (form) {
     form.onsubmit = handleLocationFormSubmit;
   }
+
+  // Bind event delegation on table body ONCE
+  const tbody = $("locations-table-body");
+  if (tbody) {
+    tbody.addEventListener("click", (e) => {
+      const btnOrderUp = e.target.closest(".btn-order-up");
+      if (btnOrderUp) {
+        moveLocationOrder(btnOrderUp.dataset.id, -1);
+        return;
+      }
+
+      const btnOrderDown = e.target.closest(".btn-order-down");
+      if (btnOrderDown) {
+        moveLocationOrder(btnOrderDown.dataset.id, 1);
+        return;
+      }
+
+      const btnDefault = e.target.closest(".btn-make-default");
+      if (btnDefault) {
+        handleSetDefault(btnDefault.dataset.id);
+        return;
+      }
+
+      const btnEdit = e.target.closest(".btn-edit-loc");
+      if (btnEdit) {
+        editLocation(btnEdit.dataset.id);
+        return;
+      }
+
+      const btnDelete = e.target.closest(".btn-delete-loc");
+      if (btnDelete && !btnDelete.disabled) {
+        handleDeleteLocation(btnDelete.dataset.id);
+        return;
+      }
+    });
+  }
+
+  locationsEventsBound = true;
 }
 
 /**
@@ -181,39 +223,6 @@ function renderLocationsTable(locations) {
       </tr>
     `;
   }).join('');
-
-  // Event delegation on table body for all row actions
-  tbody.addEventListener("click", (e) => {
-    const btnOrderUp = e.target.closest(".btn-order-up");
-    if (btnOrderUp) {
-      moveLocationOrder(btnOrderUp.dataset.id, -1);
-      return;
-    }
-
-    const btnOrderDown = e.target.closest(".btn-order-down");
-    if (btnOrderDown) {
-      moveLocationOrder(btnOrderDown.dataset.id, 1);
-      return;
-    }
-
-    const btnDefault = e.target.closest(".btn-make-default");
-    if (btnDefault) {
-      handleSetDefault(btnDefault.dataset.id);
-      return;
-    }
-
-    const btnEdit = e.target.closest(".btn-edit-loc");
-    if (btnEdit) {
-      editLocation(btnEdit.dataset.id);
-      return;
-    }
-
-    const btnDelete = e.target.closest(".btn-delete-loc");
-    if (btnDelete && !btnDelete.disabled) {
-      handleDeleteLocation(btnDelete.dataset.id);
-      return;
-    }
-  });
 }
 
 /**
@@ -443,6 +452,8 @@ async function handleSetDefault(id) {
  * Handles soft deleting a location
  */
 async function handleDeleteLocation(id) {
+  if (isDeletingLoc) return;
+
   const loc = locationsData.find(l => String(l.id) === String(id));
   if (!loc) return;
 
@@ -460,6 +471,8 @@ async function handleDeleteLocation(id) {
     return;
   }
 
+  isDeletingLoc = true;
+
   try {
     const response = await apiFetch(`/api/v1/admin/locations/${id}`, {
       method: "DELETE"
@@ -472,5 +485,7 @@ async function handleDeleteLocation(id) {
   } catch (error) {
     console.error("Delete location error:", error);
     alert(error.message || "Failed to delete location.");
+  } finally {
+    isDeletingLoc = false;
   }
 }
