@@ -424,9 +424,15 @@ export function renderVehicleTable() {
 
     const isFeatured = v.featured === true || v.isFeatured === true || v.is_featured === 1;
     const featuredPos = v.featuredPosition || v.featured_position || 0;
-    const featuredBadge = isFeatured
-      ? `<span class="badge" style="background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;">★ Rank ${featuredPos > 0 ? featuredPos : "—"}</span>`
-      : `<span style="color: var(--text-muted); font-size: 0.85rem;">—</span>`;
+    const featuredControls = `
+      <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
+        <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer; margin: 0; font-size: 0.8rem; font-weight: 600; color: var(--text-dark);">
+          <input type="checkbox" class="chk-featured-inline" data-id="${v.id}" ${isFeatured ? 'checked' : ''} style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary-blue);">
+          <span>Featured</span>
+        </label>
+        <input type="number" class="input-featured-pos-inline" data-id="${v.id}" min="1" max="9" value="${featuredPos > 0 ? featuredPos : ''}" placeholder="#" ${!isFeatured ? 'disabled' : ''} title="Featured Rank (1-9)" style="width: 48px; padding: 3px 6px; font-size: 0.8rem; font-weight: 700; border: 1px solid var(--border-color); border-radius: var(--radius-sm); text-align: center; ${!isFeatured ? 'opacity: 0.4; cursor: not-allowed; background: var(--bg-light);' : 'background: #ffffff; color: var(--text-dark);'}">
+      </div>
+    `;
 
     row.innerHTML = `
       <td>
@@ -441,7 +447,7 @@ export function renderVehicleTable() {
         </span>
       </td>
       <td>
-        ${featuredBadge}
+        ${featuredControls}
       </td>
       <td>
         <span class="badge" style="padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; ${publishedStyle}">
