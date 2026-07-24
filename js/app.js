@@ -5,6 +5,7 @@
 
 import { getSettings } from "./settings-loader.js";
 import { getAllVehicles, loadVehiclesAsync } from "./inventory.js";
+import { apiRequest, getPublicFileUrl } from "./shared/api.js";
 
 /**
  * Maps a standard vehicle object to the presentation format expected by the home page.
@@ -55,6 +56,10 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
 
     // Load vehicles from API
     await loadVehiclesAsync();
+
+    // Load dynamic carousel & testimonials
+    loadHeroCarousel();
+    loadTestimonials();
 
     // Load and render vehicles grid
     renderVehicles('all');
@@ -463,4 +468,131 @@ function initAnchorNavigation() {
       }
     }
   });
+}
+
+/**
+ * Loads dynamic hero carousel slides from public API
+ */
+async function loadHeroCarousel() {
+  try {
+    const res = await apiRequest("/api/v1/public/carousel");
+    if (!res.ok) return;
+    const payload = await res.json();
+    if (!payload.success || !Array.isArray(payload.data) || payload.data.length === 0) return;
+
+    const slides = payload.data;
+    let currentIndex = 0;
+
+    const heroImg = document.getElementById("hero-bg-img");
+    const badgeText = document.getElementById("hero-badge-text");
+    const titleText = document.getElementById("hero-title-text");
+    const descText = document.getElementById("hero-desc-text");
+    const indicators = document.getElementById("hero-carousel-indicators");
+
+    if (!heroImg || !indicators) return;
+
+    indicators.innerHTML = slides.map((s, idx) => `
+      <button class="carousel-dot ${idx === 0 ? 'active' : ''}" data-index="${idx}" aria-label="Slide ${idx + 1}" style="
+        width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; background: ${idx === 0 ? 'white' : 'transparent'}; cursor: pointer; padding: 0;
+      "></button>
+    `).join("");
+
+    const updateSlide = (idx) => {
+      currentIndex = idx;
+      const slide = slides[idx];
+
+      if (heroImg && slide.imageUrl) {
+        heroImg.src = getPublicFileUrl(slide.imageUrl);
+      }
+      if (badgeText && slide.badgeText) {
+        badgeText.textContent = slide.badgeText;
+      }
+      if (titleText && slide.heading) {
+        titleText.innerHTML = slide.heading;
+      }
+      if (descText && slide.subheading) {
+        descText.textContent = slide.subheading;
+      }
+
+      indicators.querySelectorAll(".carousel-dot").forEach((dot, dIdx) => {
+        dot.style.background = dIdx === idx ? "white" : "transparent";
+      });
+    };
+
+    updateSlide(0);
+
+    indicators.querySelectorAll(".carousel-dot").forEach(dot => {
+      dot.addEventListener("click", () => {
+        const idx = parseInt(dot.dataset.index, 10);
+        updateSlide(idx);
+      });
+    });
+
+    if (slides.length > 1) {
+      setInterval(() => {
+        const nextIdx = (currentIndex + 1) % slides.length;
+        updateSlide(nextIdx);
+      }, 5000);
+    }
+  } catch (err) {
+    console.error("Failed to load hero carousel:", err);
+  }
+}
+
+/**
+ * Loads dynamic testimonials from public API
+ */
+async function loadTestimonials() {
+  const container = document.getElementById("testimonials-grid");
+  if (!container) return;
+
+  try {
+    const res = await apiRequest("/api/v1/public/testimonials");
+    if (!res.ok) return;
+    const payload = await res.json();
+    if (!payload.success || !Array.isArray(payload.data) || payload.data.length === 0) {
+      const section = document.getElementById("testimonials-section");
+      if (section) section.style.display = "none";
+      return;
+    }
+
+    const items = payload.data;
+    container.innerHTML = items.map(t => {
+      const rating = t.rating || 5;
+      const stars = "★".repeat(rating) + "☆".repeat(Math.max(0, 5 - rating));
+
+      return `
+        <div class="testimonial-card" style="
+          background: var(--bg-white, #FFFFFF); 
+          padding: 24px; 
+          border-radius: var(--radius-md, 8px); 
+          border: 1px solid var(--border-color, #E2E8F0); 
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        ">
+          <div>
+            <div style="color: #F59E0B; font-size: 1.1rem; margin-bottom: 12px;">${stars}</div>
+            <p style="font-size: 0.95rem; color: var(--text-dark, #1E293B); line-height: 1.6; font-style: italic; margin-bottom: 16px;">
+              "${t.testimonialText}"
+            </p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px; margin-top: auto;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary-blue, #1B365D); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem;">
+              ${t.customerName ? t.customerName.charAt(0).toUpperCase() : 'C'}
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 0.9rem; color: var(--primary-blue, #1B365D);">${t.customerName}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted, #64748B);">Verified Buyer</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  } catch (err) {
+    console.error("Failed to load testimonials:", err);
+    const section = document.getElementById("testimonials-section");
+    if (section) section.style.display = "none";
+  }
 }
