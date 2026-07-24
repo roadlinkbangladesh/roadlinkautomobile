@@ -97,6 +97,7 @@
         <a href="#hero-section" class="nav-link active">Home</a>
         <a href="#featured-section" class="nav-link">Stock</a>
         <a href="#why-choose-us-section" class="nav-link">About</a>
+        <a href="#testimonials-section" class="nav-link" id="nav-testimonials-link" style="display: none;">Testimonials</a>
         <a href="#location-section" class="nav-link">Contact</a>
         <a href="https://wa.me/8801311503840" target="_blank" class="nav-cta">Inquire Now</a>
       </nav>
@@ -107,19 +108,19 @@
 
     <!-- 1. HERO SECTION -->
     <section id="hero-section">
-      <div class="hero-background">
+      <div class="hero-background" id="hero-background-wrapper">
         <!-- Premium dark showroom/road backdrop image for automobiles -->
-        <img src="./assets/hero.jpg" alt="Premium Japanese SUV headlights inside a showroom" class="hero-bg-img">
+        <img src="./assets/hero.jpg" alt="Premium Japanese SUV headlights inside a showroom" class="hero-bg-img" id="hero-bg-img">
       </div>
       <div class="hero-glow"></div>
       
       <div class="container hero-container">
-        <div class="hero-content">
-          <span class="hero-badge">Verified Imports Direct From Japan</span>
-          <h1 class="hero-title">
+        <div class="hero-content" id="hero-content-box">
+          <span class="hero-badge" id="hero-badge-text">Verified Imports Direct From Japan</span>
+          <h1 class="hero-title" id="hero-title-text">
             Your Gateway to Premium <span>Japanese Cars</span> in Bangladesh
           </h1>
-          <p class="hero-desc">
+          <p class="hero-desc" id="hero-desc-text">
             Roadlink Automobiles is Bangladesh's premier importer and seller of premium Japanese reconditioned vehicles. We handpick, rigorously inspect, and deliver high-performance, showroom-condition vehicles with guaranteed auction grades and transparent mileage sheets.
           </p>
           <div class="hero-ctas">
@@ -146,6 +147,8 @@
           </div>
         </div>
       </div>
+      <!-- Carousel Indicators (injected if carousel slides exist) -->
+      <div id="hero-carousel-indicators" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; gap: 8px;"></div>
     </section>
 
     <!-- 2. FEATURED VEHICLES SECTION -->
@@ -237,6 +240,21 @@
             <h3 class="why-title">Trusted Importer</h3>
             <p class="why-desc">Years of dedicated, transparent service has made us a landmark for quality reconditioned automobiles in the Fakirerpool and Dhaka circles.</p>
           </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3.5. CUSTOMER TESTIMONIALS SECTION -->
+    <section id="testimonials-section" style="padding: 60px 0; background: var(--bg-light, #F8FAFC); border-top: 1px solid var(--border-color, #E2E8F0); border-bottom: 1px solid var(--border-color, #E2E8F0);">
+      <div class="container">
+        <div style="text-align: center; margin-bottom: 40px;">
+          <span class="section-tag" style="background: rgba(37, 99, 235, 0.1); color: var(--primary-blue); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">Customer Reviews</span>
+          <h2 class="section-title" style="margin-top: 10px; font-family: var(--font-display); color: var(--primary-blue); font-size: 2rem;">What Our Clients Say</h2>
+          <p class="section-subtitle" style="color: var(--text-muted); max-width: 600px; margin: 8px auto 0;">Read genuine feedback from satisfied car buyers across Bangladesh.</p>
+        </div>
+
+        <div id="testimonials-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+          <!-- Dynamically populated via app.js -->
         </div>
       </div>
     </section>
