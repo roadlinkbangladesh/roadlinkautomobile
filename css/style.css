@@ -1689,7 +1689,8 @@ section {
   overflow: hidden;
 }
 
-.inventory-hero .hero-bg-wrapper {
+.inventory-hero .hero-bg-wrapper,
+.hero-overlay-wrapper {
   position: absolute;
   top: 0;
   left: 0;
@@ -1698,16 +1699,29 @@ section {
   z-index: 1;
 }
 
+.inventory-hero .hero-bg-wrapper::after,
+.hero-overlay-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(11, 18, 32, 0.45) 0%, rgba(11, 18, 32, 0.72) 100%);
+  z-index: 2;
+  pointer-events: none;
+}
+
 .inventory-hero .hero-bg-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: brightness(0.2) contrast(1.1);
+  filter: brightness(0.85) contrast(1.1) saturate(0.95);
 }
 
 .inventory-hero .hero-container {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   text-align: center;
 }
 
