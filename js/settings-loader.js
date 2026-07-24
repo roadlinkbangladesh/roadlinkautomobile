@@ -3,7 +3,7 @@
  * Integrates with Cloudflare Worker Backend API for public website settings.
  */
 
-import { apiRequest } from "./shared/api.js";
+import { apiRequest, getPublicFileUrl } from "./shared/api.js";
 
 export const DEFAULT_SETTINGS = {
   companyName: "Roadlink Automobiles",
@@ -64,7 +64,8 @@ export async function fetchPublicSettings() {
           youtubeUrl: data.youtube || data.youtubeUrl || DEFAULT_SETTINGS.youtubeUrl,
           seoTitleSuffix: data.seo_title_suffix || data.seoTitleSuffix || DEFAULT_SETTINGS.seoTitleSuffix,
           seoDefaultKeywords: data.seo_default_keywords || data.seoDefaultKeywords || DEFAULT_SETTINGS.seoDefaultKeywords,
-          seoDefaultDescription: data.seo_default_description || data.seoDefaultDescription || DEFAULT_SETTINGS.seoDefaultDescription
+          seoDefaultDescription: data.seo_default_description || data.seoDefaultDescription || DEFAULT_SETTINGS.seoDefaultDescription,
+          stockBannerUrl: data.stock_banner_url || data.stockBannerUrl || null
         };
         hydratePageContacts();
         await fetchPublicLocations();
@@ -415,6 +416,12 @@ export function hydratePageContacts() {
       list.innerHTML = footerItems.join('');
     }
   });
+
+  // Hydrate Stock Page Hero Banner Image if configured
+  const stockBannerImg = document.getElementById("stock-banner-img");
+  if (stockBannerImg && settings.stockBannerUrl) {
+    stockBannerImg.src = getPublicFileUrl(settings.stockBannerUrl);
+  }
 
   // 7. Hydrate Anchor Tags (tel, mailto, wa.me, facebook, youtube)
   document.querySelectorAll("a").forEach(link => {
