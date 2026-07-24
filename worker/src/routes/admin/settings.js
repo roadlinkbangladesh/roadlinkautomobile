@@ -63,32 +63,69 @@ export async function updateSettings(request, env) {
         const phone = showroomPhone || contactPhone || body.phone || "";
         const address = showroomAddress || corporateAddress || body.address || "";
 
-        await env.DB
-            .prepare(`
-                UPDATE settings
-                SET company_name = ?, phone = ?, whatsapp = ?, email = ?, address = ?,
-                    facebook = ?, youtube = ?, display_timezone = ?, display_locale = ?,
-                    default_currency = ?, session_timeout_minutes = ?, archive_retention_days = ?,
-                    seo_title_suffix = ?, seo_default_keywords = ?, seo_default_description = ?,
-                    showroom_address = ?, showroom_phone = ?, show_showroom = ?,
-                    corporate_address = ?, corporate_phone = ?, show_corporate = ?,
-                    contact_name = ?, contact_phone = ?, show_primary_contact = ?,
-                    show_whatsapp = ?, show_email = ?,
-                    updated_at = ?
-                WHERE id = 1
-            `)
-            .bind(
-                companyName, phone, whatsapp, email, address,
-                facebook, youtube, displayTimezone, displayLocale,
-                defaultCurrency, sessionTimeoutMinutes, archiveRetentionDays,
-                seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription,
-                showroomAddress, showroomPhone, showShowroom,
-                corporateAddress, corporatePhone, showCorporate,
-                contactName, contactPhone, showPrimaryContact,
-                showWhatsapp, showEmail,
-                now
-            )
-            .run();
+        const rawCompanySlug = body.company_slug || body.companySlug || "";
+        let companySlug = rawCompanySlug.toString().trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+        if (!companySlug) {
+            companySlug = companyName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "roadlink";
+        }
+
+        // Attempt update with company_slug
+        try {
+            await env.DB
+                .prepare(`
+                    UPDATE settings
+                    SET company_name = ?, company_slug = ?, phone = ?, whatsapp = ?, email = ?, address = ?,
+                        facebook = ?, youtube = ?, display_timezone = ?, display_locale = ?,
+                        default_currency = ?, session_timeout_minutes = ?, archive_retention_days = ?,
+                        seo_title_suffix = ?, seo_default_keywords = ?, seo_default_description = ?,
+                        showroom_address = ?, showroom_phone = ?, show_showroom = ?,
+                        corporate_address = ?, corporate_phone = ?, show_corporate = ?,
+                        contact_name = ?, contact_phone = ?, show_primary_contact = ?,
+                        show_whatsapp = ?, show_email = ?,
+                        updated_at = ?
+                    WHERE id = 1
+                `)
+                .bind(
+                    companyName, companySlug, phone, whatsapp, email, address,
+                    facebook, youtube, displayTimezone, displayLocale,
+                    defaultCurrency, sessionTimeoutMinutes, archiveRetentionDays,
+                    seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription,
+                    showroomAddress, showroomPhone, showShowroom,
+                    corporateAddress, corporatePhone, showCorporate,
+                    contactName, contactPhone, showPrimaryContact,
+                    showWhatsapp, showEmail,
+                    now
+                )
+                .run();
+        } catch (colErr) {
+            // Fallback if company_slug column doesn't exist yet before migration
+            await env.DB
+                .prepare(`
+                    UPDATE settings
+                    SET company_name = ?, phone = ?, whatsapp = ?, email = ?, address = ?,
+                        facebook = ?, youtube = ?, display_timezone = ?, display_locale = ?,
+                        default_currency = ?, session_timeout_minutes = ?, archive_retention_days = ?,
+                        seo_title_suffix = ?, seo_default_keywords = ?, seo_default_description = ?,
+                        showroom_address = ?, showroom_phone = ?, show_showroom = ?,
+                        corporate_address = ?, corporate_phone = ?, show_corporate = ?,
+                        contact_name = ?, contact_phone = ?, show_primary_contact = ?,
+                        show_whatsapp = ?, show_email = ?,
+                        updated_at = ?
+                    WHERE id = 1
+                `)
+                .bind(
+                    companyName, phone, whatsapp, email, address,
+                    facebook, youtube, displayTimezone, displayLocale,
+                    defaultCurrency, sessionTimeoutMinutes, archiveRetentionDays,
+                    seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription,
+                    showroomAddress, showroomPhone, showShowroom,
+                    corporateAddress, corporatePhone, showCorporate,
+                    contactName, contactPhone, showPrimaryContact,
+                    showWhatsapp, showEmail,
+                    now
+                )
+                .run();
+        }
 
         await logAudit(env, {
             actingUserId: auth.user.id,
