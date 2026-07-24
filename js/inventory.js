@@ -351,16 +351,28 @@ export async function updateVehicleStatusAsync(id, statusData) {
 /**
  * Uploads a file (image or PDF) to R2 via POST /api/v1/admin/upload.
  * @param {File} file - The file object to upload
- * @param {string} [stockNumber=""] - Optional vehicle stock number context for folder structure
+ * @param {string} [stockNumber=""] - Optional vehicle stock number or upload category context
+ * @param {string} [category=""] - Explicit category override (e.g. 'carousel', 'logo', 'branding', 'documents')
  */
-export async function uploadFileAsync(file, stockNumber = "") {
+export async function uploadFileAsync(file, stockNumber = "", category = "") {
   const token = getToken();
   if (!token) throw new Error("Unauthorized: Admin login token required.");
 
   const formData = new FormData();
   formData.append("file", file);
-  if (stockNumber) {
-    formData.append("stockNumber", stockNumber);
+
+  const recognizedCategories = ["carousel", "branding", "logo", "favicon", "hero", "documents", "document", "interior", "exterior"];
+
+  if (category) {
+    formData.append("category", category);
+    if (stockNumber) formData.append("stockNumber", stockNumber);
+  } else if (stockNumber) {
+    const cleanStock = String(stockNumber).toLowerCase().trim();
+    if (recognizedCategories.includes(cleanStock)) {
+      formData.append("category", cleanStock);
+    } else {
+      formData.append("stockNumber", stockNumber);
+    }
   }
 
   const response = await apiRequest("/api/v1/admin/upload", {
