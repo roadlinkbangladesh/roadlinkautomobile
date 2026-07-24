@@ -41,9 +41,15 @@ function mapVehicleToHomeFormat(v) {
  * Gets mapped home page featured vehicles from the shared inventory.
  */
 function getHomeVehicles() {
-  return getAllVehicles()
-    .filter(v => v.published !== false && v.featured === true && v.status !== 'draft')
+  const settings = getSettings();
+  const rawLimit = settings?.featuredVehiclesLimit ?? settings?.featured_vehicles_limit ?? 6;
+  const limit = Math.min(9, Math.max(1, parseInt(rawLimit, 10) || 6));
+
+  const items = getAllVehicles()
+    .filter(v => v.published !== false && (v.featured === true || v.isFeatured === true) && v.status?.toLowerCase() !== 'draft')
     .map(mapVehicleToHomeFormat);
+
+  return items.slice(0, limit);
 }
 
 if (typeof window !== "undefined" && typeof document !== "undefined") {
