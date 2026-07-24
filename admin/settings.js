@@ -7,6 +7,10 @@ import { getToken, clearToken, hasPermission } from "./auth.js";
 import { showLoginView } from "./ui.js";
 import { $, apiFetch } from "./utils.js";
 import { initLocationsView } from "./locations.js";
+import { initCarouselView } from "./carousel.js";
+import { initTestimonialsView } from "./testimonials.js";
+import { uploadFileAsync } from "../js/inventory.js";
+import { getPublicFileUrl } from "../js/shared/api.js";
 
 let settingsEventsBound = false;
 let activeSubtab = "company";
@@ -22,8 +26,10 @@ const SYSTEM_DEFAULTS = {
   displayTimezone: "Asia/Dhaka",
   displayLocale: "en-BD",
   defaultCurrency: "BDT",
-  sessionTimeoutMinutes: 30,
-  archiveRetentionDays: 180,
+  featuredVehiclesLimit: 6,
+  showSoldVehicles: true,
+  companyLogoUrl: "",
+  faviconUrl: "",
   seoTitleSuffix: "Roadlink Automobiles",
   seoDefaultKeywords: "Japanese cars, reconditioned cars, Dhaka car importer, Toyota Axio, Honda Vezel, Nissan X-Trail, Roadlink Automobiles Bangladesh",
   seoDefaultDescription: "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock."
@@ -47,43 +53,65 @@ export function initSettingsView(subtab = "company") {
 }
 
 /**
- * Switches between Company Profile and Business Locations sub-tabs
+ * Switches between sub-tabs: company, locations, carousel, testimonials
  */
 export function switchSubtab(tabName) {
   activeSubtab = tabName;
   const companyBtn = $("tab-btn-company-profile");
   const locationsBtn = $("tab-btn-locations");
+  const carouselBtn = $("tab-btn-carousel");
+  const testimonialsBtn = $("tab-btn-testimonials");
+
   const companyContent = $("settings-company-tab-content");
   const locationsContent = $("settings-locations-tab-content");
+  const carouselContent = $("settings-carousel-tab-content");
+  const testimonialsContent = $("settings-testimonials-tab-content");
+
+  const buttons = [companyBtn, locationsBtn, carouselBtn, testimonialsBtn];
+  const contents = [companyContent, locationsContent, carouselContent, testimonialsContent];
+
+  buttons.forEach(btn => {
+    if (btn) {
+      btn.classList.remove("active");
+      btn.style.borderBottomColor = "transparent";
+      btn.style.color = "var(--text-muted)";
+    }
+  });
+
+  contents.forEach(cnt => {
+    if (cnt) cnt.style.display = "none";
+  });
 
   if (tabName === "locations") {
-    if (companyBtn) {
-      companyBtn.classList.remove("active");
-      companyBtn.style.borderBottomColor = "transparent";
-      companyBtn.style.color = "var(--text-muted)";
-    }
     if (locationsBtn) {
       locationsBtn.classList.add("active");
       locationsBtn.style.borderBottomColor = "var(--primary-blue)";
       locationsBtn.style.color = "var(--primary-blue)";
     }
-    if (companyContent) companyContent.style.display = "none";
     if (locationsContent) locationsContent.style.display = "block";
-    
-    // Initialize Locations view
     initLocationsView();
-  } else {
-    if (locationsBtn) {
-      locationsBtn.classList.remove("active");
-      locationsBtn.style.borderBottomColor = "transparent";
-      locationsBtn.style.color = "var(--text-muted)";
+  } else if (tabName === "carousel") {
+    if (carouselBtn) {
+      carouselBtn.classList.add("active");
+      carouselBtn.style.borderBottomColor = "var(--primary-blue)";
+      carouselBtn.style.color = "var(--primary-blue)";
     }
+    if (carouselContent) carouselContent.style.display = "block";
+    initCarouselView();
+  } else if (tabName === "testimonials") {
+    if (testimonialsBtn) {
+      testimonialsBtn.classList.add("active");
+      testimonialsBtn.style.borderBottomColor = "var(--primary-blue)";
+      testimonialsBtn.style.color = "var(--primary-blue)";
+    }
+    if (testimonialsContent) testimonialsContent.style.display = "block";
+    initTestimonialsView();
+  } else {
     if (companyBtn) {
       companyBtn.classList.add("active");
       companyBtn.style.borderBottomColor = "var(--primary-blue)";
       companyBtn.style.color = "var(--primary-blue)";
     }
-    if (locationsContent) locationsContent.style.display = "none";
     if (companyContent) companyContent.style.display = "block";
   }
 }
@@ -187,6 +215,12 @@ function populateForm(data) {
   const seoKeywordsField = $("set-seo-keywords");
   const seoDescField = $("set-seo-desc");
 
+  // Featured & Branding
+  const featuredLimitField = $("set-featured-vehicles-limit");
+  const showSoldCheck = $("set-show-sold-vehicles");
+  const logoUrlField = $("set-logo-url");
+  const faviconUrlField = $("set-favicon-url");
+
   // System settings
   const displayTimezoneField = $("set-display-timezone");
   const displayLocaleField = $("set-display-locale");
@@ -225,9 +259,35 @@ function populateForm(data) {
   if (seoKeywordsField) seoKeywordsField.value = data.seoDefaultKeywords || data.seo_default_keywords || "";
   if (seoDescField) seoDescField.value = data.seoDefaultDescription || data.seo_default_description || "";
 
+  // Featured & Branding
+  if (featuredLimitField) featuredLimitField.value = data.featuredVehiclesLimit ?? data.featured_vehicles_limit ?? 6;
+  if (showSoldCheck) showSoldCheck.checked = (data.showSoldVehicles ?? data.show_sold_vehicles ?? 1) == 1;
+
+  if (logoUrlField) {
+    logoUrlField.value = data.companyLogoUrl || data.company_logo_url || "";
+    updateBrandingPreview("logo", logoUrlField.value);
+  }
+  if (faviconUrlField) {
+    faviconUrlField.value = data.faviconUrl || data.favicon_url || "";
+    updateBrandingPreview("favicon", faviconUrlField.value);
+  }
+
   if (displayTimezoneField) displayTimezoneField.value = data.displayTimezone || data.display_timezone || "Asia/Dhaka";
   if (displayLocaleField) displayLocaleField.value = data.displayLocale || data.display_locale || "en-BD";
   if (defaultCurrencyField) defaultCurrencyField.value = data.defaultCurrency || data.default_currency || "BDT";
+}
+
+function updateBrandingPreview(type, key) {
+  const container = $(type === "logo" ? "logo-preview-container" : "favicon-preview-container");
+  const img = $(type === "logo" ? "logo-preview-img" : "favicon-preview-img");
+  if (container && img) {
+    if (key) {
+      img.src = getPublicFileUrl(key);
+      container.style.display = "block";
+    } else {
+      container.style.display = "none";
+    }
+  }
 }
 
 /**
@@ -313,6 +373,11 @@ async function handleSettingsSubmit(e) {
   const seoDefaultKeywords = $("set-seo-keywords")?.value || "";
   const seoDefaultDescription = $("set-seo-desc")?.value || "";
 
+  const featuredVehiclesLimit = parseInt($("set-featured-vehicles-limit")?.value || "6", 10);
+  const showSoldVehicles = $("set-show-sold-vehicles")?.checked ?? true;
+  const companyLogoUrl = $("set-logo-url")?.value || "";
+  const faviconUrl = $("set-favicon-url")?.value || "";
+
   if (!companyName) {
     if (errorAlert) {
       errorAlert.textContent = "Please fill in all required fields marked with *.";
@@ -338,7 +403,9 @@ async function handleSettingsSubmit(e) {
         email, showEmail,
         facebookUrl, youtubeUrl, displayTimezone, displayLocale,
         defaultCurrency,
-        seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription
+        seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription,
+        featuredVehiclesLimit, showSoldVehicles,
+        companyLogoUrl, faviconUrl
       })
     });
 
@@ -357,7 +424,9 @@ async function handleSettingsSubmit(e) {
           email, showEmail,
           facebookUrl, youtubeUrl, displayTimezone, displayLocale,
           defaultCurrency,
-          seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription
+          seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription,
+          featuredVehiclesLimit, showSoldVehicles,
+          companyLogoUrl, faviconUrl
         };
       }
       if (successAlert) {
@@ -393,6 +462,34 @@ function handleResetClick(e) {
   }
 }
 
+async function handleBrandingFileUpload(type, fileInput) {
+  const file = fileInput.files && fileInput.files[0];
+  if (!file) return;
+
+  const btnUpload = $(type === "logo" ? "btn-upload-logo" : "btn-upload-favicon");
+  if (btnUpload) {
+    btnUpload.disabled = true;
+    btnUpload.textContent = "Uploading...";
+  }
+
+  try {
+    const uploadedKey = await uploadFileAsync(file, "branding");
+    const urlInput = $(type === "logo" ? "set-logo-url" : "set-favicon-url");
+    if (urlInput) {
+      urlInput.value = uploadedKey;
+    }
+    updateBrandingPreview(type, uploadedKey);
+  } catch (err) {
+    alert(`Upload failed for ${type}: ` + err.message);
+  } finally {
+    if (btnUpload) {
+      btnUpload.disabled = false;
+      btnUpload.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg><span>Upload ${type === "logo" ? "Logo" : "Favicon"}</span>`;
+    }
+    fileInput.value = "";
+  }
+}
+
 /**
  * Binds Settings panel interactive triggers and form submissions.
  */
@@ -403,12 +500,27 @@ function bindSettingsEvents() {
 
   const companyTabBtn = $("tab-btn-company-profile");
   const locationsTabBtn = $("tab-btn-locations");
+  const carouselTabBtn = $("tab-btn-carousel");
+  const testimonialsTabBtn = $("tab-btn-testimonials");
 
-  if (companyTabBtn) {
-    companyTabBtn.addEventListener("click", () => switchSubtab("company"));
+  if (companyTabBtn) companyTabBtn.addEventListener("click", () => switchSubtab("company"));
+  if (locationsTabBtn) locationsTabBtn.addEventListener("click", () => switchSubtab("locations"));
+  if (carouselTabBtn) carouselTabBtn.addEventListener("click", () => switchSubtab("carousel"));
+  if (testimonialsTabBtn) testimonialsTabBtn.addEventListener("click", () => switchSubtab("testimonials"));
+
+  // Branding asset uploads
+  const btnUploadLogo = $("btn-upload-logo");
+  const logoFileInput = $("set-logo-file-input");
+  if (btnUploadLogo && logoFileInput) {
+    btnUploadLogo.onclick = () => logoFileInput.click();
+    logoFileInput.onchange = () => handleBrandingFileUpload("logo", logoFileInput);
   }
-  if (locationsTabBtn) {
-    locationsTabBtn.addEventListener("click", () => switchSubtab("locations"));
+
+  const btnUploadFavicon = $("btn-upload-favicon");
+  const faviconFileInput = $("set-favicon-file-input");
+  if (btnUploadFavicon && faviconFileInput) {
+    btnUploadFavicon.onclick = () => faviconFileInput.click();
+    faviconFileInput.onchange = () => handleBrandingFileUpload("favicon", faviconFileInput);
   }
 
   if (form) {

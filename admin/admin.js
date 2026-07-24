@@ -57,6 +57,20 @@ async function init() {
     init: () => initSettingsView("locations")
   });
 
+  navigationController.registerModule("carousel", {
+    panelId: "settings-view-panel",
+    btnId: "nav-item-settings",
+    title: "Homepage Carousel",
+    init: () => initSettingsView("carousel")
+  });
+
+  navigationController.registerModule("testimonials", {
+    panelId: "settings-view-panel",
+    btnId: "nav-item-settings",
+    title: "Customer Testimonials",
+    init: () => initSettingsView("testimonials")
+  });
+
   navigationController.registerModule("users", {
     panelId: "users-view-panel",
     btnId: "nav-item-users",

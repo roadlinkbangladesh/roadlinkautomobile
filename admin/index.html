@@ -331,14 +331,22 @@
               </div>
 
               <!-- Sub-navigation Tabs -->
-              <div class="settings-subtabs" style="display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 24px;">
-                <button type="button" id="tab-btn-company-profile" class="btn-settings-subtab active" style="padding: 10px 20px; font-weight: 600; font-size: 0.95rem; background: none; border: none; border-bottom: 3px solid var(--primary-blue); color: var(--primary-blue); cursor: pointer; display: flex; align-items: center; gap: 8px;">
+              <div class="settings-subtabs" style="display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 24px; flex-wrap: wrap;">
+                <button type="button" id="tab-btn-company-profile" class="btn-settings-subtab active" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid var(--primary-blue); color: var(--primary-blue); cursor: pointer; display: flex; align-items: center; gap: 6px;">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-building-2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
                   <span>Company Profile</span>
                 </button>
-                <button type="button" id="tab-btn-locations" class="btn-settings-subtab" style="padding: 10px 20px; font-weight: 600; font-size: 0.95rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <button type="button" id="tab-btn-locations" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
                   <span>Business Locations</span>
+                </button>
+                <button type="button" id="tab-btn-carousel" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-images"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                  <span>Homepage Carousel</span>
+                </button>
+                <button type="button" id="tab-btn-testimonials" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square-quote"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 12a2 2 0 0 0 2-2V8H8"/><path d="M14 12a2 2 0 0 0 2-2V8h-2"/></svg>
+                  <span>Testimonials</span>
                 </button>
               </div>
 
@@ -436,7 +444,58 @@
                     </div>
                   </div>
 
-                  <!-- CARD 3: Other Settings -->
+                  <!-- CARD 3: Inventory & Featured Vehicles Rules -->
+                  <div class="settings-section-card">
+                    <h3 class="settings-section-title">Featured Vehicles & Public Inventory Settings</h3>
+                    <div class="form-group">
+                      <label for="set-featured-vehicles-limit">Featured Vehicles Limit on Homepage (1 - 9) *</label>
+                      <input type="number" id="set-featured-vehicles-limit" min="1" max="9" placeholder="6" required>
+                    </div>
+                    <div class="form-group form-group-checkbox" style="margin-top: 16px;">
+                      <input type="checkbox" id="set-show-sold-vehicles" checked>
+                      <label for="set-show-sold-vehicles">Show Sold Vehicles on Public Stock Page</label>
+                    </div>
+                  </div>
+
+                  <!-- CARD 4: Company Branding Assets -->
+                  <div class="settings-section-card">
+                    <h3 class="settings-section-title">Company Branding Assets</h3>
+                    
+                    <!-- Logo Upload -->
+                    <div class="form-group">
+                      <label for="set-logo-url">Company Logo URL / Object Key</label>
+                      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="set-logo-url" placeholder="e.g. uploads/.../branding/logo.png" style="flex: 1; min-width: 200px;">
+                        <input type="file" id="set-logo-file-input" accept="image/*" style="display: none;" aria-label="Upload logo">
+                        <button type="button" id="btn-upload-logo" class="btn btn-view-site" style="width: auto; margin: 0; padding: 10px 14px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                          <span>Upload Logo</span>
+                        </button>
+                      </div>
+                      <div id="logo-preview-container" style="margin-top: 8px; display: none;">
+                        <img id="logo-preview-img" src="" alt="Logo Preview" style="max-height: 48px; object-fit: contain; background: #f1f5f9; padding: 4px; border-radius: 4px; border: 1px solid var(--border-color);">
+                      </div>
+                    </div>
+
+                    <!-- Favicon Upload -->
+                    <div class="form-group">
+                      <label for="set-favicon-url">Favicon Icon URL / Object Key</label>
+                      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="set-favicon-url" placeholder="e.g. uploads/.../branding/favicon.png" style="flex: 1; min-width: 200px;">
+                        <input type="file" id="set-favicon-file-input" accept="image/*,.ico" style="display: none;" aria-label="Upload favicon">
+                        <button type="button" id="btn-upload-favicon" class="btn btn-view-site" style="width: auto; margin: 0; padding: 10px 14px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                          <span>Upload Favicon</span>
+                        </button>
+                      </div>
+                      <div id="favicon-preview-container" style="margin-top: 8px; display: none;">
+                        <img id="favicon-preview-img" src="" alt="Favicon Preview" style="max-height: 32px; width: 32px; object-fit: contain; background: #f1f5f9; padding: 2px; border-radius: 4px; border: 1px solid var(--border-color);">
+                      </div>
+                    </div>
+
+                  </div>
+
+                  <!-- CARD 5: Other Settings -->
                   <div class="settings-section-card">
                     <h3 class="settings-section-title">Other Settings</h3>
                     <div class="form-group">
@@ -503,6 +562,74 @@
                     </thead>
                     <tbody id="locations-table-body">
                       <!-- Injected via locations.js -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 3: HOMEPAGE CAROUSEL CONTENT -->
+            <div id="settings-carousel-tab-content" style="display: none;">
+              <div class="view-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                  <h3 style="margin: 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: var(--text-heading);">Homepage Carousel Slides</h3>
+                  <p class="view-subtitle" style="margin-bottom: 0;">Manage hero banners, background images, titles, subtitles, call-to-action buttons, and slide sequence.</p>
+                </div>
+                <button id="btn-add-carousel-slide" class="btn btn-login-submit" style="width: auto; margin-top: 0; padding: 10px 18px; display: inline-flex; align-items: center; gap: 8px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                  <span>Add Carousel Slide</span>
+                </button>
+              </div>
+
+              <div class="card shadow-sm" style="background: var(--bg-white); border-radius: var(--radius-md); border: 1px solid var(--border-color); overflow: hidden;">
+                <div style="padding: 0; overflow-x: auto;">
+                  <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                      <tr style="border-bottom: 1.5px solid var(--border-color); text-align: left; font-size: 0.85rem; color: var(--text-muted); background: var(--bg-neutral);">
+                        <th style="padding: 14px 16px; width: 70px;">Order</th>
+                        <th style="padding: 14px 16px; width: 100px;">Banner</th>
+                        <th style="padding: 14px 16px;">Heading / Badge</th>
+                        <th style="padding: 14px 16px;">Subtitle & Button</th>
+                        <th style="padding: 14px 16px; text-align: center;">Status</th>
+                        <th style="padding: 14px 16px; text-align: right;">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="carousel-table-body">
+                      <!-- Injected via carousel.js -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB 4: TESTIMONIALS CONTENT -->
+            <div id="settings-testimonials-tab-content" style="display: none;">
+              <div class="view-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                  <h3 style="margin: 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: var(--text-heading);">Customer Testimonials</h3>
+                  <p class="view-subtitle" style="margin-bottom: 0;">Manage client feedback, star ratings, buyer designation/vehicle, and homepage display status.</p>
+                </div>
+                <button id="btn-add-testimonial" class="btn btn-login-submit" style="width: auto; margin-top: 0; padding: 10px 18px; display: inline-flex; align-items: center; gap: 8px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+                  <span>Add Testimonial</span>
+                </button>
+              </div>
+
+              <div class="card shadow-sm" style="background: var(--bg-white); border-radius: var(--radius-md); border: 1px solid var(--border-color); overflow: hidden;">
+                <div style="padding: 0; overflow-x: auto;">
+                  <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                      <tr style="border-bottom: 1.5px solid var(--border-color); text-align: left; font-size: 0.85rem; color: var(--text-muted); background: var(--bg-neutral);">
+                        <th style="padding: 14px 16px; width: 70px;">Order</th>
+                        <th style="padding: 14px 16px;">Customer</th>
+                        <th style="padding: 14px 16px;">Rating</th>
+                        <th style="padding: 14px 16px;">Testimonial Text</th>
+                        <th style="padding: 14px 16px; text-align: center;">Status</th>
+                        <th style="padding: 14px 16px; text-align: right;">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="testimonials-table-body">
+                      <!-- Injected via testimonials.js -->
                     </tbody>
                   </table>
                 </div>
@@ -909,6 +1036,14 @@
             <input type="checkbox" id="v-featured" name="featured">
             <label for="v-featured">Mark as Featured Vehicle</label>
           </div>
+          <div class="form-group">
+            <label for="v-featured-position">Featured Position (Order 1-9)</label>
+            <input type="number" id="v-featured-position" name="featuredPosition" min="1" max="9" placeholder="e.g. 1">
+          </div>
+          <div class="form-group form-group-checkbox">
+            <input type="checkbox" id="v-new-arrival" name="isNewArrival">
+            <label for="v-new-arrival">New Arrival Badge</label>
+          </div>
           <div class="form-group form-group-checkbox">
             <input type="checkbox" id="v-published" name="published">
             <label for="v-published">Publish to Public Portal</label>
@@ -1045,7 +1180,7 @@
           </div>
           <div class="form-group form-group-checkbox" style="margin-top: 28px;">
             <input type="checkbox" id="v-auction-sheet-available" name="auctionSheetAvailable">
-            <label for="v-auction-sheet-available">Auction Sheet is Available & Verified</label>
+            <label for="v-auction-sheet-available">Enable Auction Sheet in Public Site</label>
           </div>
 
           <!-- SECTION 6: VEHICLE IMAGES -->
@@ -1525,6 +1660,148 @@
       <div style="background-color: var(--bg-light); border-radius: var(--radius-sm); border: 1px solid var(--border-color); overflow: hidden; display: flex; align-items: center; justify-content: center; min-height: 250px; max-height: 480px;">
         <img id="preview-modal-img" src="" alt="Vehicle Preview" style="width: 100%; height: auto; max-height: 480px; object-fit: contain;" referrerpolicy="no-referrer">
       </div>
+    </div>
+  </div>
+
+  <!-- HOMEPAGE CAROUSEL SLIDE ADD/EDIT MODAL -->
+  <div class="modal-overlay" id="carousel-modal" style="display: none;">
+    <div class="modal-card" style="max-width: 650px; padding: 24px; border-radius: var(--radius-md); text-align: left; background: var(--bg-white);">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px;">
+        <h3 id="carousel-modal-title" style="margin: 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: var(--text-dark);">Add Carousel Slide</h3>
+        <button class="btn-modal-close" id="btn-close-carousel-modal" aria-label="Close dialog" type="button" style="position: static;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+        </button>
+      </div>
+
+      <form id="carousel-form" novalidate>
+        <input type="hidden" id="car-id-input" value="">
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="car-title" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Heading / Title <span style="color: var(--primary-red);">*</span></label>
+          <input type="text" id="car-title" class="form-control" placeholder="e.g. Premium Reconditioned Japanese Vehicles" required style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="car-subtitle" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Subtitle / Tagline</label>
+          <input type="text" id="car-subtitle" class="form-control" placeholder="e.g. Verified auction sheets, transparent pricing and Dhaka showroom stock." style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="car-badge" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Badge Text (Optional)</label>
+          <input type="text" id="car-badge" class="form-control" placeholder="e.g. New 2026 Imports or Special Clearance" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
+        </div>
+
+        <!-- Banner Image Upload -->
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="car-image-url" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Banner Image Object Key / URL <span style="color: var(--primary-red);">*</span></label>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="car-image-url" class="form-control" placeholder="e.g. uploads/.../carousel/banner1.jpg" required style="flex: 1; min-width: 200px; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
+            <input type="file" id="car-image-file-input" accept="image/*" style="display: none;" aria-label="Upload carousel banner">
+            <button type="button" id="btn-upload-carousel-img" class="btn btn-view-site" style="width: auto; margin: 0; padding: 10px 14px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+              <span>Upload Image</span>
+            </button>
+          </div>
+          <div id="car-preview-container" style="margin-top: 8px; display: none;">
+            <img id="car-preview-img" src="" alt="Banner Preview" style="max-height: 100px; max-width: 100%; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color);">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+          <div class="form-group">
+            <label for="car-btn-text" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Button Label</label>
+            <input type="text" id="car-btn-text" class="form-control" placeholder="e.g. Browse Vehicles" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
+          </div>
+          <div class="form-group">
+            <label for="car-btn-url" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Button Link URL</label>
+            <input type="text" id="car-btn-url" class="form-control" placeholder="e.g. /vehicles or #contact" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+          <div class="form-group">
+            <label for="car-display-order" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Display Order</label>
+            <input type="number" id="car-display-order" class="form-control" placeholder="10" value="10" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
+          </div>
+          <div style="display: flex; align-items: flex-end; padding-bottom: 10px;">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.88rem; font-weight: 600; color: var(--text-dark);">
+              <input type="checkbox" id="car-is-active" checked style="width: 18px; height: 18px; accent-color: var(--primary-blue);">
+              <span>Visible on Homepage</span>
+            </label>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+          <button type="button" id="btn-cancel-carousel" class="btn btn-view-site" style="margin: 0;">Cancel</button>
+          <button type="submit" id="btn-save-carousel" class="btn btn-login-submit" style="width: auto; padding: 10px 24px; margin: 0;">Save Slide</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TESTIMONIAL ADD/EDIT MODAL -->
+  <div class="modal-overlay" id="testimonial-modal" style="display: none;">
+    <div class="modal-card" style="max-width: 650px; padding: 24px; border-radius: var(--radius-md); text-align: left; background: var(--bg-white);">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px;">
+        <h3 id="testimonial-modal-title" style="margin: 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: var(--text-dark);">Add Testimonial</h3>
+        <button class="btn-modal-close" id="btn-close-testimonial-modal" aria-label="Close dialog" type="button" style="position: static;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+        </button>
+      </div>
+
+      <form id="testimonial-form" novalidate>
+        <input type="hidden" id="test-id-input" value="">
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="test-author" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Customer Name <span style="color: var(--primary-red);">*</span></label>
+          <input type="text" id="test-author" class="form-control" placeholder="e.g. Dr. Mahmudul Hasan" required style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+          <div class="form-group">
+            <label for="test-designation" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Designation / Title</label>
+            <input type="text" id="test-designation" class="form-control" placeholder="e.g. Verified Buyer / Business Owner" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
+          </div>
+          <div class="form-group">
+            <label for="test-vehicle-model" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Purchased Vehicle</label>
+            <input type="text" id="test-vehicle-model" class="form-control" placeholder="e.g. Toyota Harrier Z Leather 2021" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="test-rating" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Star Rating (1 to 5) <span style="color: var(--primary-red);">*</span></label>
+          <select id="test-rating" class="form-control" required style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
+            <option value="5" selected>5 Stars (★★★★★)</option>
+            <option value="4">4 Stars (★★★★☆)</option>
+            <option value="3">3 Stars (★★★☆☆)</option>
+            <option value="2">2 Stars (★★☆☆☆)</option>
+            <option value="1">1 Star (★☆☆☆☆)</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="test-text" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Testimonial Review <span style="color: var(--primary-red);">*</span></label>
+          <textarea id="test-text" class="form-control" rows="4" placeholder="e.g. Highly satisfied with Roadlink's smooth paperwork and genuine auction sheet verification..." required style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-family: inherit; resize: vertical;"></textarea>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+          <div class="form-group">
+            <label for="test-display-order" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Display Order</label>
+            <input type="number" id="test-display-order" class="form-control" placeholder="10" value="10" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
+          </div>
+          <div style="display: flex; align-items: flex-end; padding-bottom: 10px;">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.88rem; font-weight: 600; color: var(--text-dark);">
+              <input type="checkbox" id="test-is-visible" checked style="width: 18px; height: 18px; accent-color: var(--primary-blue);">
+              <span>Visible on Homepage</span>
+            </label>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+          <button type="button" id="btn-cancel-testimonial" class="btn btn-view-site" style="margin: 0;">Cancel</button>
+          <button type="submit" id="btn-save-testimonial" class="btn btn-login-submit" style="width: auto; padding: 10px 24px; margin: 0;">Save Testimonial</button>
+        </div>
+      </form>
     </div>
   </div>
 

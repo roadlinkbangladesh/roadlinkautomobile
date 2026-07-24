@@ -360,6 +360,8 @@ export function openVehicleModal(vehicleId = null) {
       // Newly synced public website fields
       populateField("bodyType", vehicle.bodyType || "");
       populateField("featured", !!vehicle.featured);
+      populateField("featuredPosition", vehicle.featuredPosition || "");
+      populateField("isNewArrival", !!vehicle.isNewArrival);
       populateField("published", vehicle.published !== false);
       populateField("negotiable", !!vehicle.negotiable);
       populateField("arrivalDate", vehicle.arrivalDate || "");
@@ -558,7 +560,7 @@ async function handleFormSubmit(e) {
     "stockNumber", "make", "model", "grade", "year", "chassisNumber", "registration",
     "mileage", "engineCC", "transmission", "fuel", "drive", "exteriorColor", "interiorColor",
     "steering", "doors", "seats", "purchasePrice", "price", "currency", "status", "description",
-    "bodyType", "featured", "published", "negotiable", "arrivalDate", "accidentHistory", "shortDescription",
+    "bodyType", "featured", "featuredPosition", "isNewArrival", "published", "negotiable", "arrivalDate", "accidentHistory", "shortDescription",
     "youtubeUrl", "auctionSheetUrl", "auctionSheetAvailable", "features"
   ];
 
@@ -667,6 +669,8 @@ async function handleFormSubmit(e) {
       description: data.description || "",
       bodyType: data.bodyType || "",
       featured: !!data.featured,
+      featuredPosition: data.featuredPosition ? parseInt(data.featuredPosition, 10) : 0,
+      isNewArrival: !!data.isNewArrival,
       published: !!data.published,
       negotiable: !!data.negotiable,
       arrivalDate: data.arrivalDate || "",
@@ -697,6 +701,8 @@ async function handleFormSubmit(e) {
       slug: `${data.make.toLowerCase()}-${data.model.toLowerCase()}-${parsedYear}`,
       stockNumber: data.stockNumber,
       featured: !!data.featured,
+      featuredPosition: data.featuredPosition ? parseInt(data.featuredPosition, 10) : 0,
+      isNewArrival: !!data.isNewArrival,
       status: data.status,
       make: data.make,
       model: data.model,
