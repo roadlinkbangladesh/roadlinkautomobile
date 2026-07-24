@@ -11,6 +11,7 @@ export const SYSTEM_PERMISSIONS = [
     { key: "vehicles.publish", group: "Vehicles", description: "Publish or unpublish vehicles" },
     { key: "settings.view", group: "Settings", description: "View system settings" },
     { key: "settings.edit", group: "Settings", description: "Modify system settings" },
+    { key: "locations.manage", group: "Locations", description: "Manage business locations and contact numbers" },
     { key: "users.manage", group: "Users", description: "Manage administrative users" },
     { key: "roles.manage", group: "Roles", description: "Manage roles and permissions" },
     { key: "reports.accounting.view", group: "Reports", description: "View future accounting reports" },
