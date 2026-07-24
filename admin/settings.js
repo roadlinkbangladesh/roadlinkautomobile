@@ -6,22 +6,13 @@
 import { getToken, clearToken, hasPermission } from "./auth.js";
 import { showLoginView } from "./ui.js";
 import { $, apiFetch } from "./utils.js";
+import { initLocationsView } from "./locations.js";
 
 let settingsEventsBound = false;
+let activeSubtab = "company";
 
 const SYSTEM_DEFAULTS = {
   companyName: "Roadlink Automobiles",
-  address: "169 (Level 2), Fakirerpool, Dhaka 1000",
-  phone: "+880 1311-503840",
-  showroomAddress: "169 (Level 2), Fakirerpool, Dhaka 1000",
-  showroomPhone: "+880 1311-503840",
-  showShowroom: true,
-  corporateAddress: "House 42, Road 11, Block D, Banani, Dhaka 1213",
-  corporatePhone: "+880 1711-998877",
-  showCorporate: false,
-  contactName: "Sales Helpline / Managing Officer",
-  contactPhone: "+880 1311-503840",
-  showPrimaryContact: false,
   whatsapp: "8801311503840",
   showWhatsapp: true,
   email: "roadlinkbangladesh@gmail.com",
@@ -41,11 +32,59 @@ const SYSTEM_DEFAULTS = {
 /**
  * Initializes and hydrates the Settings View fields from the backend API.
  */
-export function initSettingsView() {
+export function initSettingsView(subtab = "company") {
+  if (subtab) {
+    switchSubtab(subtab);
+  } else {
+    switchSubtab(activeSubtab);
+  }
+
   loadSettings();
   if (!settingsEventsBound) {
     bindSettingsEvents();
     settingsEventsBound = true;
+  }
+}
+
+/**
+ * Switches between Company Profile and Business Locations sub-tabs
+ */
+export function switchSubtab(tabName) {
+  activeSubtab = tabName;
+  const companyBtn = $("tab-btn-company-profile");
+  const locationsBtn = $("tab-btn-locations");
+  const companyContent = $("settings-company-tab-content");
+  const locationsContent = $("settings-locations-tab-content");
+
+  if (tabName === "locations") {
+    if (companyBtn) {
+      companyBtn.classList.remove("active");
+      companyBtn.style.borderBottomColor = "transparent";
+      companyBtn.style.color = "var(--text-muted)";
+    }
+    if (locationsBtn) {
+      locationsBtn.classList.add("active");
+      locationsBtn.style.borderBottomColor = "var(--primary-blue)";
+      locationsBtn.style.color = "var(--primary-blue)";
+    }
+    if (companyContent) companyContent.style.display = "none";
+    if (locationsContent) locationsContent.style.display = "block";
+    
+    // Initialize Locations view
+    initLocationsView();
+  } else {
+    if (locationsBtn) {
+      locationsBtn.classList.remove("active");
+      locationsBtn.style.borderBottomColor = "transparent";
+      locationsBtn.style.color = "var(--text-muted)";
+    }
+    if (companyBtn) {
+      companyBtn.classList.add("active");
+      companyBtn.style.borderBottomColor = "var(--primary-blue)";
+      companyBtn.style.color = "var(--primary-blue)";
+    }
+    if (locationsContent) locationsContent.style.display = "none";
+    if (companyContent) companyContent.style.display = "block";
   }
 }
 
@@ -361,6 +400,16 @@ function bindSettingsEvents() {
   const form = $("settings-form");
   const retryBtn = $("btn-retry-settings");
   const btnReset = $("btn-reset-settings");
+
+  const companyTabBtn = $("tab-btn-company-profile");
+  const locationsTabBtn = $("tab-btn-locations");
+
+  if (companyTabBtn) {
+    companyTabBtn.addEventListener("click", () => switchSubtab("company"));
+  }
+  if (locationsTabBtn) {
+    locationsTabBtn.addEventListener("click", () => switchSubtab("locations"));
+  }
 
   if (form) {
     form.addEventListener("submit", handleSettingsSubmit);
