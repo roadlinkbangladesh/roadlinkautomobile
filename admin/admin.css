@@ -243,17 +243,26 @@ input:disabled, select:disabled, textarea:disabled {
 }
 
 .admin-sidebar-logo .brand-name .road {
-  color: var(--bg-white);
+  color: #E31B23; /* Logo Solid Red */
 }
 
 .admin-sidebar-logo .brand-name .link {
-  color: var(--primary-red);
+  color: #0E4595; /* Logo Solid Deep Blue */
 }
 
 .admin-sidebar-logo .brand-subtext {
-  font-size: 0.55rem;
-  letter-spacing: 0.35em;
-  color: rgba(255, 255, 255, 0.4);
+  font-family: var(--font-brand);
+  font-stretch: condensed;
+  font-size: 10px;
+  font-weight: 700;
+  font-style: normal;
+  color: #3A4D62; /* Logo dark slate grey */
+  letter-spacing: 0.45em; /* 4.5px spacing, which is exactly a 12:5.4 ratio (0.45 * font-size) */
+  margin-right: -0.45em; /* Compensate for the letter-spacing on the last letter 'S' to keep it perfectly centered */
+  text-transform: uppercase;
+  margin-top: 1px;
+  line-height: 1;
+  padding-right: 0;
 }
 
 .btn-sidebar-close {
