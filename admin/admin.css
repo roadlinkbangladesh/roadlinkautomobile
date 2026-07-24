@@ -1200,6 +1200,25 @@ input:disabled, select:disabled, textarea:disabled {
   border-color: var(--primary-red);
 }
 
+.btn-delete-loc {
+  background-color: #fee2e2 !important;
+  color: #dc2626 !important;
+  border: 1px solid #fca5a5 !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.btn-delete-loc:hover:not(:disabled) {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+  border-color: #dc2626 !important;
+}
+.btn-delete-loc:disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+}
+
 .btn:disabled,
 button:disabled {
   opacity: 0.5;
