@@ -27,7 +27,14 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
 
     // Load and initial render of vehicles
     try {
-      allVehicles = (await loadVehicles()).filter(v => v.published !== false);
+      const showSold =
+          document.getElementById("toggle-show-sold")?.checked || false;
+      
+      allVehicles = (
+          await loadVehiclesAsync({
+              includeSold: showSold
+          })
+      ).filter(v => v.published !== false);
       populateDynamicFilters(); // Dynamically populates Make, Body Type, and Fuel filters
       setupFilters();
       applyFiltersAndRender(true); // reset pagination limit on fresh setup
@@ -176,16 +183,29 @@ function setupEventListeners() {
   // Track change on "Show Sold Vehicles" checkbox
   const showSoldToggle = document.getElementById('toggle-show-sold');
   if (showSoldToggle) {
-    showSoldToggle.addEventListener('change', () => {
-      // If user unchecks Show Sold, but Status selection was "Sold", reset Status back to "All"
+    showSoldToggle.addEventListener('change', async () => {
       const statusSelect = document.getElementById('filter-status');
+  
+      // If user unchecks Show Sold, but Status selection was "Sold", reset Status back to "All"
       if (statusSelect && !showSoldToggle.checked && statusSelect.value === 'Sold') {
         statusSelect.value = 'All';
       }
-      applyFiltersAndRender(true);
+  
+      try {
+        allVehicles = (
+          await loadVehiclesAsync({
+            includeSold: showSoldToggle.checked
+          })
+        ).filter(v => v.published !== false);
+  
+        populateDynamicFilters();
+        applyFiltersAndRender(true);
+  
+      } catch (error) {
+        console.error("Failed to reload inventory:", error);
+      }
     });
   }
-
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     applyFiltersAndRender(true);
