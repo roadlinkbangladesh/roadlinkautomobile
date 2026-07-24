@@ -331,19 +331,27 @@
                 </div>
               </div>
 
-              <!-- Sub-navigation Tabs -->
+              <!-- Reorganized Sub-navigation Tabs -->
               <div class="settings-subtabs" style="display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 24px; flex-wrap: wrap;">
                 <button type="button" id="tab-btn-company-profile" class="btn-settings-subtab active" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid var(--primary-blue); color: var(--primary-blue); cursor: pointer; display: flex; align-items: center; gap: 6px;">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-building-2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
-                  <span>Company Profile</span>
+                  <span>General & Branding</span>
+                </button>
+                <button type="button" id="tab-btn-contact-social" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone-call"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/><path d="M14.05 2a9 9 0 0 1 8 8"/><path d="M14.05 6a5 5 0 0 1 4 4"/></svg>
+                  <span>Contact & Social</span>
+                </button>
+                <button type="button" id="tab-btn-seo" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
+                  <span>SEO Settings</span>
                 </button>
                 <button type="button" id="tab-btn-locations" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                  <span>Business Locations</span>
+                  <span>Showrooms & Locations</span>
                 </button>
                 <button type="button" id="tab-btn-carousel" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-images"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-                  <span>Homepage</span>
+                  <span>Homepage Banner</span>
                 </button>
                 <button type="button" id="tab-btn-testimonials" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square-quote"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 12a2 2 0 0 0 2-2V8H8"/><path d="M14 12a2 2 0 0 0 2-2V8h-2"/></svg>
@@ -351,39 +359,130 @@
                 </button>
               </div>
 
-              <!-- TAB 1: COMPANY PROFILE CONTENT -->
-              <div id="settings-company-tab-content">
-                <!-- Settings Loading & Retry UI -->
-                <div id="settings-loading-container" style="display: none; padding: 24px; text-align: center; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background-color: var(--bg-white); margin-bottom: 24px;">
-                  <div style="display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--primary-blue);">
-                    <svg class="spinner-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="6"/><line x1="12" x2="12" y1="18" y2="22"/><line x1="4.93" x2="7.76" y1="4.93" y2="7.76"/><line x1="16.24" x2="19.07" y1="16.24" y2="19.07"/><line x1="2" x2="6" y1="12" y2="12"/><line x1="18" x2="22" y1="12" y2="12"/><line x1="4.93" x2="7.76" y1="19.07" y2="16.24"/><line x1="16.24" x2="19.07" y1="7.76" y2="4.93"/></svg>
-                    <span style="font-weight: 600; font-size: 1rem;">Loading system settings...</span>
-                  </div>
+              <!-- Shared Settings Loading & Retry UI -->
+              <div id="settings-loading-container" style="display: none; padding: 24px; text-align: center; border: 1px solid var(--border-color); border-radius: var(--radius-lg); background-color: var(--bg-white); margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--primary-blue);">
+                  <svg class="spinner-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="6"/><line x1="12" x2="12" y1="18" y2="22"/><line x1="4.93" x2="7.76" y1="4.93" y2="7.76"/><line x1="16.24" x2="19.07" y1="16.24" y2="19.07"/><line x1="2" x2="6" y1="12" y2="12"/><line x1="18" x2="22" y1="12" y2="12"/><line x1="4.93" x2="7.76" y1="19.07" y2="16.24"/><line x1="16.24" x2="19.07" y1="7.76" y2="4.93"/></svg>
+                  <span style="font-weight: 600; font-size: 1rem;">Loading system settings...</span>
                 </div>
+              </div>
 
-                <div id="settings-error-container" style="display: none; padding: 24px; text-align: center; border: 1px dashed var(--primary-red); border-radius: var(--radius-lg); background-color: rgba(239, 68, 68, 0.04); margin-bottom: 24px;">
-                  <div style="color: var(--primary-red); margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-alert-circle"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
-                    <span id="settings-error-text" style="font-weight: 600;">Failed to load system settings.</span>
-                  </div>
-                  <button type="button" id="btn-retry-settings" class="btn btn-login-submit" style="width: auto; margin-top: 0; padding: 8px 16px; font-size: 0.85rem;">
-                    Retry Loading
-                  </button>
+              <div id="settings-error-container" style="display: none; padding: 24px; text-align: center; border: 1px dashed var(--primary-red); border-radius: var(--radius-lg); background-color: rgba(239, 68, 68, 0.04); margin-bottom: 24px;">
+                <div style="color: var(--primary-red); margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-alert-circle"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                  <span id="settings-error-text" style="font-weight: 600;">Failed to load system settings.</span>
                 </div>
+                <button type="button" id="btn-retry-settings" class="btn btn-login-submit" style="width: auto; margin-top: 0; padding: 8px 16px; font-size: 0.85rem;">
+                  Retry Loading
+                </button>
+              </div>
 
-                <form id="settings-form" novalidate>
+              <!-- UNIFIED FORM FOR SYSTEM SETTINGS -->
+              <form id="settings-form" novalidate>
+
+                <!-- TAB 1: GENERAL & BRANDING -->
+                <div id="settings-company-tab-content">
                   <div class="settings-grid">
-                    <!-- CARD 1: Company Identity & Core Contacts -->
+                    <!-- Card 1: Company Profile & System Locale -->
                     <div class="settings-section-card">
-                      <h3 class="settings-section-title">Company Identity & Global Contact</h3>
-                      
+                      <h3 class="settings-section-title">Company Identity & Regional Settings</h3>
                       <div class="form-group">
                         <label for="set-company-name">Company Name *</label>
                         <input type="text" id="set-company-name" required placeholder="e.g. Roadlink Automobiles">
                       </div>
+                      <div class="form-group">
+                        <label for="set-display-timezone">Display Timezone *</label>
+                        <input type="text" id="set-display-timezone" placeholder="e.g. Asia/Dhaka" required>
+                      </div>
+                      <div class="form-group">
+                        <label for="set-display-locale">Display Locale *</label>
+                        <input type="text" id="set-display-locale" placeholder="e.g. en-BD" required>
+                      </div>
+                      <div class="form-group">
+                        <label for="set-default-currency">Default Currency *</label>
+                        <input type="text" id="set-default-currency" placeholder="e.g. BDT" required>
+                      </div>
+                    </div>
 
+                    <!-- Card 2: Company Branding Assets -->
+                    <div class="settings-section-card">
+                      <h3 class="settings-section-title">Company Branding Assets</h3>
+                      
+                      <!-- Logo Upload -->
+                      <div class="form-group">
+                        <label for="set-logo-url">Company Logo URL / Object Key</label>
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                          <input type="text" id="set-logo-url" placeholder="e.g. uploads/.../branding/logo.png" style="flex: 1; min-width: 200px;">
+                          <input type="file" id="set-logo-file-input" accept="image/png,.png" style="display: none;" aria-label="Upload logo (PNG only)">
+                          <button type="button" id="btn-upload-logo" class="btn btn-view-site" style="width: auto; margin: 0; padding: 10px 14px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                            <span>Upload Logo (PNG)</span>
+                          </button>
+                        </div>
+                        <small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">PNG format (.png) required for transparent background support.</small>
+                        <div id="logo-preview-container" style="margin-top: 8px; display: none;">
+                          <img id="logo-preview-img" src="" alt="Logo Preview" style="max-height: 48px; object-fit: contain; background: #f1f5f9; padding: 4px; border-radius: 4px; border: 1px solid var(--border-color);">
+                        </div>
+                      </div>
+
+                      <!-- Favicon Upload -->
+                      <div class="form-group">
+                        <label for="set-favicon-url">Favicon Icon URL / Object Key</label>
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                          <input type="text" id="set-favicon-url" placeholder="e.g. uploads/.../branding/favicon.png" style="flex: 1; min-width: 200px;">
+                          <input type="file" id="set-favicon-file-input" accept="image/*,.ico" style="display: none;" aria-label="Upload favicon">
+                          <button type="button" id="btn-upload-favicon" class="btn btn-view-site" style="width: auto; margin: 0; padding: 10px 14px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                            <span>Upload Favicon</span>
+                          </button>
+                        </div>
+                        <div id="favicon-preview-container" style="margin-top: 8px; display: none;">
+                          <img id="favicon-preview-img" src="" alt="Favicon Preview" style="max-height: 32px; width: 32px; object-fit: contain; background: #f1f5f9; padding: 2px; border-radius: 4px; border: 1px solid var(--border-color);">
+                        </div>
+                      </div>
+
+                      <!-- Stock Page Hero Banner Upload -->
+                      <div class="form-group">
+                        <label for="set-stock-banner-url">Public Stock Page Banner Image URL</label>
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                          <input type="text" id="set-stock-banner-url" placeholder="e.g. uploads/.../branding/stock-banner.jpg" style="flex: 1; min-width: 200px;">
+                          <input type="file" id="set-stock-banner-file-input" accept="image/*" style="display: none;" aria-label="Upload stock banner">
+                          <button type="button" id="btn-upload-stock-banner" class="btn btn-view-site" style="width: auto; margin: 0; padding: 10px 14px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                            <span>Upload Stock Banner</span>
+                          </button>
+                        </div>
+                        <small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">Banner background displayed on the public Stock page (/stock.html).</small>
+                        <div id="stock-banner-preview-container" style="margin-top: 8px; display: none;">
+                          <img id="stock-banner-preview-img" src="" alt="Stock Banner Preview" style="max-height: 60px; width: 100%; object-fit: cover; background: #f1f5f9; padding: 2px; border-radius: 4px; border: 1px solid var(--border-color);">
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Card 3: Inventory & Display Rules -->
+                    <div class="settings-section-card">
+                      <h3 class="settings-section-title">Public Inventory & Display Rules</h3>
+                      <div class="form-group">
+                        <label for="set-featured-vehicles-limit">Featured Vehicles Limit on Homepage (1 - 9) *</label>
+                        <input type="number" id="set-featured-vehicles-limit" min="1" max="9" placeholder="6" required>
+                      </div>
+                      <div class="form-group form-group-checkbox" style="margin-top: 16px;">
+                        <input type="checkbox" id="set-show-sold-vehicles" checked>
+                        <label for="set-show-sold-vehicles">Show Sold Vehicles on Public Stock Page</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- TAB 2: CONTACT & SOCIAL -->
+                <div id="settings-contact-tab-content" style="display: none;">
+                  <div class="settings-grid">
+                    <!-- Card 1: Direct Communication Hotlines -->
+                    <div class="settings-section-card">
+                      <h3 class="settings-section-title">Direct Communication Hotlines</h3>
+                      
                       <!-- WhatsApp -->
-                      <div style="background-color: var(--bg-neutral); padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 16px;">
+                      <div style="background-color: var(--bg-neutral); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 16px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                           <span style="font-weight: 700; font-size: 0.9rem; color: var(--text-heading); display: inline-flex; align-items: center; gap: 6px;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -395,13 +494,13 @@
                           </label>
                         </div>
                         <div class="form-group" style="margin-bottom: 0;">
-                          <label for="set-whatsapp" style="font-size: 0.8rem;">WhatsApp Number</label>
+                          <label for="set-whatsapp" style="font-size: 0.8rem;">WhatsApp Phone Number</label>
                           <input type="text" id="set-whatsapp" placeholder="e.g. 8801311503840" style="font-family: var(--font-mono);">
                         </div>
                       </div>
 
                       <!-- Email -->
-                      <div style="background-color: var(--bg-neutral); padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 0;">
+                      <div style="background-color: var(--bg-neutral); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 0;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                           <span style="font-weight: 700; font-size: 0.9rem; color: var(--text-heading); display: inline-flex; align-items: center; gap: 6px;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
@@ -417,122 +516,45 @@
                           <input type="email" id="set-email" placeholder="e.g. roadlinkbangladesh@gmail.com">
                         </div>
                       </div>
-
                     </div>
 
-                  <!-- CARD 2: Social Media & SEO -->
-                  <div class="settings-section-card">
-                    <h3 class="settings-section-title">Marketing & SEO Preferences</h3>
-                    <div class="form-group">
-                      <label for="set-facebook">Facebook Page Link</label>
-                      <input type="url" id="set-facebook" placeholder="https://www.facebook.com/roadlinkautomobiles">
-                    </div>
-                    <div class="form-group">
-                      <label for="set-youtube">YouTube Channel Link</label>
-                      <input type="url" id="set-youtube" placeholder="https://www.youtube.com/@roadlinkautomobiles9168">
-                    </div>
-                    <div class="form-group">
-                      <label for="set-seo-suffix">SEO Meta Title Brand Suffix</label>
-                      <input type="text" id="set-seo-suffix" placeholder="e.g. Roadlink Automobiles">
-                    </div>
-                    <div class="form-group">
-                      <label for="set-seo-keywords">Default Site SEO Keywords</label>
-                      <textarea id="set-seo-keywords" rows="3" placeholder="Keywords..."></textarea>
-                    </div>
-                    <div class="form-group">
-                      <label for="set-seo-desc">Default Site Meta Description</label>
-                      <textarea id="set-seo-desc" rows="3" placeholder="Meta description..."></textarea>
+                    <!-- Card 2: Social Media Accounts -->
+                    <div class="settings-section-card">
+                      <h3 class="settings-section-title">Official Social Media Links</h3>
+                      <div class="form-group">
+                        <label for="set-facebook">Facebook Page URL</label>
+                        <input type="url" id="set-facebook" placeholder="https://www.facebook.com/roadlinkautomobiles">
+                      </div>
+                      <div class="form-group">
+                        <label for="set-youtube">YouTube Channel URL</label>
+                        <input type="url" id="set-youtube" placeholder="https://www.youtube.com/@roadlinkautomobiles9168">
+                      </div>
                     </div>
                   </div>
-
-                  <!-- CARD 3: Inventory & Featured Vehicles Rules -->
-                  <div class="settings-section-card">
-                    <h3 class="settings-section-title">Featured Vehicles & Public Inventory Settings</h3>
-                    <div class="form-group">
-                      <label for="set-featured-vehicles-limit">Featured Vehicles Limit on Homepage (1 - 9) *</label>
-                      <input type="number" id="set-featured-vehicles-limit" min="1" max="9" placeholder="6" required>
-                    </div>
-                    <div class="form-group form-group-checkbox" style="margin-top: 16px;">
-                      <input type="checkbox" id="set-show-sold-vehicles" checked>
-                      <label for="set-show-sold-vehicles">Show Sold Vehicles on Public Stock Page</label>
-                    </div>
-                  </div>
-
-                  <!-- CARD 4: Company Branding Assets -->
-                  <div class="settings-section-card">
-                    <h3 class="settings-section-title">Company Branding Assets</h3>
-                    
-                    <!-- Logo Upload -->
-                    <div class="form-group">
-                      <label for="set-logo-url">Company Logo URL / Object Key</label>
-                      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                        <input type="text" id="set-logo-url" placeholder="e.g. uploads/.../branding/logo.png" style="flex: 1; min-width: 200px;">
-                        <input type="file" id="set-logo-file-input" accept="image/png,.png" style="display: none;" aria-label="Upload logo (PNG only)">
-                        <button type="button" id="btn-upload-logo" class="btn btn-view-site" style="width: auto; margin: 0; padding: 10px 14px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
-                          <span>Upload Logo (PNG)</span>
-                        </button>
-                      </div>
-                      <small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">Restricted to PNG format (.png) only for transparent background support.</small>
-                      <div id="logo-preview-container" style="margin-top: 8px; display: none;">
-                        <img id="logo-preview-img" src="" alt="Logo Preview" style="max-height: 48px; object-fit: contain; background: #f1f5f9; padding: 4px; border-radius: 4px; border: 1px solid var(--border-color);">
-                      </div>
-                    </div>
-
-                    <!-- Favicon Upload -->
-                    <div class="form-group">
-                      <label for="set-favicon-url">Favicon Icon URL / Object Key</label>
-                      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                        <input type="text" id="set-favicon-url" placeholder="e.g. uploads/.../branding/favicon.png" style="flex: 1; min-width: 200px;">
-                        <input type="file" id="set-favicon-file-input" accept="image/*,.ico" style="display: none;" aria-label="Upload favicon">
-                        <button type="button" id="btn-upload-favicon" class="btn btn-view-site" style="width: auto; margin: 0; padding: 10px 14px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
-                          <span>Upload Favicon</span>
-                        </button>
-                      </div>
-                      <div id="favicon-preview-container" style="margin-top: 8px; display: none;">
-                        <img id="favicon-preview-img" src="" alt="Favicon Preview" style="max-height: 32px; width: 32px; object-fit: contain; background: #f1f5f9; padding: 2px; border-radius: 4px; border: 1px solid var(--border-color);">
-                      </div>
-                    </div>
-
-                    <!-- Stock Page Hero Banner Upload -->
-                    <div class="form-group">
-                      <label for="set-stock-banner-url">Public Stock Page Banner Image URL / Object Key</label>
-                      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                        <input type="text" id="set-stock-banner-url" placeholder="e.g. uploads/.../branding/stock-banner.jpg" style="flex: 1; min-width: 200px;">
-                        <input type="file" id="set-stock-banner-file-input" accept="image/*" style="display: none;" aria-label="Upload stock banner">
-                        <button type="button" id="btn-upload-stock-banner" class="btn btn-view-site" style="width: auto; margin: 0; padding: 10px 14px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
-                          <span>Upload Stock Banner</span>
-                        </button>
-                      </div>
-                      <small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">Configurable banner background image displayed on the public Stock page (/stock.html).</small>
-                      <div id="stock-banner-preview-container" style="margin-top: 8px; display: none;">
-                        <img id="stock-banner-preview-img" src="" alt="Stock Banner Preview" style="max-height: 60px; width: 100%; object-fit: cover; background: #f1f5f9; padding: 2px; border-radius: 4px; border: 1px solid var(--border-color);">
-                      </div>
-                    </div>
-
-                  </div>
-
-                  <!-- CARD 5: Other Settings -->
-                  <div class="settings-section-card">
-                    <h3 class="settings-section-title">Other Settings</h3>
-                    <div class="form-group">
-                      <label for="set-display-timezone">Display Timezone</label>
-                      <input type="text" id="set-display-timezone" placeholder="e.g. Asia/Dhaka" required>
-                    </div>
-                    <div class="form-group">
-                      <label for="set-display-locale">Display Locale</label>
-                      <input type="text" id="set-display-locale" placeholder="e.g. en-BD" required>
-                    </div>
-                    <div class="form-group">
-                      <label for="set-default-currency">Default Currency</label>
-                      <input type="text" id="set-default-currency" placeholder="e.g. BDT" required>
-                    </div>
-                  </div>
-
                 </div>
 
+                <!-- TAB 3: SEO SETTINGS -->
+                <div id="settings-seo-tab-content" style="display: none;">
+                  <div class="settings-grid">
+                    <div class="settings-section-card" style="grid-column: span 2;">
+                      <h3 class="settings-section-title">Search Engine Optimization (SEO)</h3>
+                      <div class="form-group">
+                        <label for="set-seo-suffix">SEO Meta Title Brand Suffix</label>
+                        <input type="text" id="set-seo-suffix" placeholder="e.g. Roadlink Automobiles">
+                      </div>
+                      <div class="form-group">
+                        <label for="set-seo-keywords">Default Site SEO Keywords</label>
+                        <textarea id="set-seo-keywords" rows="3" placeholder="Comma-separated keywords..."></textarea>
+                      </div>
+                      <div class="form-group">
+                        <label for="set-seo-desc">Default Site Meta Description</label>
+                        <textarea id="set-seo-desc" rows="3" placeholder="Meta description for search engine results..."></textarea>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Save/Reset Footer Controls -->
                 <div id="settings-alert-success" class="form-info-alert" style="display: none; background-color: rgba(37, 211, 102, 0.08); border-color: rgba(37, 211, 102, 0.2); color: var(--whatsapp-green-hover); margin-top: 20px;">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                   <span>Settings updated and persistent globally across Roadlink Automobiles!</span>
@@ -542,7 +564,7 @@
                   Please correct the error specified.
                 </div>
 
-                <div class="modal-footer-row" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-color); justify-content: space-between;">
+                <div id="settings-form-actions-row" class="modal-footer-row" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-color); justify-content: space-between;">
                   <button type="button" id="btn-reset-settings" class="btn btn-view-site" style="margin-bottom: 0; width: auto; color: var(--primary-red);">
                     Reset to Default Values
                   </button>
@@ -550,6 +572,7 @@
                     Save System Settings
                   </button>
                 </div>
+
               </form>
             </div>
 
