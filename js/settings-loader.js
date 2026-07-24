@@ -101,6 +101,53 @@ export async function fetchPublicLocations() {
 }
 
 /**
+ * Generates an embeddable Google Maps iframe URL from standard Google Maps links or addresses.
+ */
+export function deriveEmbedMapUrl(mapInput, address = "") {
+  if (!mapInput || typeof mapInput !== "string") {
+    return address ? `https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed` : "";
+  }
+  const clean = mapInput.trim();
+  if (clean.startsWith("<iframe")) {
+    const match = clean.match(/src=["']([^"']+)["']/i);
+    if (match && match[1]) return match[1];
+  }
+  if (clean.includes("output=embed") || clean.includes("/maps/embed")) {
+    return clean;
+  }
+  const coordMatch = clean.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (coordMatch) {
+    return `https://maps.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&output=embed`;
+  }
+  const placeMatch = clean.match(/\/maps\/place\/([^/]+)/);
+  if (placeMatch) {
+    const rawPlace = decodeURIComponent(placeMatch[1].replace(/\+/g, " "));
+    return `https://maps.google.com/maps?q=${encodeURIComponent(rawPlace)}&output=embed`;
+  }
+  const qMatch = clean.match(/[?&]q=([^&]+)/);
+  if (qMatch) {
+    return `https://maps.google.com/maps?q=${qMatch[1]}&output=embed`;
+  }
+  const query = address || clean;
+  return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
+}
+
+/**
+ * Generates external map navigation link.
+ */
+export function deriveExternalMapUrl(mapInput, address = "") {
+  if (!mapInput || typeof mapInput !== "string") {
+    return address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : "#";
+  }
+  let clean = mapInput.trim();
+  if (clean.startsWith("<iframe")) {
+    const match = clean.match(/src=["']([^"']+)["']/i);
+    if (match && match[1]) clean = match[1];
+  }
+  return clean;
+}
+
+/**
  * Hydrates homepage contact section and footer contact list from database locations
  */
 function hydrateLocationsUI(locations) {
@@ -110,25 +157,28 @@ function hydrateLocationsUI(locations) {
 
   // 1. Initial Map Iframe setup
   if (mapIframe && defaultLoc) {
-    const embedUrl = defaultLoc.mapEmbedUrl || defaultLoc.map_embed_url || buildEmbedUrl(defaultLoc.mapUrl || defaultLoc.map_url, defaultLoc.address);
+    const embedUrl = defaultLoc.mapEmbedUrl || defaultLoc.map_embed_url || deriveEmbedMapUrl(defaultLoc.mapUrl || defaultLoc.map_url, defaultLoc.address);
     if (embedUrl) {
       mapIframe.src = embedUrl;
     }
   }
 
-  // 2. Homepage Location Cards (#dyn-contact-list)
+  // 2. Homepage Location Cards & Contact Items (#dyn-contact-list)
   const contactList = document.getElementById("dyn-contact-list");
   if (contactList) {
-    const cardsHtml = locations.map((loc, idx) => {
+    const items = [];
+
+    // Render Location Cards
+    locations.forEach((loc) => {
       const isDefault = loc.isDefault;
       const phonesHtml = (loc.phones || []).map(p => `
         <a href="tel:${p.replace(/[^0-9+]/g, '')}" style="color: inherit; text-decoration: none; font-weight: 600;">${p}</a>
       `).join(' &bull; ') || 'Contact sales team';
 
-      const embedUrl = loc.mapEmbedUrl || loc.map_embed_url || buildEmbedUrl(loc.mapUrl || loc.map_url, loc.address);
-      const extUrl = loc.mapUrl || loc.map_url || buildExternalUrl(loc.mapUrl || loc.map_url, loc.address);
+      const embedUrl = loc.mapEmbedUrl || loc.map_embed_url || deriveEmbedMapUrl(loc.mapUrl || loc.map_url, loc.address);
+      const extUrl = loc.mapUrl || loc.map_url || deriveExternalMapUrl(loc.mapUrl || loc.map_url, loc.address);
 
-      return `
+      items.push(`
         <li class="location-card-item ${isDefault ? 'active-location' : ''}" data-loc-id="${loc.id}" style="
           padding: 18px; 
           border: 1.5px solid ${isDefault ? 'var(--primary-blue)' : 'var(--border-color)'}; 
@@ -178,10 +228,81 @@ function hydrateLocationsUI(locations) {
             </div>
           ` : ''}
         </li>
-      `;
-    }).join('');
+      `);
+    });
 
-    contactList.innerHTML = cardsHtml;
+    // Render Enabled Contact Channels (WhatsApp, Email, Primary Contact)
+    if (settings.showWhatsapp && settings.whatsapp) {
+      const waClean = settings.whatsapp.replace(/[^0-9]/g, '');
+      items.push(`
+        <li class="location-card-item global-contact-card" style="
+          padding: 16px 18px; 
+          border: 1.5px solid var(--border-color); 
+          border-radius: var(--radius-md); 
+          background: var(--bg-white); 
+          margin-bottom: 14px; 
+          display: flex; 
+          align-items: center; 
+          gap: 14px;
+        ">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: #25d366; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div>
+            <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-dark);">WhatsApp Hotline</h4>
+            <p style="margin: 2px 0 0 0; font-size: 0.88rem; color: var(--text-muted);"><a href="https://wa.me/${waClean}" target="_blank" rel="noopener" style="color: #25d366; font-weight: 700; text-decoration: none;">+${waClean}</a></p>
+          </div>
+        </li>
+      `);
+    }
+
+    if (settings.showEmail && settings.email) {
+      items.push(`
+        <li class="location-card-item global-contact-card" style="
+          padding: 16px 18px; 
+          border: 1.5px solid var(--border-color); 
+          border-radius: var(--radius-md); 
+          background: var(--bg-white); 
+          margin-bottom: 14px; 
+          display: flex; 
+          align-items: center; 
+          gap: 14px;
+        ">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary-blue); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          </div>
+          <div>
+            <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-dark);">Email Inquiry</h4>
+            <p style="margin: 2px 0 0 0; font-size: 0.88rem; color: var(--text-muted);"><a href="mailto:${settings.email}" style="color: var(--primary-blue); font-weight: 700; text-decoration: none;">${settings.email}</a></p>
+          </div>
+        </li>
+      `);
+    }
+
+    if (settings.showPrimaryContact && (settings.contactPhone || settings.contactName)) {
+      items.push(`
+        <li class="location-card-item global-contact-card" style="
+          padding: 16px 18px; 
+          border: 1.5px solid var(--border-color); 
+          border-radius: var(--radius-md); 
+          background: var(--bg-white); 
+          margin-bottom: 14px; 
+          display: flex; 
+          align-items: center; 
+          gap: 14px;
+        ">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: #0891b2; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-check"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
+          </div>
+          <div>
+            <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-dark);">${settings.contactName || 'Primary Contact'}</h4>
+            <p style="margin: 2px 0 0 0; font-size: 0.88rem; color: var(--text-muted);"><a href="tel:${settings.contactPhone.replace(/[^0-9+]/g, '')}" style="color: var(--primary-blue); font-weight: 700; text-decoration: none;">${settings.contactPhone}</a></p>
+          </div>
+        </li>
+      `);
+    }
+
+    contactList.innerHTML = items.join('');
 
     // Add event listeners to "Show on Map" buttons
     contactList.querySelectorAll(".btn-select-map-loc").forEach(btn => {
