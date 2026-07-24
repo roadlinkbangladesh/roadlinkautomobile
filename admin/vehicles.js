@@ -115,6 +115,10 @@ export function bindVehicleEvents() {
   if (tableBody) {
     tableBody.removeEventListener("click", handleTableActions);
     tableBody.addEventListener("click", handleTableActions);
+    tableBody.removeEventListener("change", handleTableStatusChange);
+    tableBody.addEventListener("change", handleTableStatusChange);
+    tableBody.removeEventListener("change", handleTableFeaturedChange);
+    tableBody.addEventListener("change", handleTableFeaturedChange);
   }
 
   // Change Status modal actions
@@ -293,6 +297,61 @@ async function handleTableStatusChange(e) {
       initDashboard();
     } catch (err) {
       alert("Error updating status: " + err.message);
+      renderVehicleTable();
+    }
+  }
+}
+
+/**
+ * Handles inline vehicle featured checkbox and position input change events.
+ */
+async function handleTableFeaturedChange(e) {
+  const chk = e.target.closest(".chk-featured-inline");
+  const posInput = e.target.closest(".input-featured-pos-inline");
+
+  if (chk) {
+    if (!hasPermission("vehicles.edit")) {
+      alert("Access Denied. You do not have permission to edit vehicles.");
+      renderVehicleTable();
+      return;
+    }
+    const vehicleId = chk.getAttribute("data-id");
+    const isChecked = chk.checked;
+    const vehicle = getAllVehicles().find(v => v.id === vehicleId);
+    let pos = vehicle ? (vehicle.featuredPosition || vehicle.featured_position || 1) : 1;
+    if (pos < 1) pos = 1;
+
+    try {
+      await updateVehicleAsync(vehicleId, {
+        featured: isChecked,
+        featuredPosition: isChecked ? pos : 0
+      });
+      await loadVehiclesAsync();
+      renderVehicleTable();
+    } catch (err) {
+      alert("Error updating featured status: " + err.message);
+      renderVehicleTable();
+    }
+  } else if (posInput) {
+    if (!hasPermission("vehicles.edit")) {
+      alert("Access Denied. You do not have permission to edit vehicles.");
+      renderVehicleTable();
+      return;
+    }
+    const vehicleId = posInput.getAttribute("data-id");
+    let pos = parseInt(posInput.value, 10);
+    if (isNaN(pos) || pos < 1) pos = 1;
+    if (pos > 9) pos = 9;
+
+    try {
+      await updateVehicleAsync(vehicleId, {
+        featured: true,
+        featuredPosition: pos
+      });
+      await loadVehiclesAsync();
+      renderVehicleTable();
+    } catch (err) {
+      alert("Error updating featured rank: " + err.message);
       renderVehicleTable();
     }
   }
