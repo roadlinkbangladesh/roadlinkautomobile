@@ -2,6 +2,18 @@ import { success, created, badRequest, notFound, serverError, validationError } 
 import { authenticate } from "../../utils/auth.js";
 import { logAudit, getRequestMeta } from "../../utils/audit.js";
 import { getStorageBucket, extractObjectKey, resolveFileUrl, deleteStoredFile } from "../../utils/storage.js";
+import { platformConfig } from "../../services/platform-config.js";
+import {
+  validateStockNumber,
+  validateSlug,
+  validateVehicleStateTransition,
+  validateFileUpload,
+  validateNumber,
+  validateString,
+  VEHICLE_STATUSES
+} from "../../utils/validator.js";
+import { purgeArchivedVehicleMedia } from "../../services/vehicle-lifecycle.js";
+import { deleteSupersededMedia } from "../../services/orphan-cleanup.js";
 
 /**
  * Helper to map DB vehicle row and vehicle_images rows into frontend vehicle object
@@ -93,7 +105,7 @@ export async function getVehicleByIdOrStock(db, idOrStockOrSlug) {
     row = await db.prepare(`SELECT * FROM vehicles WHERE id = ?`).bind(parseInt(idOrStockOrSlug, 10)).first();
   }
   if (!row) {
-    row = await db.prepare(`SELECT * FROM vehicles WHERE LOWER(stock_number) = LOWER(?) OR slug = ?`).bind(idOrStockOrSlug, idOrStockOrSlug).first();
+    row = await db.prepare(`SELECT * FROM vehicles WHERE LOWER(stock_number) = LOWER(?) OR LOWER(slug) = LOWER(?)`).bind(idOrStockOrSlug, idOrStockOrSlug).first();
   }
   if (!row) return null;
 
@@ -208,30 +220,76 @@ export async function getAdminVehicle(request, env, ctx, params) {
 }
 
 /**
- * POST /api/v1/admin/vehicles - Create vehicle
+ * POST /api/v1/admin/vehicles - Create vehicle with Platform Policy & Business Rule Enforcement
  */
 export async function createAdminVehicle(request, env) {
   const auth = await authenticate(request, env, "vehicles.create");
   if (auth.errorResponse) return auth.errorResponse;
 
   const { ipAddress, userAgent } = getRequestMeta(request);
+  const config = await platformConfig.getConfig(env);
 
   try {
     const data = await request.json();
-    if (!data.stockNumber || !data.make || !data.model || !data.year || data.price === undefined || !data.status) {
-      return validationError("Please provide all required fields: stockNumber, make, model, year, price, status.");
+
+    // 1. Mandatory Field & Type Validation
+    const stockErr = validateStockNumber(data.stockNumber);
+    if (stockErr) return validationError(stockErr);
+
+    const makeErr = validateString(data.make, { name: "Make", required: true, minLength: 2, maxLength: 50 });
+    if (makeErr) return validationError(makeErr);
+
+    const modelErr = validateString(data.model, { name: "Model", required: true, minLength: 1, maxLength: 50 });
+    if (modelErr) return validationError(modelErr);
+
+    const yearErr = validateNumber(data.year, { name: "Year", required: true, min: 2000, max: new Date().getFullYear() + 2, integer: true });
+    if (yearErr) return validationError(yearErr);
+
+    const priceErr = validateNumber(data.price, { name: "Price", required: true, min: 0 });
+    if (priceErr) return validationError(priceErr);
+
+    const status = (data.status || "available").toLowerCase();
+    const transitionErr = validateVehicleStateTransition("draft", status);
+    if (transitionErr) return validationError(transitionErr);
+
+    // 2. Business Rule: Featured vehicles CANNOT be Archived
+    let isFeatured = data.featured ? 1 : 0;
+    if (status === "archived" && isFeatured) {
+      return badRequest("Featured vehicles cannot be set to Archived status.");
     }
 
-    const existing = await env.DB.prepare(`SELECT id FROM vehicles WHERE LOWER(stock_number) = LOWER(?)`).bind(data.stockNumber.trim()).first();
-    if (existing) {
+    // 3. Case-Insensitive Uniqueness Check for Stock Number
+    const existingStock = await env.DB.prepare(`SELECT id FROM vehicles WHERE LOWER(stock_number) = LOWER(?)`).bind(data.stockNumber.trim()).first();
+    if (existingStock) {
       return badRequest(`Stock number "${data.stockNumber}" already exists.`);
     }
 
+    // 4. Case-Insensitive Uniqueness Check for Slug
+    let slug = (data.slug || "").trim().toLowerCase();
+    if (!slug) {
+      slug = `${data.make.toLowerCase()}-${data.model.toLowerCase()}-${data.year}-${Math.floor(1000 + Math.random() * 9000)}`;
+    } else {
+      const slugErr = validateSlug(slug);
+      if (slugErr) return validationError(slugErr);
+    }
+    const existingSlug = await env.DB.prepare(`SELECT id FROM vehicles WHERE LOWER(slug) = LOWER(?)`).bind(slug).first();
+    if (existingSlug) {
+      slug = `${slug}-${Math.floor(100 + Math.random() * 900)}`;
+    }
+
+    // 5. Image Count Policy Check
+    const extImages = data.exteriorImages || data.images || [];
+    const intImages = data.interiorImages || [];
+    const totalImageCount = extImages.length + intImages.length;
+    if (totalImageCount > config.max_vehicle_images) {
+      return badRequest(`Vehicle exceeds maximum allowed image limit of ${config.max_vehicle_images} images (Provided: ${totalImageCount}).`);
+    }
+
     const now = new Date().toISOString();
-    const slug = data.slug || `${data.make.toLowerCase()}-${data.model.toLowerCase()}-${data.year}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const archivedAt = status === "archived" ? now : null;
     const featuresJson = JSON.stringify(data.features || []);
 
-    // Normalize and enforce auction sheet availability logic
+    // Normalize auction sheet
     const rawSheet = data.auctionSheetUrl || "";
     const sheetKey = extractObjectKey(rawSheet);
     const sheetAvailable = sheetKey !== "" && data.auctionSheetAvailable ? 1 : 0;
@@ -244,7 +302,7 @@ export async function createAdminVehicle(request, env) {
         chassis_number, registration, steering, accident_history, purchase_price,
         price, currency, negotiable, short_description, description, features,
         auction_sheet_available, auction_sheet_url, youtube_url, arrival_date,
-        created_at, updated_at
+        archived_at, created_at, updated_at
       ) VALUES (
         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
@@ -252,11 +310,11 @@ export async function createAdminVehicle(request, env) {
         ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?,
-        ?, ?
+        ?, ?, ?
       )
     `).bind(
-      slug, data.stockNumber.trim(), data.make.trim(), data.model.trim(), parseInt(data.year, 10), data.status,
-      data.published !== false ? 1 : 0, data.featured ? 1 : 0,
+      slug, data.stockNumber.trim(), data.make.trim(), data.model.trim(), parseInt(data.year, 10), status,
+      data.published !== false ? 1 : 0, isFeatured,
       data.featuredPosition !== undefined ? parseInt(data.featuredPosition, 10) : 0,
       data.isNewArrival ? 1 : 0,
       parseInt(data.displayOrder || 0, 10), data.grade || "", data.auctionGrade || "",
@@ -270,13 +328,12 @@ export async function createAdminVehicle(request, env) {
       data.shortDescription || "", data.description || "", featuresJson,
       sheetAvailable, sheetKey,
       data.youtubeUrl || "", data.arrivalDate || "",
-      now, now
+      archivedAt, now, now
     ).run();
 
     const vehicleId = result.meta.last_row_id;
 
     // Handle Exterior Images - store clean object keys
-    const extImages = data.exteriorImages || data.images || [];
     let order = 1;
     for (const url of extImages) {
       const cleanKey = extractObjectKey(url);
@@ -289,7 +346,6 @@ export async function createAdminVehicle(request, env) {
     }
 
     // Handle Interior Images - store clean object keys
-    const intImages = data.interiorImages || [];
     order = 1;
     for (const url of intImages) {
       const cleanKey = extractObjectKey(url);
@@ -301,6 +357,11 @@ export async function createAdminVehicle(request, env) {
       }
     }
 
+    // If created directly in archived state, purge media as per retention rule
+    if (status === "archived") {
+      await purgeArchivedVehicleMedia(env, vehicleId);
+    }
+
     await logAudit(env, {
       actingUserId: auth.user.id,
       actingUsername: auth.user.username,
@@ -310,7 +371,7 @@ export async function createAdminVehicle(request, env) {
       status: "SUCCESS",
       ipAddress,
       userAgent,
-      details: JSON.stringify({ stockNumber: data.stockNumber, make: data.make, model: data.model })
+      details: JSON.stringify({ stockNumber: data.stockNumber, make: data.make, model: data.model, status })
     });
 
     const createdVehicle = await getVehicleByIdOrStock(env.DB, String(vehicleId));
@@ -322,13 +383,14 @@ export async function createAdminVehicle(request, env) {
 }
 
 /**
- * PUT /api/v1/admin/vehicles/:id - Update vehicle
+ * PUT /api/v1/admin/vehicles/:id - Update vehicle with Domain & Platform Policy Validation
  */
 export async function updateAdminVehicle(request, env, ctx, params) {
   const auth = await authenticate(request, env, "vehicles.edit");
   if (auth.errorResponse) return auth.errorResponse;
 
   const { ipAddress, userAgent } = getRequestMeta(request);
+  const config = await platformConfig.getConfig(env);
 
   try {
     const existingVehicle = await getVehicleByIdOrStock(env.DB, params.id);
@@ -338,27 +400,60 @@ export async function updateAdminVehicle(request, env, ctx, params) {
     const data = await request.json();
     const now = new Date().toISOString();
 
-    if (data.stockNumber && data.stockNumber.trim().toLowerCase() !== existingVehicle.stockNumber.toLowerCase()) {
-      const dupe = await env.DB.prepare(`SELECT id FROM vehicles WHERE LOWER(stock_number) = LOWER(?) AND id != ?`).bind(data.stockNumber.trim(), dbId).first();
+    // 1. Validate Stock Number if changing
+    const newStockNumber = data.stockNumber !== undefined ? data.stockNumber.trim() : existingVehicle.stockNumber;
+    if (newStockNumber.toLowerCase() !== existingVehicle.stockNumber.toLowerCase()) {
+      const stockErr = validateStockNumber(newStockNumber);
+      if (stockErr) return validationError(stockErr);
+
+      const dupe = await env.DB.prepare(`SELECT id FROM vehicles WHERE LOWER(stock_number) = LOWER(?) AND id != ?`).bind(newStockNumber, dbId).first();
       if (dupe) {
-        return badRequest(`Stock number "${data.stockNumber}" is already in use by another vehicle.`);
+        return badRequest(`Stock number "${newStockNumber}" is already in use by another vehicle.`);
       }
+    }
+
+    // 2. Validate Vehicle Status Transition
+    const currentStatus = existingVehicle.status;
+    const newStatus = data.status !== undefined ? data.status.toLowerCase() : currentStatus;
+    const isRestore = data.restore === true || (currentStatus === "sold" && newStatus === "available" && data.confirmRestore === true);
+
+    const transitionErr = validateVehicleStateTransition(currentStatus, newStatus, isRestore);
+    if (transitionErr) return validationError(transitionErr);
+
+    // 3. Business Rule: Featured vehicles CANNOT be Archived
+    let newFeatured = data.featured !== undefined ? (data.featured ? 1 : 0) : (existingVehicle.featured ? 1 : 0);
+    if (newStatus === "archived" && newFeatured) {
+      return badRequest("Featured vehicles cannot be Archived. Please un-feature the vehicle before archiving.");
+    }
+
+    // 4. Image count policy check
+    const extImages = data.exteriorImages || data.images || [];
+    const intImages = data.interiorImages || [];
+    if ((data.exteriorImages || data.interiorImages || data.images) && (extImages.length + intImages.length > config.max_vehicle_images)) {
+      return badRequest(`Vehicle exceeds maximum allowed image limit of ${config.max_vehicle_images} images.`);
     }
 
     const featuresJson = JSON.stringify(data.features !== undefined ? data.features : existingVehicle.features);
 
-    // Collect existing keys prior to update for orphan detection
-    const oldKeys = new Set();
-    if (existingVehicle.auctionSheetUrl) oldKeys.add(extractObjectKey(existingVehicle.auctionSheetUrl));
-    if (existingVehicle.images && Array.isArray(existingVehicle.images)) {
-      existingVehicle.images.forEach(img => oldKeys.add(extractObjectKey(img)));
-    }
-
-    // Normalize auction sheet URL and enforce availability logic
+    // Handle auction sheet & media replacement
     const rawSheet = data.auctionSheetUrl !== undefined ? data.auctionSheetUrl : existingVehicle.auctionSheetUrl;
     const sheetKey = extractObjectKey(rawSheet);
+    const oldSheetKey = extractObjectKey(existingVehicle.auctionSheetUrl);
+
+    if (data.auctionSheetUrl !== undefined && sheetKey !== oldSheetKey) {
+      await deleteSupersededMedia(env, oldSheetKey, sheetKey);
+    }
+
     const requestedSheetAvailable = data.auctionSheetAvailable !== undefined ? Boolean(data.auctionSheetAvailable) : Boolean(existingVehicle.auctionSheetAvailable);
     const sheetAvailable = sheetKey !== "" && requestedSheetAvailable ? 1 : 0;
+
+    let archivedAt = existingVehicle.archivedAt;
+    if (newStatus === "archived" && !archivedAt) {
+      archivedAt = now;
+      newFeatured = 0; // Automatically clear featured status on archive
+    } else if (newStatus !== "archived") {
+      archivedAt = null;
+    }
 
     await env.DB.prepare(`
       UPDATE vehicles SET
@@ -370,18 +465,18 @@ export async function updateAdminVehicle(request, env, ctx, params) {
         accident_history = ?, purchase_price = ?, price = ?, currency = ?,
         negotiable = ?, short_description = ?, description = ?, features = ?,
         auction_sheet_available = ?, auction_sheet_url = ?, youtube_url = ?,
-        arrival_date = ?, updated_at = ?
+        arrival_date = ?, archived_at = ?, updated_at = ?
       WHERE id = ?
     `).bind(
-      (data.stockNumber || existingVehicle.stockNumber).trim(),
+      newStockNumber,
       (data.make || existingVehicle.make).trim(),
       (data.model || existingVehicle.model).trim(),
       data.year ? parseInt(data.year, 10) : existingVehicle.year,
-      data.status || existingVehicle.status,
+      newStatus,
       data.published !== undefined ? (data.published ? 1 : 0) : (existingVehicle.published ? 1 : 0),
-      data.featured !== undefined ? (data.featured ? 1 : 0) : (existingVehicle.featured ? 1 : 0),
-      data.featuredPosition !== undefined ? parseInt(data.featuredPosition, 10) : (data.featured_position !== undefined ? parseInt(data.featured_position, 10) : existingVehicle.featuredPosition),
-      data.isNewArrival !== undefined ? (data.isNewArrival ? 1 : 0) : (data.is_new_arrival !== undefined ? (data.is_new_arrival ? 1 : 0) : (existingVehicle.isNewArrival ? 1 : 0)),
+      newFeatured,
+      data.featuredPosition !== undefined ? parseInt(data.featuredPosition, 10) : existingVehicle.featuredPosition,
+      data.isNewArrival !== undefined ? (data.isNewArrival ? 1 : 0) : (existingVehicle.isNewArrival ? 1 : 0),
       data.displayOrder !== undefined ? parseInt(data.displayOrder, 10) : existingVehicle.displayOrder,
       data.grade !== undefined ? data.grade : existingVehicle.grade,
       data.auctionGrade !== undefined ? data.auctionGrade : existingVehicle.auctionGrade,
@@ -410,19 +505,25 @@ export async function updateAdminVehicle(request, env, ctx, params) {
       sheetKey,
       data.youtubeUrl !== undefined ? data.youtubeUrl : existingVehicle.youtubeUrl,
       data.arrivalDate !== undefined ? data.arrivalDate : existingVehicle.arrivalDate,
+      archivedAt,
       now,
       dbId
     ).run();
 
     // Re-sync vehicle images if provided
     if (data.exteriorImages || data.interiorImages || data.images) {
+      const oldImageRes = await env.DB.prepare(`SELECT image_url FROM vehicle_images WHERE vehicle_id = ?`).bind(dbId).all();
+      const oldImages = oldImageRes?.results || [];
+
       await env.DB.prepare(`DELETE FROM vehicle_images WHERE vehicle_id = ?`).bind(dbId).run();
 
-      const extImages = data.exteriorImages || data.images || [];
+      const newKeys = new Set();
+
       let order = 1;
       for (const url of extImages) {
         const cleanKey = extractObjectKey(url);
         if (cleanKey) {
+          newKeys.add(cleanKey);
           await env.DB.prepare(`
             INSERT INTO vehicle_images (vehicle_id, image_type, image_url, display_order, created_at)
             VALUES (?, 'exterior', ?, ?, ?)
@@ -430,28 +531,30 @@ export async function updateAdminVehicle(request, env, ctx, params) {
         }
       }
 
-      const intImages = data.interiorImages || [];
       order = 1;
       for (const url of intImages) {
         const cleanKey = extractObjectKey(url);
         if (cleanKey) {
+          newKeys.add(cleanKey);
           await env.DB.prepare(`
             INSERT INTO vehicle_images (vehicle_id, image_type, image_url, display_order, created_at)
             VALUES (?, 'interior', ?, ?, ?)
           `).bind(dbId, cleanKey, order++, now).run();
         }
       }
-    }
 
-    // Clean up orphaned R2 files that are no longer referenced by any vehicle
-    for (const oldKey of oldKeys) {
-      if (oldKey && oldKey.startsWith("uploads/")) {
-        const inUseImg = await env.DB.prepare(`SELECT id FROM vehicle_images WHERE image_url LIKE ?`).bind(`%${oldKey}%`).first();
-        const inUseDoc = await env.DB.prepare(`SELECT id FROM vehicles WHERE auction_sheet_url LIKE ?`).bind(`%${oldKey}%`).first();
-        if (!inUseImg && !inUseDoc) {
-          await deleteStoredFile(env, oldKey);
+      // Delete removed image keys immediately from R2
+      for (const oldImg of oldImages) {
+        const oldK = extractObjectKey(oldImg.image_url);
+        if (oldK && !newKeys.has(oldK)) {
+          await deleteSupersededMedia(env, oldK, null);
         }
       }
+    }
+
+    // If transitioned to archived status, purge media
+    if (newStatus === "archived") {
+      await purgeArchivedVehicleMedia(env, dbId);
     }
 
     await logAudit(env, {
@@ -463,7 +566,7 @@ export async function updateAdminVehicle(request, env, ctx, params) {
       status: "SUCCESS",
       ipAddress,
       userAgent,
-      details: JSON.stringify({ stockNumber: existingVehicle.stockNumber })
+      details: JSON.stringify({ stockNumber: newStockNumber, status: newStatus })
     });
 
     const updated = await getVehicleByIdOrStock(env.DB, String(dbId));
@@ -489,26 +592,12 @@ export async function deleteAdminVehicle(request, env, ctx, params) {
 
     const dbId = existingVehicle.dbId;
 
-    // Collect candidate R2 keys for orphan cleanup
-    const keysToCheck = [];
-    if (existingVehicle.auctionSheetUrl) keysToCheck.push(extractObjectKey(existingVehicle.auctionSheetUrl));
-    if (existingVehicle.images && Array.isArray(existingVehicle.images)) {
-      keysToCheck.push(...existingVehicle.images.map(extractObjectKey));
-    }
+    // Purge associated R2 media files
+    await purgeArchivedVehicleMedia(env, dbId);
 
+    // Remove DB rows
     await env.DB.prepare(`DELETE FROM vehicle_images WHERE vehicle_id = ?`).bind(dbId).run();
     await env.DB.prepare(`DELETE FROM vehicles WHERE id = ?`).bind(dbId).run();
-
-    // Clean up orphaned R2 files no longer used by any vehicle
-    for (const key of keysToCheck) {
-      if (key && key.startsWith("uploads/")) {
-        const inUseImg = await env.DB.prepare(`SELECT id FROM vehicle_images WHERE image_url LIKE ?`).bind(`%${key}%`).first();
-        const inUseDoc = await env.DB.prepare(`SELECT id FROM vehicles WHERE auction_sheet_url LIKE ?`).bind(`%${key}%`).first();
-        if (!inUseImg && !inUseDoc) {
-          await deleteStoredFile(env, key);
-        }
-      }
-    }
 
     await logAudit(env, {
       actingUserId: auth.user.id,
@@ -546,15 +635,24 @@ export async function updateAdminVehicleStatus(request, env, ctx, params) {
     const body = await request.json();
     const now = new Date().toISOString();
 
-    let newStatus = body.status !== undefined ? body.status : existingVehicle.status;
+    let newStatus = body.status !== undefined ? body.status.toLowerCase() : existingVehicle.status;
     let newPublished = body.published !== undefined ? (body.published ? 1 : 0) : (existingVehicle.published ? 1 : 0);
     let newArchivedAt = existingVehicle.archivedAt;
 
-    if (body.archive === true) {
+    if (body.archive === true || newStatus === "archived") {
+      if (existingVehicle.featured) {
+        return badRequest("Featured vehicles cannot be archived. Please un-feature the vehicle first.");
+      }
+      newStatus = "archived";
       newArchivedAt = now;
+      newPublished = 0;
     } else if (body.archive === false) {
       newArchivedAt = null;
+      if (newStatus === "archived") newStatus = "available";
     }
+
+    const transitionErr = validateVehicleStateTransition(existingVehicle.status, newStatus, body.confirmRestore === true);
+    if (transitionErr) return validationError(transitionErr);
 
     await env.DB.prepare(`
       UPDATE vehicles
@@ -562,10 +660,14 @@ export async function updateAdminVehicleStatus(request, env, ctx, params) {
       WHERE id = ?
     `).bind(newStatus, newPublished, newArchivedAt, now, dbId).run();
 
+    if (newStatus === "archived") {
+      await purgeArchivedVehicleMedia(env, dbId);
+    }
+
     await logAudit(env, {
       actingUserId: auth.user.id,
       actingUsername: auth.user.username,
-      action: body.published !== undefined ? (body.published ? "PUBLISH_VEHICLE" : "UNPUBLISH_VEHICLE") : "UPDATE_VEHICLE",
+      action: body.published !== undefined ? (body.published ? "PUBLISH_VEHICLE" : "UNPUBLISH_VEHICLE") : "UPDATE_VEHICLE_STATUS",
       resourceType: "vehicle",
       resourceId: String(dbId),
       status: "SUCCESS",
@@ -595,13 +697,15 @@ export async function getDashboardStats(request, env) {
     const incomRes = await env.DB.prepare(`SELECT COUNT(*) as c FROM vehicles WHERE status = 'incoming' AND archived_at IS NULL`).first();
     const resvRes = await env.DB.prepare(`SELECT COUNT(*) as c FROM vehicles WHERE (status = 'reserved' OR status = 'pending') AND archived_at IS NULL`).first();
     const soldRes = await env.DB.prepare(`SELECT COUNT(*) as c FROM vehicles WHERE status = 'sold' AND archived_at IS NULL`).first();
+    const archRes = await env.DB.prepare(`SELECT COUNT(*) as c FROM vehicles WHERE status = 'archived' OR archived_at IS NOT NULL`).first();
 
     return success({
       total: totalRes?.c || 0,
       available: availRes?.c || 0,
       incoming: incomRes?.c || 0,
       reserved: resvRes?.c || 0,
-      sold: soldRes?.c || 0
+      sold: soldRes?.c || 0,
+      archived: archRes?.c || 0
     });
   } catch (error) {
     console.error("Dashboard stats error:", error);
@@ -611,17 +715,28 @@ export async function getDashboardStats(request, env) {
 
 /**
  * POST /api/v1/admin/upload - Generic R2 file & document upload endpoint
- * Uploads media into structured R2 hierarchy: uploads/<company_slug>/vehicles/<stock_number>/<filename>
+ * Strictly validates file sizes & MIME types using Platform Configuration
+ * Path format: uploads/<company_slug>/vehicles/<stock_number>/<exterior|interior|documents>/<filename>
  */
 export async function uploadFile(request, env) {
   const auth = await authenticate(request, env, "vehicles.edit");
   if (auth.errorResponse) return auth.errorResponse;
+
+  const config = await platformConfig.getConfig(env);
 
   try {
     const formData = await request.formData();
     const file = formData.get("file");
     if (!file) {
       return badRequest("No file provided in form request.");
+    }
+
+    const category = (formData.get("category") || formData.get("type") || formData.get("folder") || "").toLowerCase();
+
+    // Validate file size, type & bounds using platform policies
+    const uploadErr = validateFileUpload(file, category, config);
+    if (uploadErr) {
+      return badRequest(uploadErr);
     }
 
     // Extract stock number context from form payload if provided
@@ -631,14 +746,12 @@ export async function uploadFile(request, env) {
       cleanStock = "general";
     }
 
-    // Fetch active company_slug from database or fallback to slugified name / 'roadlink'
+    // Fetch active company_slug
     let companySlug = "roadlink";
     try {
-      const settingsRow = await env.DB.prepare("SELECT company_slug, company_name FROM settings WHERE id = 1").first();
+      const settingsRow = await env.DB.prepare("SELECT company_slug FROM settings WHERE id = 1").first();
       if (settingsRow && settingsRow.company_slug && settingsRow.company_slug.trim()) {
         companySlug = settingsRow.company_slug.trim().toLowerCase();
-      } else if (settingsRow && settingsRow.company_name) {
-        companySlug = settingsRow.company_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "roadlink";
       }
     } catch (e) {
       companySlug = "roadlink";
@@ -648,7 +761,6 @@ export async function uploadFile(request, env) {
     const ext = fileName.split(".").pop().toLowerCase() || "bin";
     const uniqueName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
 
-    const category = (formData.get("category") || formData.get("type") || formData.get("folder") || "").toLowerCase();
     let key = "";
 
     if (category === "branding" || category === "logo" || category === "favicon") {
@@ -656,8 +768,8 @@ export async function uploadFile(request, env) {
     } else if (category === "carousel" || category === "slide" || category === "hero") {
       key = `uploads/${companySlug}/carousel/${uniqueName}`;
     } else {
-      const isDocument = category === "documents" || category === "document" || category === "auction_sheet" || category === "auction-sheet" || ["pdf", "doc", "docx"].includes(ext);
-      const mediaSubfolder = isDocument ? "documents" : "images";
+      const isDocument = category === "documents" || category === "document" || category === "auction_sheet" || category === "auction-sheet" || ext === "pdf";
+      const mediaSubfolder = isDocument ? "documents" : (category === "interior" ? "interior" : "exterior");
       key = `uploads/${companySlug}/vehicles/${cleanStock}/${mediaSubfolder}/${uniqueName}`;
     }
 
@@ -667,7 +779,7 @@ export async function uploadFile(request, env) {
     if (bucket) {
       await bucket.put(key, arrayBuffer, {
         httpMetadata: {
-          contentType: file.type || "application/octet-stream"
+          contentType: file.type || (ext === "pdf" ? "application/pdf" : "image/jpeg")
         }
       });
     } else {
