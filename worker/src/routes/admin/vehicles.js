@@ -605,6 +605,7 @@ export async function getDashboardStats(request, env) {
 
 /**
  * POST /api/v1/admin/upload - Generic R2 file & document upload endpoint
+ * Uploads media into structured R2 hierarchy: uploads/<company_slug>/vehicles/<stock_number>/<filename>
  */
 export async function uploadFile(request, env) {
   const auth = await authenticate(request, env, "vehicles.edit");
@@ -617,9 +618,32 @@ export async function uploadFile(request, env) {
       return badRequest("No file provided in form request.");
     }
 
+    // Extract stock number context from form payload if provided
+    const rawStock = formData.get("stockNumber") || formData.get("stock_number") || formData.get("stock") || "";
+    let cleanStock = rawStock.toString().trim().toUpperCase().replace(/[^A-Z0-9_-]+/g, "-").replace(/-+/g, "-");
+    if (!cleanStock || cleanStock === "-") {
+      cleanStock = "general";
+    }
+
+    // Fetch active company_slug from database or fallback to slugified name / 'roadlink'
+    let companySlug = "roadlink";
+    try {
+      const settingsRow = await env.DB.prepare("SELECT company_slug, company_name FROM settings WHERE id = 1").first();
+      if (settingsRow && settingsRow.company_slug && settingsRow.company_slug.trim()) {
+        companySlug = settingsRow.company_slug.trim().toLowerCase();
+      } else if (settingsRow && settingsRow.company_name) {
+        companySlug = settingsRow.company_name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "roadlink";
+      }
+    } catch (e) {
+      companySlug = "roadlink";
+    }
+
     const fileName = file.name || "upload";
     const ext = fileName.split(".").pop().toLowerCase() || "bin";
-    const key = `uploads/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+    const uniqueName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+
+    // Construct structured hierarchy key: uploads/<company_slug>/vehicles/<stock_number>/<filename>
+    const key = `uploads/${companySlug}/vehicles/${cleanStock}/${uniqueName}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const bucket = getStorageBucket(env);
