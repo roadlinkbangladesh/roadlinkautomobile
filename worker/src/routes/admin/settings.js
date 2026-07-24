@@ -74,6 +74,7 @@ export async function updateSettings(request, env) {
         // Branding assets
         const companyLogoUrl = body.company_logo_url ?? body.companyLogoUrl ?? null;
         const faviconUrl = body.favicon_url ?? body.faviconUrl ?? null;
+        const stockBannerUrl = body.stock_banner_url ?? body.stockBannerUrl ?? null;
 
         // Cleanup old media assets if replaced
         if (currentSettings) {
@@ -82,6 +83,9 @@ export async function updateSettings(request, env) {
             }
             if (faviconUrl && faviconUrl !== currentSettings.favicon_url) {
                 await deleteSupersededMedia(env, currentSettings.favicon_url, faviconUrl);
+            }
+            if (stockBannerUrl && stockBannerUrl !== currentSettings.stock_banner_url) {
+                await deleteSupersededMedia(env, currentSettings.stock_banner_url, stockBannerUrl);
             }
         }
 
@@ -115,7 +119,7 @@ export async function updateSettings(request, env) {
                     corporate_address = ?, corporate_phone = ?, show_corporate = ?,
                     contact_name = ?, contact_phone = ?, show_primary_contact = ?,
                     show_whatsapp = ?, show_email = ?,
-                    company_logo_url = ?, favicon_url = ?, featured_vehicles_limit = ?, show_sold_vehicles = ?,
+                    company_logo_url = ?, favicon_url = ?, stock_banner_url = ?, featured_vehicles_limit = ?, show_sold_vehicles = ?,
                     updated_at = ?
                 WHERE id = 1
             `)
@@ -128,7 +132,7 @@ export async function updateSettings(request, env) {
                 corporateAddress, corporatePhone, showCorporate,
                 contactName, contactPhone, showPrimaryContact,
                 showWhatsapp, showEmail,
-                companyLogoUrl, faviconUrl, featuredVehiclesLimit, showSoldVehicles,
+                companyLogoUrl, faviconUrl, stockBannerUrl, featuredVehiclesLimit, showSoldVehicles,
                 now
             )
             .run();
