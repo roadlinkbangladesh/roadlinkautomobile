@@ -38,10 +38,10 @@ import {
 import {
     listPublicVehicles,
     getPublicVehicle,
-    getPublicSettings,
     getPublicFile,
     getPublicImage
 } from "./routes/public/vehicles.js";
+import { getPublicSettings } from "./routes/public/settings.js";
 import {
     getPublicLocations,
     getPublicLocationBySlug
