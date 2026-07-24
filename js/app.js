@@ -46,7 +46,15 @@ function getHomeVehicles() {
   const limit = Math.min(9, Math.max(1, parseInt(rawLimit, 10) || 6));
 
   const items = getAllVehicles()
-    .filter(v => v.published !== false && (v.featured === true || v.isFeatured === true) && v.status?.toLowerCase() !== 'draft')
+    .filter(v => v.published !== false && (v.featured === true || v.isFeatured === true || v.is_featured === 1) && v.status?.toLowerCase() !== 'draft')
+    .sort((a, b) => {
+      const posA = Number(a.featuredPosition || a.featured_position || 0);
+      const posB = Number(b.featuredPosition || b.featured_position || 0);
+      const rankA = posA > 0 ? posA : 999;
+      const rankB = posB > 0 ? posB : 999;
+      if (rankA !== rankB) return rankA - rankB;
+      return (a.displayOrder || 0) - (b.displayOrder || 0);
+    })
     .map(mapVehicleToHomeFormat);
 
   return items.slice(0, limit);
