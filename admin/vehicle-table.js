@@ -422,6 +422,12 @@ export function renderVehicleTable() {
       `;
     }
 
+    const isFeatured = v.featured === true || v.isFeatured === true || v.is_featured === 1;
+    const featuredPos = v.featuredPosition || v.featured_position || 0;
+    const featuredBadge = isFeatured
+      ? `<span class="badge" style="background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;">★ Rank ${featuredPos > 0 ? featuredPos : "—"}</span>`
+      : `<span style="color: var(--text-muted); font-size: 0.85rem;">—</span>`;
+
     row.innerHTML = `
       <td>
         <img src="${thumbnailSrc}" alt="${v.make} ${v.model}" class="thumb-img" referrerpolicy="no-referrer" data-id="${v.id}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800';">
@@ -433,6 +439,9 @@ export function renderVehicleTable() {
         <span class="badge" style="padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; ${statusStyle}">
           ${v.status === "pending" ? "reserved" : v.status}
         </span>
+      </td>
+      <td>
+        ${featuredBadge}
       </td>
       <td>
         <span class="badge" style="padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; ${publishedStyle}">
