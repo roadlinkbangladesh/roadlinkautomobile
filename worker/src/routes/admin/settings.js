@@ -1,6 +1,8 @@
-import { success, badRequest, serverError } from "../../utils/response.js";
+import { success, badRequest, serverError, validationError } from "../../utils/response.js";
 import { authenticate } from "../../utils/auth.js";
 import { logAudit, getRequestMeta } from "../../utils/audit.js";
+import { deleteSupersededMedia } from "../../services/orphan-cleanup.js";
+import { validateEmail } from "../../utils/validator.js";
 
 export async function getSettings(request, env) {
     const auth = await authenticate(request, env, "settings.view");
@@ -25,10 +27,22 @@ export async function updateSettings(request, env) {
     const { ipAddress, userAgent } = getRequestMeta(request);
 
     try {
+        const currentSettings = await env.DB.prepare(`SELECT company_logo_url, favicon_url FROM settings WHERE id = 1`).first();
+
         const body = await request.json();
         const now = new Date().toISOString();
 
         const companyName = body.company_name || body.companyName || "";
+        if (!companyName.trim()) {
+            return validationError("Company name is required.");
+        }
+
+        const email = body.email ?? "";
+        if (email) {
+            const emailErr = validateEmail(email);
+            if (emailErr) return validationError(emailErr);
+        }
+
         const facebook = body.facebook || body.facebookUrl || "";
         const youtube = body.youtube || body.youtubeUrl || "";
         const displayTimezone = body.display_timezone || body.displayTimezone || "Asia/Dhaka";
@@ -55,13 +69,21 @@ export async function updateSettings(request, env) {
 
         const whatsapp = body.whatsapp ?? "";
         const showWhatsapp = (body.show_whatsapp ?? body.showWhatsapp ?? true) ? 1 : 0;
-
-        const email = body.email ?? "";
         const showEmail = (body.show_email ?? body.showEmail ?? true) ? 1 : 0;
 
         // Branding assets
         const companyLogoUrl = body.company_logo_url ?? body.companyLogoUrl ?? null;
         const faviconUrl = body.favicon_url ?? body.faviconUrl ?? null;
+
+        // Cleanup old media assets if replaced
+        if (currentSettings) {
+            if (companyLogoUrl && companyLogoUrl !== currentSettings.company_logo_url) {
+                await deleteSupersededMedia(env, currentSettings.company_logo_url, companyLogoUrl);
+            }
+            if (faviconUrl && faviconUrl !== currentSettings.favicon_url) {
+                await deleteSupersededMedia(env, currentSettings.favicon_url, faviconUrl);
+            }
+        }
 
         // Featured Vehicles limit (Min: 1, Max: 9, Default: 6)
         let featuredVehiclesLimit = parseInt(body.featured_vehicles_limit ?? body.featuredVehiclesLimit ?? 6, 10);
