@@ -6,7 +6,7 @@
 
 const DEFAULT_CONFIG = {
   archive_after_months: 12,      // Sold vehicles auto-archiving threshold
-  max_vehicle_images: 15,        // Max vehicle images per vehicle
+  max_vehicle_images: 20,        // Max vehicle images per vehicle
   max_image_upload_mb: 5,        // Max size for image uploads
   max_image_width: 1920,         // Target max width
   image_quality: 85,             // Target compression quality
