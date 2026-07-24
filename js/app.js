@@ -481,36 +481,59 @@ function initAnchorNavigation() {
  * Loads dynamic hero carousel slides from public API
  */
 async function loadHeroCarousel() {
+  const heroImg = document.getElementById("hero-bg-img");
+  const badgeText = document.getElementById("hero-badge-text");
+  const titleText = document.getElementById("hero-title-text");
+  const descText = document.getElementById("hero-desc-text");
+  const indicators = document.getElementById("hero-carousel-indicators");
+
   try {
     const res = await apiRequest("/api/v1/public/carousel");
-    if (!res.ok) return;
+    if (!res.ok) throw new Error("Carousel endpoint error");
     const payload = await res.json();
-    if (!payload.success || !Array.isArray(payload.data) || payload.data.length === 0) return;
+    
+    if (!payload.success || !Array.isArray(payload.data) || payload.data.length === 0) {
+      if (heroImg) {
+        heroImg.src = "./assets/hero.jpg";
+        heroImg.style.opacity = "1";
+      }
+      return;
+    }
 
     const slides = payload.data;
     let currentIndex = 0;
 
-    const heroImg = document.getElementById("hero-bg-img");
-    const badgeText = document.getElementById("hero-badge-text");
-    const titleText = document.getElementById("hero-title-text");
-    const descText = document.getElementById("hero-desc-text");
-    const indicators = document.getElementById("hero-carousel-indicators");
-
-    if (!heroImg || !indicators) return;
-
-    indicators.innerHTML = slides.map((s, idx) => `
-      <button class="carousel-dot ${idx === 0 ? 'active' : ''}" data-index="${idx}" aria-label="Slide ${idx + 1}" style="
-        width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; background: ${idx === 0 ? 'white' : 'transparent'}; cursor: pointer; padding: 0;
-      "></button>
-    `).join("");
+    if (indicators) {
+      indicators.innerHTML = slides.map((s, idx) => `
+        <button class="carousel-dot ${idx === 0 ? 'active' : ''}" data-index="${idx}" aria-label="Slide ${idx + 1}" style="
+          width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; background: ${idx === 0 ? 'white' : 'transparent'}; cursor: pointer; padding: 0;
+        "></button>
+      `).join("");
+    }
 
     const updateSlide = (idx) => {
       currentIndex = idx;
       const slide = slides[idx];
 
       if (heroImg && slide.imageUrl) {
-        heroImg.src = getPublicFileUrl(slide.imageUrl);
+        const targetUrl = getPublicFileUrl(slide.imageUrl);
+        if (heroImg.src !== targetUrl) {
+          heroImg.style.opacity = "0";
+          const tempImg = new Image();
+          tempImg.onload = () => {
+            heroImg.src = targetUrl;
+            heroImg.style.opacity = "1";
+          };
+          tempImg.onerror = () => {
+            heroImg.src = targetUrl;
+            heroImg.style.opacity = "1";
+          };
+          tempImg.src = targetUrl;
+        } else {
+          heroImg.style.opacity = "1";
+        }
       }
+
       if (badgeText && slide.badgeText) {
         badgeText.textContent = slide.badgeText;
       }
@@ -521,19 +544,23 @@ async function loadHeroCarousel() {
         descText.textContent = slide.subheading;
       }
 
-      indicators.querySelectorAll(".carousel-dot").forEach((dot, dIdx) => {
-        dot.style.background = dIdx === idx ? "white" : "transparent";
-      });
+      if (indicators) {
+        indicators.querySelectorAll(".carousel-dot").forEach((dot, dIdx) => {
+          dot.style.background = dIdx === idx ? "white" : "transparent";
+        });
+      }
     };
 
     updateSlide(0);
 
-    indicators.querySelectorAll(".carousel-dot").forEach(dot => {
-      dot.addEventListener("click", () => {
-        const idx = parseInt(dot.dataset.index, 10);
-        updateSlide(idx);
+    if (indicators) {
+      indicators.querySelectorAll(".carousel-dot").forEach(dot => {
+        dot.addEventListener("click", () => {
+          const idx = parseInt(dot.dataset.index, 10);
+          updateSlide(idx);
+        });
       });
-    });
+    }
 
     if (slides.length > 1) {
       setInterval(() => {
@@ -543,6 +570,10 @@ async function loadHeroCarousel() {
     }
   } catch (err) {
     console.error("Failed to load hero carousel:", err);
+    if (heroImg) {
+      heroImg.src = "./assets/hero.jpg";
+      heroImg.style.opacity = "1";
+    }
   }
 }
 
