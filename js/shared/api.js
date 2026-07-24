@@ -22,17 +22,24 @@ export function buildUrl(endpoint) {
 }
 
 /**
- * Converts stored relative key or path into a deployment-agnostic public media URL.
- * Handles keys ("uploads/123.jpg"), relative paths ("/api/v1/public/files/123.jpg"), and absolute URLs.
- * @param {string} urlOrKey - Object key or URL string
+ * Shared helper responsible for generating public media URLs.
+ * Converts stored object keys or paths into deployment-agnostic public media URLs.
+ * Handles keys ("uploads/roadlink/vehicles/RL-2025-001/front.jpg"), relative paths, and absolute URLs.
+ * @param {string} objectKey - Object key or URL string
  * @returns {string} Fully qualified media URL string
  */
-export function resolveMediaUrl(urlOrKey) {
-  if (!urlOrKey || typeof urlOrKey !== "string") return "";
-  const trimmed = urlOrKey.trim();
+export function getPublicFileUrl(objectKey) {
+  if (!objectKey || typeof objectKey !== "string") return "";
+  const trimmed = objectKey.trim();
   if (!trimmed) return "";
 
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("data:")) {
+  // Data URLs (base64) remain as-is
+  if (trimmed.startsWith("data:")) {
+    return trimmed;
+  }
+
+  // Handle full HTTP/HTTPS URLs
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
     if (trimmed.includes("uploads/")) {
       const key = trimmed.substring(trimmed.indexOf("uploads/"));
       return buildUrl(`/api/v1/public/files/${key}`);
@@ -40,17 +47,29 @@ export function resolveMediaUrl(urlOrKey) {
     return trimmed;
   }
 
+  // Handle relative API paths
   if (trimmed.startsWith("/api/")) {
     return buildUrl(trimmed);
   }
 
+  // Clean leading slashes and construct public file endpoint URL
   const cleanKey = trimmed.replace(/^\/+/, "");
-  if (cleanKey.startsWith("uploads/")) {
-    return buildUrl(`/api/v1/public/files/${cleanKey}`);
-  }
-
   return buildUrl(`/api/v1/public/files/${cleanKey}`);
 }
+
+/**
+ * MediaService - Centralized media URL generator and key helper.
+ */
+export const MediaService = {
+  getPublicUrl(objectKey) {
+    return getPublicFileUrl(objectKey);
+  }
+};
+
+/**
+ * Alias for backward compatibility
+ */
+export const resolveMediaUrl = getPublicFileUrl;
 
 /**
  * Generic API HTTP Request Wrapper.
