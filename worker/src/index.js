@@ -74,6 +74,11 @@ import { runMaintenanceTasks } from "./routes/admin/maintenance.js";
 
 const routes = {
 
+    //troubleshoot
+    [`GET:${API.ADMIN}/debug`]: () => {
+    return new Response("Debug route is working");
+    },
+
     // Public API
     [`GET:${API.PUBLIC}/vehicles`]: listPublicVehicles,
     [`GET:${API.PUBLIC}/vehicles/:identifier`]: getPublicVehicle,
