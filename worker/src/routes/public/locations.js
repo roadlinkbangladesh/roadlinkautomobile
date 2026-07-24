@@ -1,5 +1,4 @@
 import { success, badRequest, notFound, serverError } from "../../utils/response.js";
-import { deriveEmbedMapUrl, deriveExternalMapUrl } from "../../utils/map-helper.js";
 
 /**
  * Helper to fetch phone numbers for a list of location IDs.
@@ -54,8 +53,8 @@ export async function getPublicLocations(request, env) {
 
     const formatted = locations.map(loc => ({
       ...loc,
-      mapEmbedUrl: loc.mapEmbedUrl || deriveEmbedMapUrl(loc.mapUrl, loc.address),
-      mapUrl: loc.mapUrl || deriveExternalMapUrl(loc.mapUrl, loc.address),
+      mapEmbedUrl: loc.mapEmbedUrl || loc.mapUrl || "",
+      mapUrl: loc.mapEmbedUrl || loc.mapUrl || "",
       isVisible: Boolean(loc.isVisible),
       isDefault: Boolean(loc.isDefault),
       phones: phoneMap[loc.id] || []
@@ -104,8 +103,8 @@ export async function getPublicLocationBySlug(request, env) {
 
     return success({
       ...location,
-      mapEmbedUrl: location.mapEmbedUrl || deriveEmbedMapUrl(location.mapUrl, location.address),
-      mapUrl: location.mapUrl || deriveExternalMapUrl(location.mapUrl, location.address),
+      mapEmbedUrl: location.mapEmbedUrl || location.mapUrl || "",
+      mapUrl: location.mapEmbedUrl || location.mapUrl || "",
       isVisible: Boolean(location.isVisible),
       isDefault: Boolean(location.isDefault),
       phones: phoneMap[location.id] || []
