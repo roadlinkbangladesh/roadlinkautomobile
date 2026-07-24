@@ -267,7 +267,7 @@ input:disabled, select:disabled, textarea:disabled {
 }
 
 .admin-sidebar-logo .brand-name .link {
-  color: #ffffff; /* White on dark sidebar background */
+  color: #0E4595; /* Logo Solid Deep Blue */
 }
 
 .admin-sidebar-logo .brand-subtext {
