@@ -286,6 +286,7 @@
                       <th class="sortable" data-sort="year">Vehicle Name <span class="sort-indicator"> ↕</span></th>
                       <th class="sortable" data-sort="price">Price <span class="sort-indicator"> ↕</span></th>
                       <th>Status</th>
+                      <th>Featured</th>
                       <th>Published</th>
                       <th class="text-right" style="text-align: right; padding-right: 24px;">Actions</th>
                     </tr>
@@ -491,6 +492,23 @@
                       </div>
                       <div id="favicon-preview-container" style="margin-top: 8px; display: none;">
                         <img id="favicon-preview-img" src="" alt="Favicon Preview" style="max-height: 32px; width: 32px; object-fit: contain; background: #f1f5f9; padding: 2px; border-radius: 4px; border: 1px solid var(--border-color);">
+                      </div>
+                    </div>
+
+                    <!-- Stock Page Hero Banner Upload -->
+                    <div class="form-group">
+                      <label for="set-stock-banner-url">Public Stock Page Banner Image URL / Object Key</label>
+                      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="set-stock-banner-url" placeholder="e.g. uploads/.../branding/stock-banner.jpg" style="flex: 1; min-width: 200px;">
+                        <input type="file" id="set-stock-banner-file-input" accept="image/*" style="display: none;" aria-label="Upload stock banner">
+                        <button type="button" id="btn-upload-stock-banner" class="btn btn-view-site" style="width: auto; margin: 0; padding: 10px 14px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                          <span>Upload Stock Banner</span>
+                        </button>
+                      </div>
+                      <small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">Configurable banner background image displayed on the public Stock page (/stock.html).</small>
+                      <div id="stock-banner-preview-container" style="margin-top: 8px; display: none;">
+                        <img id="stock-banner-preview-img" src="" alt="Stock Banner Preview" style="max-height: 60px; width: 100%; object-fit: cover; background: #f1f5f9; padding: 2px; border-radius: 4px; border: 1px solid var(--border-color);">
                       </div>
                     </div>
 
