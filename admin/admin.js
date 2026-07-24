@@ -47,7 +47,7 @@ async function init() {
     panelId: "settings-view-panel",
     btnId: "nav-item-settings",
     title: "System Settings",
-    init: (query) => initSettingsView(query?.tab || "company")
+    init: (query) => initSettingsView(query?.tab || "general")
   });
 
   navigationController.registerModule("users", {

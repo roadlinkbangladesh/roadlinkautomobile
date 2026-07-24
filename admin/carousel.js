@@ -24,7 +24,7 @@ export async function initCarouselView() {
  * Loads current Homepage settings (e.g. Featured Vehicles limit) from backend
  */
 async function loadHomepageSettings() {
-  const limitInput = $("set-homepage-featured-limit");
+  const limitInput = $("set-featured-vehicles-limit") || $("set-homepage-featured-limit");
   if (!limitInput) return;
 
   try {
@@ -46,7 +46,7 @@ async function loadHomepageSettings() {
  */
 async function handleHomepageConfigSubmit(e) {
   e.preventDefault();
-  const limitInput = $("set-homepage-featured-limit");
+  const limitInput = $("set-featured-vehicles-limit") || $("set-homepage-featured-limit");
   const feedback = $("homepage-config-save-feedback");
   const saveBtn = $("btn-save-homepage-config");
 

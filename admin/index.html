@@ -333,25 +333,33 @@
 
               <!-- Reorganized Sub-navigation Tabs -->
               <div class="settings-subtabs" style="display: flex; gap: 8px; border-bottom: 2px solid var(--border-color); margin-bottom: 24px; flex-wrap: wrap;">
-                <button type="button" id="tab-btn-company-profile" class="btn-settings-subtab active" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid var(--primary-blue); color: var(--primary-blue); cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-building-2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
-                  <span>General & Branding</span>
+                <button type="button" id="tab-btn-general" class="btn-settings-subtab active" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid var(--primary-blue); color: var(--primary-blue); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sliders"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="2" x2="6" y1="14" y2="14"/><line x1="10" x2="14" y1="8" y2="8"/><line x1="18" x2="22" y1="16" y2="16"/></svg>
+                  <span>General</span>
                 </button>
-                <button type="button" id="tab-btn-contact-social" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <button type="button" id="tab-btn-branding" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-palette"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.92 0 1.7-.62 1.93-1.5.19-.71-.11-1.47-.72-1.88-.33-.22-.52-.58-.52-.97 0-.69.56-1.25 1.25-1.25H16c3.31 0 6-2.69 6-6 0-4.96-4.49-9-10-9z"/></svg>
+                  <span>Branding</span>
+                </button>
+                <button type="button" id="tab-btn-contact" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone-call"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/><path d="M14.05 2a9 9 0 0 1 8 8"/><path d="M14.05 6a5 5 0 0 1 4 4"/></svg>
-                  <span>Contact & Social</span>
-                </button>
-                <button type="button" id="tab-btn-seo" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
-                  <span>SEO Settings</span>
+                  <span>Contact</span>
                 </button>
                 <button type="button" id="tab-btn-locations" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                  <span>Showrooms & Locations</span>
+                  <span>Business Locations</span>
                 </button>
-                <button type="button" id="tab-btn-carousel" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-images"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-                  <span>Homepage Banner</span>
+                <button type="button" id="tab-btn-homepage" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-template"><rect width="18" height="7" x="3" y="3" rx="1"/><rect width="9" height="7" x="3" y="14" rx="1"/><rect width="6" height="7" x="15" y="14" rx="1"/></svg>
+                  <span>Homepage</span>
+                </button>
+                <button type="button" id="tab-btn-inventory" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-car"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C1.4 11.2 1 12.1 1 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>
+                  <span>Inventory</span>
+                </button>
+                <button type="button" id="tab-btn-seo" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>
+                  <span>SEO</span>
                 </button>
                 <button type="button" id="tab-btn-testimonials" class="btn-settings-subtab" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; background: none; border: none; border-bottom: 3px solid transparent; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 6px;">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square-quote"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 12a2 2 0 0 0 2-2V8H8"/><path d="M14 12a2 2 0 0 0 2-2V8h-2"/></svg>
@@ -380,11 +388,10 @@
               <!-- UNIFIED FORM FOR SYSTEM SETTINGS -->
               <form id="settings-form" novalidate>
 
-                <!-- TAB 1: GENERAL & BRANDING -->
-                <div id="settings-company-tab-content">
+                <!-- SECTION 1: GENERAL -->
+                <div id="settings-general-tab-content">
                   <div class="settings-grid">
-                    <!-- Card 1: Company Profile & System Locale -->
-                    <div class="settings-section-card">
+                    <div class="settings-section-card" style="grid-column: span 2;">
                       <h3 class="settings-section-title">Company Identity & Regional Settings</h3>
                       <div class="form-group">
                         <label for="set-company-name">Company Name *</label>
@@ -403,10 +410,14 @@
                         <input type="text" id="set-default-currency" placeholder="e.g. BDT" required>
                       </div>
                     </div>
+                  </div>
+                </div>
 
-                    <!-- Card 2: Company Branding Assets -->
-                    <div class="settings-section-card">
-                      <h3 class="settings-section-title">Company Branding Assets</h3>
+                <!-- SECTION 2: BRANDING -->
+                <div id="settings-branding-tab-content" style="display: none;">
+                  <div class="settings-grid">
+                    <div class="settings-section-card" style="grid-column: span 2;">
+                      <h3 class="settings-section-title">Visual Identity Assets</h3>
                       
                       <!-- Logo Upload -->
                       <div class="form-group">
@@ -440,44 +451,14 @@
                           <img id="favicon-preview-img" src="" alt="Favicon Preview" style="max-height: 32px; width: 32px; object-fit: contain; background: #f1f5f9; padding: 2px; border-radius: 4px; border: 1px solid var(--border-color);">
                         </div>
                       </div>
-
-                      <!-- Stock Page Hero Banner Upload -->
-                      <div class="form-group">
-                        <label for="set-stock-banner-url">Public Stock Page Banner Image URL</label>
-                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                          <input type="text" id="set-stock-banner-url" placeholder="e.g. uploads/.../branding/stock-banner.jpg" style="flex: 1; min-width: 200px;">
-                          <input type="file" id="set-stock-banner-file-input" accept="image/*" style="display: none;" aria-label="Upload stock banner">
-                          <button type="button" id="btn-upload-stock-banner" class="btn btn-view-site" style="width: auto; margin: 0; padding: 10px 14px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
-                            <span>Upload Stock Banner</span>
-                          </button>
-                        </div>
-                        <small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">Banner background displayed on the public Stock page (/stock.html).</small>
-                        <div id="stock-banner-preview-container" style="margin-top: 8px; display: none;">
-                          <img id="stock-banner-preview-img" src="" alt="Stock Banner Preview" style="max-height: 60px; width: 100%; object-fit: cover; background: #f1f5f9; padding: 2px; border-radius: 4px; border: 1px solid var(--border-color);">
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Card 3: Inventory & Display Rules -->
-                    <div class="settings-section-card">
-                      <h3 class="settings-section-title">Public Inventory & Display Rules</h3>
-                      <div class="form-group">
-                        <label for="set-featured-vehicles-limit">Featured Vehicles Limit on Homepage (1 - 9) *</label>
-                        <input type="number" id="set-featured-vehicles-limit" min="1" max="9" placeholder="6" required>
-                      </div>
-                      <div class="form-group form-group-checkbox" style="margin-top: 16px;">
-                        <input type="checkbox" id="set-show-sold-vehicles" checked>
-                        <label for="set-show-sold-vehicles">Show Sold Vehicles on Public Stock Page</label>
-                      </div>
                     </div>
                   </div>
                 </div>
 
-                <!-- TAB 2: CONTACT & SOCIAL -->
+                <!-- SECTION 3: CONTACT -->
                 <div id="settings-contact-tab-content" style="display: none;">
                   <div class="settings-grid">
-                    <!-- Card 1: Direct Communication Hotlines -->
+                    <!-- Direct Communication Hotlines -->
                     <div class="settings-section-card">
                       <h3 class="settings-section-title">Direct Communication Hotlines</h3>
                       
@@ -518,7 +499,7 @@
                       </div>
                     </div>
 
-                    <!-- Card 2: Social Media Accounts -->
+                    <!-- Social Media Accounts -->
                     <div class="settings-section-card">
                       <h3 class="settings-section-title">Official Social Media Links</h3>
                       <div class="form-group">
@@ -533,7 +514,57 @@
                   </div>
                 </div>
 
-                <!-- TAB 3: SEO SETTINGS -->
+                <!-- SECTION 5: HOMEPAGE DISPLAY CONFIG -->
+                <div id="settings-homepage-form-content" style="display: none;">
+                  <div class="settings-grid">
+                    <div class="settings-section-card" style="grid-column: span 2;">
+                      <h3 class="settings-section-title">Homepage Display Settings</h3>
+                      <p style="margin: -8px 0 16px 0; font-size: 0.85rem; color: var(--text-muted);">
+                        Configure featured vehicle display count for the public homepage grid.
+                      </p>
+                      <div class="form-group" style="max-width: 400px;">
+                        <label for="set-featured-vehicles-limit">Featured Vehicles Limit on Homepage (1 - 9) *</label>
+                        <input type="number" id="set-featured-vehicles-limit" min="1" max="9" placeholder="6" value="6" required>
+                        <small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">
+                          Controls how many featured vehicles are displayed in the homepage grid (Min: 1, Max: 9, Default: 6).
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- SECTION 6: INVENTORY -->
+                <div id="settings-inventory-tab-content" style="display: none;">
+                  <div class="settings-grid">
+                    <div class="settings-section-card" style="grid-column: span 2;">
+                      <h3 class="settings-section-title">Public Stock Listing Configuration</h3>
+                      
+                      <!-- Stock Page Hero Banner Upload -->
+                      <div class="form-group">
+                        <label for="set-stock-banner-url">Stock Page Banner Image URL</label>
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                          <input type="text" id="set-stock-banner-url" placeholder="e.g. uploads/.../branding/stock-banner.jpg" style="flex: 1; min-width: 200px;">
+                          <input type="file" id="set-stock-banner-file-input" accept="image/*" style="display: none;" aria-label="Upload stock banner">
+                          <button type="button" id="btn-upload-stock-banner" class="btn btn-view-site" style="width: auto; margin: 0; padding: 10px 14px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                            <span>Upload Stock Banner</span>
+                          </button>
+                        </div>
+                        <small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">Banner background displayed on the public Stock page (/stock.html).</small>
+                        <div id="stock-banner-preview-container" style="margin-top: 8px; display: none;">
+                          <img id="stock-banner-preview-img" src="" alt="Stock Banner Preview" style="max-height: 60px; width: 100%; object-fit: cover; background: #f1f5f9; padding: 2px; border-radius: 4px; border: 1px solid var(--border-color);">
+                        </div>
+                      </div>
+
+                      <div class="form-group form-group-checkbox" style="margin-top: 16px;">
+                        <input type="checkbox" id="set-show-sold-vehicles" checked>
+                        <label for="set-show-sold-vehicles">Show Sold Vehicles on Public Stock Page</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- SECTION 7: SEO -->
                 <div id="settings-seo-tab-content" style="display: none;">
                   <div class="settings-grid">
                     <div class="settings-section-card" style="grid-column: span 2;">
@@ -576,7 +607,7 @@
               </form>
             </div>
 
-            <!-- TAB 2: BUSINESS LOCATIONS CONTENT -->
+            <!-- SECTION 4: BUSINESS LOCATIONS CONTENT -->
             <div id="settings-locations-tab-content" style="display: none;">
               <div class="view-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
                 <div>
@@ -610,39 +641,8 @@
               </div>
             </div>
 
-            <!-- TAB 3: HOMEPAGE CAROUSEL CONTENT -->
+            <!-- SECTION 5: HERO CAROUSEL SLIDES CONTENT -->
             <div id="settings-carousel-tab-content" style="display: none;">
-              <!-- Section 1: Homepage Display Configuration -->
-              <div class="settings-section-card" style="margin-bottom: 24px; padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-white);">
-                <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
-                  <h3 style="margin: 0; font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; color: var(--text-heading);">Homepage Display Configuration</h3>
-                  <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: var(--text-muted);">Configure featured vehicle display count and inventory limits for the public homepage.</p>
-                </div>
-                
-                <form id="homepage-config-form" style="display: flex; flex-direction: column; gap: 16px;">
-                  <div class="form-group" style="max-width: 400px; margin-bottom: 0;">
-                    <label for="set-homepage-featured-limit" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">
-                      Featured Vehicles to Display (1 - 9) *
-                    </label>
-                    <input type="number" id="set-homepage-featured-limit" min="1" max="9" placeholder="6" value="6" required style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-size: 0.9rem;">
-                    <small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">
-                      Controls how many featured vehicles are displayed in the homepage grid (Min: 1, Max: 9, Default: 6).
-                    </small>
-                  </div>
-
-                  <div style="display: flex; align-items: center; gap: 12px; margin-top: 4px;">
-                    <button type="submit" id="btn-save-homepage-config" class="btn btn-login-submit" style="width: auto; padding: 10px 22px; font-size: 0.85rem; margin: 0;">
-                      Save Homepage Settings
-                    </button>
-                    <span id="homepage-config-save-feedback" style="font-size: 0.85rem; font-weight: 600; color: #16a34a; display: none; align-items: center; gap: 4px;">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                      Saved successfully!
-                    </span>
-                  </div>
-                </form>
-              </div>
-
-              <!-- Section 2: Carousel Slides -->
               <div class="view-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
                 <div>
                   <h3 style="margin: 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: var(--text-heading);">Homepage Hero Carousel Slides</h3>

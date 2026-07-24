@@ -32,9 +32,14 @@ class NavigationController {
       "users": "users",
       "roles": "roles",
       "settings": "settings",
+      "general": "settings",
+      "branding": "settings",
+      "contact": "settings",
       "locations": "settings",
       "carousel": "settings",
       "homepage": "settings",
+      "inventory": "settings",
+      "seo": "settings",
       "testimonials": "settings",
       "profile": "profile",
       "auditlogs": "auditLogs",
@@ -90,10 +95,15 @@ class NavigationController {
 
     // Map subtab aliases directly into query.tab if needed
     if (route === "settings" && !query.tab) {
-      if (normalizedPath === "locations") query.tab = "locations";
-      else if (normalizedPath === "carousel" || normalizedPath === "homepage") query.tab = "carousel";
+      if (normalizedPath === "general") query.tab = "general";
+      else if (normalizedPath === "branding") query.tab = "branding";
+      else if (normalizedPath === "contact") query.tab = "contact";
+      else if (normalizedPath === "locations") query.tab = "locations";
+      else if (normalizedPath === "carousel" || normalizedPath === "homepage") query.tab = "homepage";
+      else if (normalizedPath === "inventory") query.tab = "inventory";
+      else if (normalizedPath === "seo") query.tab = "seo";
       else if (normalizedPath === "testimonials") query.tab = "testimonials";
-      else query.tab = "company";
+      else query.tab = "general";
     }
 
     return { route, query };
