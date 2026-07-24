@@ -165,6 +165,7 @@ export function bindVehicleEvents() {
   // Auction Sheet File Upload Events
   const btnUploadAuctionSheet = $("btn-upload-auction-sheet");
   const auctionSheetFileInput = $("v-auction-sheet-file-input");
+  const auctionSheetUrlInput = $("v-auction-sheet-url");
   if (btnUploadAuctionSheet) {
     btnUploadAuctionSheet.removeEventListener("click", handleSelectAuctionSheetFile);
     btnUploadAuctionSheet.addEventListener("click", handleSelectAuctionSheetFile);
@@ -172,6 +173,12 @@ export function bindVehicleEvents() {
   if (auctionSheetFileInput) {
     auctionSheetFileInput.removeEventListener("change", handleAuctionSheetFileChange);
     auctionSheetFileInput.addEventListener("change", handleAuctionSheetFileChange);
+  }
+  if (auctionSheetUrlInput) {
+    auctionSheetUrlInput.removeEventListener("input", syncAuctionSheetUI);
+    auctionSheetUrlInput.addEventListener("input", syncAuctionSheetUI);
+    auctionSheetUrlInput.removeEventListener("change", syncAuctionSheetUI);
+    auctionSheetUrlInput.addEventListener("change", syncAuctionSheetUI);
   }
 
   // Large Preview Close Event
@@ -408,6 +415,9 @@ export function openVehicleModal(vehicleId = null) {
     sheetStatus.textContent = "";
   }
 
+  // Sync auction sheet checkbox availability
+  syncAuctionSheetUI();
+
   // Render previews
   renderImagePreviews();
   modal.style.display = "flex";
@@ -497,6 +507,9 @@ function copyVehicleParams(vehicle) {
   // Populate Interior Images array
   activeInteriorImages = [...(vehicle.interiorImages || [])];
   
+  // Sync auction sheet availability
+  syncAuctionSheetUI();
+
   // Re-render preview lists
   renderImagePreviews();
 }
@@ -659,8 +672,8 @@ async function handleFormSubmit(e) {
       accidentHistory: data.accidentHistory || "",
       shortDescription: data.shortDescription || "",
       youtubeUrl: data.youtubeUrl || "",
-      auctionSheetUrl: data.auctionSheetUrl || "",
-      auctionSheetAvailable: !!data.auctionSheetAvailable,
+      auctionSheetUrl: (data.auctionSheetUrl || "").trim(),
+      auctionSheetAvailable: Boolean((data.auctionSheetUrl || "").trim() && data.auctionSheetAvailable),
       features: parsedFeatures,
       images: combinedImages,
       exteriorImages: [...activeExteriorImages],
@@ -710,8 +723,8 @@ async function handleFormSubmit(e) {
       accidentHistory: data.accidentHistory || "",
       shortDescription: data.shortDescription || "",
       youtubeUrl: data.youtubeUrl || "",
-      auctionSheetUrl: data.auctionSheetUrl || "",
-      auctionSheetAvailable: !!data.auctionSheetAvailable,
+      auctionSheetUrl: (data.auctionSheetUrl || "").trim(),
+      auctionSheetAvailable: Boolean((data.auctionSheetUrl || "").trim() && data.auctionSheetAvailable),
       published: !!data.published,
       features: parsedFeatures,
       images: combinedImages,
@@ -810,6 +823,25 @@ function handleSelectAuctionSheetFile() {
 }
 
 /**
+ * Synchronizes the "Show Auction Sheet" checkbox enable/disable state based on auction sheet URL input.
+ */
+export function syncAuctionSheetUI() {
+  const urlInput = $("v-auction-sheet-url");
+  const checkboxEl = $("v-auction-sheet-available");
+  if (!urlInput || !checkboxEl) return;
+
+  const url = (urlInput.value || "").trim();
+  if (!url) {
+    checkboxEl.checked = false;
+    checkboxEl.disabled = true;
+    checkboxEl.title = "Upload an auction sheet or enter a valid file key first to enable public display.";
+  } else {
+    checkboxEl.disabled = false;
+    checkboxEl.removeAttribute("title");
+  }
+}
+
+/**
  * Handles auction sheet document upload (PDF or Image).
  */
 async function handleAuctionSheetFileChange(e) {
@@ -834,9 +866,10 @@ async function handleAuctionSheetFileChange(e) {
 
   try {
     const uploaded = await uploadFileAsync(file);
-    if (uploaded && uploaded.url) {
-      if (urlInput) urlInput.value = uploaded.url;
-      if (checkboxEl) checkboxEl.checked = true;
+    if (uploaded && (uploaded.url || uploaded.key)) {
+      if (urlInput) urlInput.value = uploaded.url || uploaded.key;
+      syncAuctionSheetUI();
+      if (checkboxEl && !checkboxEl.disabled) checkboxEl.checked = true;
       if (statusEl) {
         statusEl.style.color = "var(--whatsapp-green-hover)";
         statusEl.textContent = `✓ Auction sheet document "${file.name}" uploaded successfully!`;
@@ -855,6 +888,7 @@ async function handleAuctionSheetFileChange(e) {
       btn.disabled = false;
       btn.innerHTML = originalText;
     }
+    syncAuctionSheetUI();
     e.target.value = "";
   }
 }
