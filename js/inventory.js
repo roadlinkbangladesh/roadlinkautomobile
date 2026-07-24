@@ -170,8 +170,7 @@ export function getAllVehicles() {
   return cachedVehicles.filter(v => 
     v.published !== false && 
     v.isPublished !== false &&
-    v.status?.toLowerCase() !== 'draft' && 
-    v.status?.toLowerCase() !== 'sold'
+    v.status?.toLowerCase() !== 'draft'
   );
 }
 
