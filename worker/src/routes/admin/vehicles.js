@@ -1,6 +1,7 @@
 import { success, created, badRequest, notFound, serverError, validationError } from "../../utils/response.js";
 import { authenticate } from "../../utils/auth.js";
 import { logAudit, getRequestMeta } from "../../utils/audit.js";
+import { getStorageBucket, extractObjectKey, resolveFileUrl, deleteStoredFile } from "../../utils/storage.js";
 
 /**
  * Helper to map DB vehicle row and vehicle_images rows into frontend vehicle object
@@ -8,10 +9,10 @@ import { logAudit, getRequestMeta } from "../../utils/audit.js";
 export function mapDbToVehicle(row, images = []) {
   if (!row) return null;
 
-  const exteriorImages = images.filter(i => i.image_type === "exterior").map(i => i.image_url);
-  const interiorImages = images.filter(i => i.image_type === "interior").map(i => i.image_url);
-  const auctionImages = images.filter(i => i.image_type === "auction").map(i => i.image_url);
-  const allImageUrls = images.map(i => i.image_url);
+  const exteriorImages = images.filter(i => i.image_type === "exterior").map(i => resolveFileUrl(i.image_url));
+  const interiorImages = images.filter(i => i.image_type === "interior").map(i => resolveFileUrl(i.image_url));
+  const auctionImages = images.filter(i => i.image_type === "auction").map(i => resolveFileUrl(i.image_url));
+  const allImageUrls = images.map(i => resolveFileUrl(i.image_url));
 
   let parsedFeatures = [];
   if (row.features) {
@@ -22,7 +23,14 @@ export function mapDbToVehicle(row, images = []) {
     }
   }
 
-  const cover = exteriorImages[0] || allImageUrls[0] || "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
+  const defaultFallback = "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
+  const cover = exteriorImages[0] || allImageUrls[0] || defaultFallback;
+
+  // Resolve auction sheet URL and enforce auctionSheetAvailable logic
+  const rawSheet = row.auction_sheet_url || (auctionImages[0] || "");
+  const resolvedSheetUrl = resolveFileUrl(rawSheet);
+  const hasAuctionSheet = Boolean(rawSheet && rawSheet.trim() !== "");
+  const auctionSheetAvailable = Boolean(row.auction_sheet_available) && hasAuctionSheet;
 
   return {
     id: String(row.id),
@@ -59,8 +67,8 @@ export function mapDbToVehicle(row, images = []) {
     description: row.description || "",
     features: parsedFeatures,
     auctionGrade: row.auction_grade || "",
-    auctionSheetAvailable: Boolean(row.auction_sheet_available),
-    auctionSheetUrl: row.auction_sheet_url || (auctionImages[0] || ""),
+    auctionSheetAvailable,
+    auctionSheetUrl: resolvedSheetUrl,
     youtubeUrl: row.youtube_url || "",
     arrivalDate: row.arrival_date || "",
     archivedAt: row.archived_at || null,
@@ -221,6 +229,11 @@ export async function createAdminVehicle(request, env) {
     const slug = data.slug || `${data.make.toLowerCase()}-${data.model.toLowerCase()}-${data.year}-${Math.floor(1000 + Math.random() * 9000)}`;
     const featuresJson = JSON.stringify(data.features || []);
 
+    // Normalize and enforce auction sheet availability logic
+    const rawSheet = data.auctionSheetUrl || "";
+    const sheetKey = extractObjectKey(rawSheet);
+    const sheetAvailable = sheetKey !== "" && data.auctionSheetAvailable ? 1 : 0;
+
     const result = await env.DB.prepare(`
       INSERT INTO vehicles (
         slug, stock_number, make, model, year, status, is_published, is_featured,
@@ -251,34 +264,36 @@ export async function createAdminVehicle(request, env) {
       data.accidentHistory || "None", data.purchasePrice ? parseFloat(data.purchasePrice) : 0,
       parseFloat(data.price), data.currency || "BDT", data.negotiable ? 1 : 0,
       data.shortDescription || "", data.description || "", featuresJson,
-      data.auctionSheetAvailable ? 1 : 0, data.auctionSheetUrl || "",
+      sheetAvailable, sheetKey,
       data.youtubeUrl || "", data.arrivalDate || "",
       now, now
     ).run();
 
     const vehicleId = result.meta.last_row_id;
 
-    // Handle Exterior Images
+    // Handle Exterior Images - store clean object keys
     const extImages = data.exteriorImages || data.images || [];
     let order = 1;
     for (const url of extImages) {
-      if (url) {
+      const cleanKey = extractObjectKey(url);
+      if (cleanKey) {
         await env.DB.prepare(`
           INSERT INTO vehicle_images (vehicle_id, image_type, image_url, display_order, created_at)
           VALUES (?, 'exterior', ?, ?, ?)
-        `).bind(vehicleId, url, order++, now).run();
+        `).bind(vehicleId, cleanKey, order++, now).run();
       }
     }
 
-    // Handle Interior Images
+    // Handle Interior Images - store clean object keys
     const intImages = data.interiorImages || [];
     order = 1;
     for (const url of intImages) {
-      if (url) {
+      const cleanKey = extractObjectKey(url);
+      if (cleanKey) {
         await env.DB.prepare(`
           INSERT INTO vehicle_images (vehicle_id, image_type, image_url, display_order, created_at)
           VALUES (?, 'interior', ?, ?, ?)
-        `).bind(vehicleId, url, order++, now).run();
+        `).bind(vehicleId, cleanKey, order++, now).run();
       }
     }
 
@@ -328,6 +343,19 @@ export async function updateAdminVehicle(request, env, ctx, params) {
 
     const featuresJson = JSON.stringify(data.features !== undefined ? data.features : existingVehicle.features);
 
+    // Collect existing keys prior to update for orphan detection
+    const oldKeys = new Set();
+    if (existingVehicle.auctionSheetUrl) oldKeys.add(extractObjectKey(existingVehicle.auctionSheetUrl));
+    if (existingVehicle.images && Array.isArray(existingVehicle.images)) {
+      existingVehicle.images.forEach(img => oldKeys.add(extractObjectKey(img)));
+    }
+
+    // Normalize auction sheet URL and enforce availability logic
+    const rawSheet = data.auctionSheetUrl !== undefined ? data.auctionSheetUrl : existingVehicle.auctionSheetUrl;
+    const sheetKey = extractObjectKey(rawSheet);
+    const requestedSheetAvailable = data.auctionSheetAvailable !== undefined ? Boolean(data.auctionSheetAvailable) : Boolean(existingVehicle.auctionSheetAvailable);
+    const sheetAvailable = sheetKey !== "" && requestedSheetAvailable ? 1 : 0;
+
     await env.DB.prepare(`
       UPDATE vehicles SET
         stock_number = ?, make = ?, model = ?, year = ?, status = ?,
@@ -372,8 +400,8 @@ export async function updateAdminVehicle(request, env, ctx, params) {
       data.shortDescription !== undefined ? data.shortDescription : existingVehicle.shortDescription,
       data.description !== undefined ? data.description : existingVehicle.description,
       featuresJson,
-      data.auctionSheetAvailable !== undefined ? (data.auctionSheetAvailable ? 1 : 0) : (existingVehicle.auctionSheetAvailable ? 1 : 0),
-      data.auctionSheetUrl !== undefined ? data.auctionSheetUrl : existingVehicle.auctionSheetUrl,
+      sheetAvailable,
+      sheetKey,
       data.youtubeUrl !== undefined ? data.youtubeUrl : existingVehicle.youtubeUrl,
       data.arrivalDate !== undefined ? data.arrivalDate : existingVehicle.arrivalDate,
       now,
@@ -387,22 +415,35 @@ export async function updateAdminVehicle(request, env, ctx, params) {
       const extImages = data.exteriorImages || data.images || [];
       let order = 1;
       for (const url of extImages) {
-        if (url) {
+        const cleanKey = extractObjectKey(url);
+        if (cleanKey) {
           await env.DB.prepare(`
             INSERT INTO vehicle_images (vehicle_id, image_type, image_url, display_order, created_at)
             VALUES (?, 'exterior', ?, ?, ?)
-          `).bind(dbId, url, order++, now).run();
+          `).bind(dbId, cleanKey, order++, now).run();
         }
       }
 
       const intImages = data.interiorImages || [];
       order = 1;
       for (const url of intImages) {
-        if (url) {
+        const cleanKey = extractObjectKey(url);
+        if (cleanKey) {
           await env.DB.prepare(`
             INSERT INTO vehicle_images (vehicle_id, image_type, image_url, display_order, created_at)
             VALUES (?, 'interior', ?, ?, ?)
-          `).bind(dbId, url, order++, now).run();
+          `).bind(dbId, cleanKey, order++, now).run();
+        }
+      }
+    }
+
+    // Clean up orphaned R2 files that are no longer referenced by any vehicle
+    for (const oldKey of oldKeys) {
+      if (oldKey && oldKey.startsWith("uploads/")) {
+        const inUseImg = await env.DB.prepare(`SELECT id FROM vehicle_images WHERE image_url LIKE ?`).bind(`%${oldKey}%`).first();
+        const inUseDoc = await env.DB.prepare(`SELECT id FROM vehicles WHERE auction_sheet_url LIKE ?`).bind(`%${oldKey}%`).first();
+        if (!inUseImg && !inUseDoc) {
+          await deleteStoredFile(env, oldKey);
         }
       }
     }
@@ -442,8 +483,26 @@ export async function deleteAdminVehicle(request, env, ctx, params) {
 
     const dbId = existingVehicle.dbId;
 
+    // Collect candidate R2 keys for orphan cleanup
+    const keysToCheck = [];
+    if (existingVehicle.auctionSheetUrl) keysToCheck.push(extractObjectKey(existingVehicle.auctionSheetUrl));
+    if (existingVehicle.images && Array.isArray(existingVehicle.images)) {
+      keysToCheck.push(...existingVehicle.images.map(extractObjectKey));
+    }
+
     await env.DB.prepare(`DELETE FROM vehicle_images WHERE vehicle_id = ?`).bind(dbId).run();
     await env.DB.prepare(`DELETE FROM vehicles WHERE id = ?`).bind(dbId).run();
+
+    // Clean up orphaned R2 files no longer used by any vehicle
+    for (const key of keysToCheck) {
+      if (key && key.startsWith("uploads/")) {
+        const inUseImg = await env.DB.prepare(`SELECT id FROM vehicle_images WHERE image_url LIKE ?`).bind(`%${key}%`).first();
+        const inUseDoc = await env.DB.prepare(`SELECT id FROM vehicles WHERE auction_sheet_url LIKE ?`).bind(`%${key}%`).first();
+        if (!inUseImg && !inUseDoc) {
+          await deleteStoredFile(env, key);
+        }
+      }
+    }
 
     await logAudit(env, {
       actingUserId: auth.user.id,
@@ -545,7 +604,7 @@ export async function getDashboardStats(request, env) {
 }
 
 /**
- * POST /api/v1/admin/upload - R2 file upload endpoint
+ * POST /api/v1/admin/upload - Generic R2 file & document upload endpoint
  */
 export async function uploadFile(request, env) {
   const auth = await authenticate(request, env, "vehicles.edit");
@@ -558,27 +617,30 @@ export async function uploadFile(request, env) {
       return badRequest("No file provided in form request.");
     }
 
-    const fileName = file.name || "upload.jpg";
-    const ext = fileName.split(".").pop().toLowerCase() || "jpg";
+    const fileName = file.name || "upload";
+    const ext = fileName.split(".").pop().toLowerCase() || "bin";
     const key = `uploads/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
 
     const arrayBuffer = await file.arrayBuffer();
+    const bucket = getStorageBucket(env);
 
-    if (env.IMAGES) {
-      await env.IMAGES.put(key, arrayBuffer, {
+    if (bucket) {
+      await bucket.put(key, arrayBuffer, {
         httpMetadata: {
-          contentType: file.type || "image/jpeg"
+          contentType: file.type || "application/octet-stream"
         }
       });
+    } else {
+      return serverError("Storage bucket is not configured.");
     }
 
-    const publicUrl = `/api/v1/public/images/${key}`;
+    const publicUrl = `/api/v1/public/files/${key}`;
 
     return success({
       url: publicUrl,
       key,
       name: fileName,
-      type: file.type
+      type: file.type || "application/octet-stream"
     }, "File uploaded successfully.");
   } catch (error) {
     console.error("Upload error:", error);
