@@ -54,6 +54,23 @@ import {
     reorderAdminLocations,
     setDefaultAdminLocation
 } from "./routes/admin/locations.js";
+import {
+    listAdminCarouselSlides,
+    createAdminCarouselSlide,
+    updateAdminCarouselSlide,
+    deleteAdminCarouselSlide,
+    reorderAdminCarouselSlides
+} from "./routes/admin/carousel.js";
+import { getPublicCarousel } from "./routes/public/carousel.js";
+import {
+    listAdminTestimonials,
+    createAdminTestimonial,
+    updateAdminTestimonial,
+    deleteAdminTestimonial,
+    reorderAdminTestimonials
+} from "./routes/admin/testimonials.js";
+import { getPublicTestimonials } from "./routes/public/testimonials.js";
+import { runMaintenanceTasks } from "./routes/admin/maintenance.js";
 
 const routes = {
 
@@ -68,12 +85,33 @@ const routes = {
     [`GET:${API.PUBLIC}/locations`]: getPublicLocations,
     [`GET:${API.PUBLIC}/locations/:slug`]: getPublicLocationBySlug,
 
+    // Public Carousel & Testimonials
+    [`GET:${API.PUBLIC}/carousel`]: getPublicCarousel,
+    [`GET:${API.PUBLIC}/testimonials`]: getPublicTestimonials,
+
     // Authentication
     [`POST:${API.AUTH}/login`]: login,
 
     // Settings
     [`GET:${API.ADMIN}/settings`]: getSettings,
     [`PUT:${API.ADMIN}/settings`]: updateSettings,
+
+    // Platform Maintenance & Retention
+    [`POST:${API.ADMIN}/maintenance/run`]: runMaintenanceTasks,
+
+    // Homepage Carousel Management
+    [`GET:${API.ADMIN}/carousel`]: listAdminCarouselSlides,
+    [`POST:${API.ADMIN}/carousel`]: createAdminCarouselSlide,
+    [`PUT:${API.ADMIN}/carousel/reorder`]: reorderAdminCarouselSlides,
+    [`PUT:${API.ADMIN}/carousel/:id`]: updateAdminCarouselSlide,
+    [`DELETE:${API.ADMIN}/carousel/:id`]: deleteAdminCarouselSlide,
+
+    // Testimonials Management
+    [`GET:${API.ADMIN}/testimonials`]: listAdminTestimonials,
+    [`POST:${API.ADMIN}/testimonials`]: createAdminTestimonial,
+    [`PUT:${API.ADMIN}/testimonials/reorder`]: reorderAdminTestimonials,
+    [`PUT:${API.ADMIN}/testimonials/:id`]: updateAdminTestimonial,
+    [`DELETE:${API.ADMIN}/testimonials/:id`]: deleteAdminTestimonial,
 
     // Business Locations Management
     [`GET:${API.ADMIN}/locations`]: listAdminLocations,
