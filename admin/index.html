@@ -1696,11 +1696,22 @@
           </div>
         </div>
 
-        <!-- Google Maps Embed/URL -->
+        <!-- Google Maps Embed -->
         <div class="form-group" style="margin-bottom: 16px;">
-          <label for="loc-map-url" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Google Maps URL / Embed Link</label>
-          <input type="text" id="loc-map-url" class="form-control" placeholder="https://www.google.com/maps/embed?pb=..." style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
-          <small style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 4px;">Paste Google Maps embed iframe URL or location share link.</small>
+          <label for="loc-map-url" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Google Maps Embed</label>
+          <input type="text" id="loc-map-url" class="form-control" placeholder="<iframe src='https://www.google.com/maps/embed?pb=...'></iframe>" style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
+          
+          <div style="margin-top: 8px; padding: 10px 12px; background: rgba(37, 99, 235, 0.04); border-left: 3px solid var(--primary-blue); border-radius: 4px; font-size: 0.78rem; color: var(--text-dark);">
+            <strong style="color: var(--primary-blue);">How to get this:</strong>
+            <ol style="margin: 4px 0 0 16px; padding: 0; line-height: 1.4; color: var(--text-muted);">
+              <li>Open the location in Google Maps.</li>
+              <li>Click <strong>Share</strong>.</li>
+              <li>Select <strong>Embed a map</strong>.</li>
+              <li>Click <strong>Copy HTML</strong>.</li>
+              <li>Paste it here.</li>
+            </ol>
+            <div style="margin-top: 6px; font-style: italic; color: var(--text-muted);">The application will automatically extract and save the correct embed URL.</div>
+          </div>
         </div>
 
         <!-- Settings Checkboxes -->
