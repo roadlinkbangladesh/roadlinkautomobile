@@ -3,12 +3,37 @@
  * Replaces localStorage persistence with Cloudflare Worker D1/R2 REST APIs.
  */
 
-import { apiRequest } from "./shared/api.js";
+import { apiRequest, resolveMediaUrl } from "./shared/api.js";
 
 let cachedVehicles = [];
 let publicVehicles = [];
 let adminVehicles = [];
 let isLoaded = false;
+
+/**
+ * Normalizes vehicle media URLs and auction sheet availability flags.
+ */
+export function normalizeVehicleMedia(v) {
+  if (!v) return v;
+  const images = (v.images || []).map(resolveMediaUrl);
+  const exteriorImages = (v.exteriorImages || []).map(resolveMediaUrl);
+  const interiorImages = (v.interiorImages || []).map(resolveMediaUrl);
+  const rawSheet = v.auctionSheetUrl || "";
+  const auctionSheetUrl = resolveMediaUrl(rawSheet);
+  const coverImage = resolveMediaUrl(v.coverImage) || exteriorImages[0] || images[0] || "";
+  const posterImage = resolveMediaUrl(v.posterImage) || coverImage;
+
+  return {
+    ...v,
+    images: images.length > 0 ? images : (coverImage ? [coverImage] : []),
+    exteriorImages: exteriorImages.length > 0 ? exteriorImages : (coverImage ? [coverImage] : []),
+    interiorImages,
+    auctionSheetUrl,
+    coverImage,
+    posterImage,
+    auctionSheetAvailable: Boolean(v.auctionSheetAvailable && rawSheet && rawSheet.trim() !== "")
+  };
+}
 
 function getToken() {
   if (typeof sessionStorage !== "undefined") {
@@ -54,7 +79,7 @@ export async function loadVehiclesAsync(params = {}, forceAdmin = false) {
     if (response.ok && contentType.includes("application/json")) {
       const payload = await response.json();
       if (payload && payload.success && payload.data) {
-        let items = payload.data.items || [];
+        let items = (payload.data.items || []).map(normalizeVehicleMedia);
         // Public portal inventory filtering: Exclude unpublished, draft, and sold vehicles
         items = items.filter(v => 
           v.published !== false && 
@@ -108,7 +133,7 @@ export async function loadAdminVehiclesAsync(params = {}) {
     if (response.ok && contentType.includes("application/json")) {
       const payload = await response.json();
       if (payload && payload.success && payload.data) {
-        const items = payload.data.items || [];
+        const items = (payload.data.items || []).map(normalizeVehicleMedia);
         adminVehicles = items;
         cachedVehicles = items;
         isLoaded = true;
@@ -179,7 +204,7 @@ export async function getVehicleByIdAsync(id) {
     if (response.ok && contentType.includes("application/json")) {
       const payload = await response.json();
       if (payload && payload.success && payload.data) {
-        return payload.data;
+        return normalizeVehicleMedia(payload.data);
       }
     }
   } catch (err) {
