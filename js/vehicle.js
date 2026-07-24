@@ -4,6 +4,7 @@
  */
 
 import { getAllVehicles, loadVehiclesAsync } from './inventory.js';
+import { getPublicFileUrl } from './shared/api.js';
 import './settings-loader.js';
 
 // App State for the current page
@@ -520,13 +521,88 @@ function hydrateDescription(car) {
 }
 
 /**
+ * Opens Auction Sheet Modal supporting both images and PDFs without exposing R2 direct URL.
+ */
+function openAuctionSheetModal(fileUrl, carTitle) {
+  closeAuctionSheetModal();
+
+  const isPdf = fileUrl.toLowerCase().includes(".pdf") || fileUrl.toLowerCase().includes("pdf");
+
+  const overlay = document.createElement("div");
+  overlay.className = "auction-sheet-modal-overlay";
+  overlay.id = "auction-sheet-modal-overlay";
+
+  const contentHtml = `
+    <div class="auction-modal-container" role="dialog" aria-modal="true" aria-labelledby="auction-modal-title">
+      <div class="auction-modal-header">
+        <h2 id="auction-modal-title">Official Auction Certificate — ${carTitle || "Vehicle"}</h2>
+        <button type="button" class="auction-modal-close-btn" id="btn-close-auction-modal" aria-label="Close modal">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="auction-modal-body">
+        ${isPdf 
+          ? `<iframe src="${fileUrl}" title="Official Japanese Auction Certificate for ${carTitle}"></iframe>`
+          : `<img src="${fileUrl}" alt="Official Japanese Auction Certificate for ${carTitle}" loading="eager">`
+        }
+      </div>
+    </div>
+  `;
+
+  overlay.innerHTML = contentHtml;
+  document.body.appendChild(overlay);
+  document.body.style.overflow = "hidden";
+
+  const closeBtn = overlay.querySelector("#btn-close-auction-modal");
+  if (closeBtn) {
+    closeBtn.addEventListener("click", closeAuctionSheetModal);
+  }
+
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) {
+      closeAuctionSheetModal();
+    }
+  });
+
+  const handleKeydown = (e) => {
+    if (e.key === "Escape") {
+      closeAuctionSheetModal();
+      document.removeEventListener("keydown", handleKeydown);
+    }
+  };
+  document.addEventListener("keydown", handleKeydown);
+}
+
+function closeAuctionSheetModal() {
+  const overlay = document.getElementById("auction-sheet-modal-overlay");
+  if (overlay) {
+    overlay.remove();
+    document.body.style.overflow = "";
+  }
+}
+
+/**
  * Hydrates Auction Sheet downloads and visual links
  */
 function hydrateAuctionSheet(car) {
   const section = document.getElementById('auction-sheet-section');
+  const viewBtn = document.getElementById('btn-view-auction');
+  const downloadBtn = document.getElementById('btn-download-auction');
+
   if (car.auctionSheetUrl && car.auctionSheetAvailable) {
-    document.getElementById('btn-view-auction').setAttribute('href', car.auctionSheetUrl);
-    document.getElementById('btn-download-auction').setAttribute('href', car.auctionSheetUrl);
+    const fileUrl = getPublicFileUrl(car.auctionSheetUrl);
+    if (downloadBtn) {
+      downloadBtn.setAttribute('href', fileUrl);
+      downloadBtn.setAttribute('download', `Auction-Sheet-${car.stockNumber || car.id}`);
+    }
+
+    if (viewBtn) {
+      viewBtn.setAttribute('href', '#');
+      viewBtn.onclick = (e) => {
+        e.preventDefault();
+        openAuctionSheetModal(fileUrl, `${car.year} ${car.make} ${car.model}`);
+      };
+    }
     section.style.display = 'block';
   } else {
     section.style.display = 'none';
