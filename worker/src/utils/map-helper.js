@@ -22,7 +22,7 @@ export function isValidGoogleMapsUrl(input) {
  * Generates an embeddable Google Maps iframe URL from any standard Google Maps link or address.
  */
 export function deriveEmbedMapUrl(mapInput, address = "") {
-  if (!mapInput || typeof mapInput !== "string") {
+  if (!mapInput || typeof mapInput !== "string" || !mapInput.trim()) {
     return address ? `https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed` : "";
   }
 
@@ -58,9 +58,13 @@ export function deriveEmbedMapUrl(mapInput, address = "") {
     return `https://maps.google.com/maps?q=${qMatch[1]}&output=embed`;
   }
 
-  // 6. Default fallback: use location address or map input as query
-  const query = address || clean;
-  return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
+  // 6. If mapInput is a valid map URL or shortened link (e.g. maps.app.goo.gl or standard link):
+  if (clean.startsWith("http://") || clean.startsWith("https://")) {
+    return `https://maps.google.com/maps?q=${encodeURIComponent(clean)}&output=embed`;
+  }
+
+  // 7. Fallback ONLY if mapInput is not a URL:
+  return `https://maps.google.com/maps?q=${encodeURIComponent(clean || address)}&output=embed`;
 }
 
 /**
