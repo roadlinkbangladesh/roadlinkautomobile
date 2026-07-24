@@ -65,7 +65,9 @@ export async function fetchPublicSettings() {
           seoTitleSuffix: data.seo_title_suffix || data.seoTitleSuffix || DEFAULT_SETTINGS.seoTitleSuffix,
           seoDefaultKeywords: data.seo_default_keywords || data.seoDefaultKeywords || DEFAULT_SETTINGS.seoDefaultKeywords,
           seoDefaultDescription: data.seo_default_description || data.seoDefaultDescription || DEFAULT_SETTINGS.seoDefaultDescription,
-          stockBannerUrl: data.stock_banner_url || data.stockBannerUrl || null
+          stockBannerUrl: data.stock_banner_url || data.stockBannerUrl || null,
+          companyLogoUrl: data.company_logo_url || data.companyLogoUrl || null,
+          faviconUrl: data.favicon_url || data.faviconUrl || null
         };
         hydratePageContacts();
         await fetchPublicLocations();
@@ -107,8 +109,11 @@ function hydrateLocationsUI(locations) {
   const mapIframe = document.getElementById("contact-map-iframe") || document.querySelector(".map-container iframe");
 
   // 1. Initial Map Iframe setup
-  if (mapIframe && defaultLoc && defaultLoc.mapUrl) {
-    mapIframe.src = defaultLoc.mapUrl;
+  if (mapIframe && defaultLoc) {
+    const embedUrl = defaultLoc.mapEmbedUrl || defaultLoc.map_embed_url || buildEmbedUrl(defaultLoc.mapUrl || defaultLoc.map_url, defaultLoc.address);
+    if (embedUrl) {
+      mapIframe.src = embedUrl;
+    }
   }
 
   // 2. Homepage Location Cards (#dyn-contact-list)
@@ -119,6 +124,9 @@ function hydrateLocationsUI(locations) {
       const phonesHtml = (loc.phones || []).map(p => `
         <a href="tel:${p.replace(/[^0-9+]/g, '')}" style="color: inherit; text-decoration: none; font-weight: 600;">${p}</a>
       `).join(' &bull; ') || 'Contact sales team';
+
+      const embedUrl = loc.mapEmbedUrl || loc.map_embed_url || buildEmbedUrl(loc.mapUrl || loc.map_url, loc.address);
+      const extUrl = loc.mapUrl || loc.map_url || buildExternalUrl(loc.mapUrl || loc.map_url, loc.address);
 
       return `
         <li class="location-card-item ${isDefault ? 'active-location' : ''}" data-loc-id="${loc.id}" style="
@@ -146,9 +154,9 @@ function hydrateLocationsUI(locations) {
             <div>${phonesHtml}</div>
           </div>
 
-          ${loc.mapUrl ? `
+          ${embedUrl ? `
             <div style="padding-left: 26px; display: flex; gap: 10px; align-items: center;">
-              <button type="button" class="btn-select-map-loc" data-map-url="${loc.mapUrl}" style="
+              <button type="button" class="btn-select-map-loc" data-map-url="${embedUrl}" style="
                 background: var(--primary-blue); 
                 color: #fff; 
                 border: none; 
@@ -164,7 +172,7 @@ function hydrateLocationsUI(locations) {
                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>
                 Show on Map
               </button>
-              <a href="${loc.mapUrl}" target="_blank" rel="noopener" style="font-size: 0.8rem; color: var(--primary-blue); font-weight: 600; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px;">
+              <a href="${extUrl}" target="_blank" rel="noopener" style="font-size: 0.8rem; color: var(--primary-blue); font-weight: 600; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px;">
                 Open Directions &rarr;
               </a>
             </div>
