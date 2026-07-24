@@ -22,6 +22,37 @@ export function buildUrl(endpoint) {
 }
 
 /**
+ * Converts stored relative key or path into a deployment-agnostic public media URL.
+ * Handles keys ("uploads/123.jpg"), relative paths ("/api/v1/public/files/123.jpg"), and absolute URLs.
+ * @param {string} urlOrKey - Object key or URL string
+ * @returns {string} Fully qualified media URL string
+ */
+export function resolveMediaUrl(urlOrKey) {
+  if (!urlOrKey || typeof urlOrKey !== "string") return "";
+  const trimmed = urlOrKey.trim();
+  if (!trimmed) return "";
+
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("data:")) {
+    if (trimmed.includes("uploads/")) {
+      const key = trimmed.substring(trimmed.indexOf("uploads/"));
+      return buildUrl(`/api/v1/public/files/${key}`);
+    }
+    return trimmed;
+  }
+
+  if (trimmed.startsWith("/api/")) {
+    return buildUrl(trimmed);
+  }
+
+  const cleanKey = trimmed.replace(/^\/+/, "");
+  if (cleanKey.startsWith("uploads/")) {
+    return buildUrl(`/api/v1/public/files/${cleanKey}`);
+  }
+
+  return buildUrl(`/api/v1/public/files/${cleanKey}`);
+}
+
+/**
  * Generic API HTTP Request Wrapper.
  *
  * @param {string} endpoint - API path (e.g. "/api/v1/public/settings")
