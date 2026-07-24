@@ -1,6 +1,7 @@
 import { success, badRequest, notFound, serverError, forbidden } from "../../utils/response.js";
 import { authenticate } from "../../utils/auth.js";
 import { logAudit } from "../../utils/audit.js";
+import { isValidGoogleMapsUrl, deriveEmbedMapUrl, deriveExternalMapUrl } from "../../utils/map-helper.js";
 
 /**
  * Helper to fetch phone numbers for a list of location IDs.
@@ -78,6 +79,7 @@ export async function listAdminLocations(request, env) {
         title,
         address,
         map_url as mapUrl,
+        map_embed_url as mapEmbedUrl,
         is_visible as isVisible,
         is_default as isDefault,
         display_order as displayOrder,
@@ -94,6 +96,8 @@ export async function listAdminLocations(request, env) {
 
     const formatted = locations.map(loc => ({
       ...loc,
+      mapEmbedUrl: loc.mapEmbedUrl || deriveEmbedMapUrl(loc.mapUrl, loc.address),
+      mapUrl: loc.mapUrl || deriveExternalMapUrl(loc.mapUrl, loc.address),
       isVisible: Boolean(loc.isVisible),
       isDefault: Boolean(loc.isDefault),
       phones: phoneMap[loc.id] || []
@@ -126,6 +130,13 @@ export async function createAdminLocation(request, env) {
     if (!title) return badRequest("Location title is required.");
     if (!address) return badRequest("Location full address is required.");
 
+    if (mapUrl && !isValidGoogleMapsUrl(mapUrl)) {
+      return badRequest("Invalid Google Maps URL. Please paste a standard Google Maps link (e.g., https://maps.app.goo.gl/..., https://www.google.com/maps/place/...) or map embed code.");
+    }
+
+    const storedMapUrl = deriveExternalMapUrl(mapUrl, address);
+    const storedEmbedUrl = deriveEmbedMapUrl(mapUrl, address);
+
     // Check if any default location exists currently
     const currentDefault = await env.DB.prepare(`
       SELECT id FROM business_locations WHERE is_default = 1 AND deleted_at IS NULL
@@ -153,9 +164,9 @@ export async function createAdminLocation(request, env) {
     const now = new Date().toISOString();
     const insertResult = await env.DB.prepare(`
       INSERT INTO business_locations (
-        slug, title, address, map_url, is_visible, is_default, display_order, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(slug, title, address, mapUrl, isVisible, isDefault, displayOrder, now, now).run();
+        slug, title, address, map_url, map_embed_url, is_visible, is_default, display_order, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(slug, title, address, storedMapUrl, storedEmbedUrl, isVisible, isDefault, displayOrder, now, now).run();
 
     const locationId = insertResult.meta.last_row_id;
 
@@ -182,7 +193,8 @@ export async function createAdminLocation(request, env) {
       slug,
       title,
       address,
-      mapUrl,
+      mapUrl: storedMapUrl,
+      mapEmbedUrl: storedEmbedUrl,
       isVisible: Boolean(isVisible),
       isDefault: Boolean(isDefault),
       displayOrder,
@@ -227,6 +239,13 @@ export async function updateAdminLocation(request, env, ctx, params) {
     if (!title) return badRequest("Location title is required.");
     if (!address) return badRequest("Location address is required.");
 
+    if (mapUrl && !isValidGoogleMapsUrl(mapUrl)) {
+      return badRequest("Invalid Google Maps URL. Please paste a standard Google Maps link (e.g., https://maps.app.goo.gl/..., https://www.google.com/maps/place/...) or map embed code.");
+    }
+
+    const storedMapUrl = deriveExternalMapUrl(mapUrl, address);
+    const storedEmbedUrl = deriveEmbedMapUrl(mapUrl, address);
+
     // Handle default location logic
     if (isDefault) {
       // Unset default for all other locations
@@ -250,12 +269,13 @@ export async function updateAdminLocation(request, env, ctx, params) {
         title = ?,
         address = ?,
         map_url = ?,
+        map_embed_url = ?,
         is_visible = ?,
         is_default = ?,
         display_order = ?,
         updated_at = ?
       WHERE id = ?
-    `).bind(title, address, mapUrl, isVisible, isDefault, displayOrder, now, id).run();
+    `).bind(title, address, storedMapUrl, storedEmbedUrl, isVisible, isDefault, displayOrder, now, id).run();
 
     // Update phone numbers if provided
     let phones = [];
@@ -288,7 +308,8 @@ export async function updateAdminLocation(request, env, ctx, params) {
       slug: existing.slug,
       title,
       address,
-      mapUrl,
+      mapUrl: storedMapUrl,
+      mapEmbedUrl: storedEmbedUrl,
       isVisible: Boolean(isVisible),
       isDefault: Boolean(isDefault),
       displayOrder,
