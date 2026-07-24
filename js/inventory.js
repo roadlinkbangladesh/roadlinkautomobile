@@ -3,7 +3,7 @@
  * Replaces localStorage persistence with Cloudflare Worker D1/R2 REST APIs.
  */
 
-import { apiRequest, resolveMediaUrl } from "./shared/api.js";
+import { apiRequest, getPublicFileUrl, resolveMediaUrl, MediaService } from "./shared/api.js";
 
 let cachedVehicles = [];
 let publicVehicles = [];
@@ -350,13 +350,18 @@ export async function updateVehicleStatusAsync(id, statusData) {
 
 /**
  * Uploads a file (image or PDF) to R2 via POST /api/v1/admin/upload.
+ * @param {File} file - The file object to upload
+ * @param {string} [stockNumber=""] - Optional vehicle stock number context for folder structure
  */
-export async function uploadFileAsync(file) {
+export async function uploadFileAsync(file, stockNumber = "") {
   const token = getToken();
   if (!token) throw new Error("Unauthorized: Admin login token required.");
 
   const formData = new FormData();
   formData.append("file", file);
+  if (stockNumber) {
+    formData.append("stockNumber", stockNumber);
+  }
 
   const response = await apiRequest("/api/v1/admin/upload", {
     method: "POST",
