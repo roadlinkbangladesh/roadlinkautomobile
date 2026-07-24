@@ -7,6 +7,16 @@
 import { API_BASE_URL } from "./config.js";
 
 /**
+ * Sanitizes phone number strings by stripping non-numeric characters except leading plus sign (+).
+ * @param {string} phone
+ * @returns {string}
+ */
+export function sanitizePhoneNumber(phone) {
+  if (!phone) return "";
+  return String(phone).replace(/[^0-9+]/g, "");
+}
+
+/**
  * Normalizes and builds a full URL using API_BASE_URL and the specified endpoint path.
  * @param {string} endpoint - Relative API path (e.g. "/api/v1/public/vehicles") or full URL
  * @returns {string} Fully qualified URL string
