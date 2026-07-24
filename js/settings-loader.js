@@ -104,7 +104,7 @@ export async function fetchPublicLocations() {
  * Generates an embeddable Google Maps iframe URL from standard Google Maps links or addresses.
  */
 export function deriveEmbedMapUrl(mapInput, address = "") {
-  if (!mapInput || typeof mapInput !== "string") {
+  if (!mapInput || typeof mapInput !== "string" || !mapInput.trim()) {
     return address ? `https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed` : "";
   }
   const clean = mapInput.trim();
@@ -128,8 +128,10 @@ export function deriveEmbedMapUrl(mapInput, address = "") {
   if (qMatch) {
     return `https://maps.google.com/maps?q=${qMatch[1]}&output=embed`;
   }
-  const query = address || clean;
-  return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
+  if (clean.startsWith("http://") || clean.startsWith("https://")) {
+    return `https://maps.google.com/maps?q=${encodeURIComponent(clean)}&output=embed`;
+  }
+  return `https://maps.google.com/maps?q=${encodeURIComponent(clean || address)}&output=embed`;
 }
 
 /**
