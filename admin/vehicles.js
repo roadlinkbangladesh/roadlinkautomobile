@@ -4,6 +4,7 @@
  */
 
 import { getAllVehicles, loadVehiclesAsync, loadAdminVehiclesAsync, addVehicleAsync, updateVehicleAsync, deleteVehicleAsync, updateVehicleStatusAsync, uploadFileAsync } from "../js/inventory.js";
+import { getPublicFileUrl } from "../js/shared/api.js";
 import { $ } from "./utils.js";
 import { hasPermission } from "./auth.js";
 import { initDashboard } from "./dashboard.js";
@@ -852,6 +853,7 @@ async function handleAuctionSheetFileChange(e) {
   const statusEl = $("auction-sheet-upload-status");
   const urlInput = $("v-auction-sheet-url");
   const checkboxEl = $("v-auction-sheet-available");
+  const stockNumber = $("v-stock")?.value.trim() || "";
 
   const originalText = btn ? btn.innerHTML : "";
   if (btn) {
@@ -865,9 +867,10 @@ async function handleAuctionSheetFileChange(e) {
   }
 
   try {
-    const uploaded = await uploadFileAsync(file);
-    if (uploaded && (uploaded.url || uploaded.key)) {
-      if (urlInput) urlInput.value = uploaded.url || uploaded.key;
+    const uploaded = await uploadFileAsync(file, stockNumber);
+    if (uploaded && (uploaded.key || uploaded.url)) {
+      const key = uploaded.key || uploaded.url.replace(/^\/?api\/v1\/public\/(files|images)\//, "");
+      if (urlInput) urlInput.value = key;
       syncAuctionSheetUI();
       if (checkboxEl && !checkboxEl.disabled) checkboxEl.checked = true;
       if (statusEl) {
@@ -875,7 +878,7 @@ async function handleAuctionSheetFileChange(e) {
         statusEl.textContent = `✓ Auction sheet document "${file.name}" uploaded successfully!`;
       }
     } else {
-      throw new Error("No URL returned from upload server.");
+      throw new Error("No object key returned from upload server.");
     }
   } catch (err) {
     console.error("Auction sheet upload failed:", err);
@@ -922,6 +925,7 @@ async function handleExtImagesFileChange(e) {
 
   const btn = $("btn-select-ext-images");
   const origText = btn ? btn.innerHTML : "";
+  const stockNumber = $("v-stock")?.value.trim() || "";
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
@@ -930,9 +934,10 @@ async function handleExtImagesFileChange(e) {
       btn.innerHTML = `Uploading ${i + 1} of ${files.length}...`;
     }
     try {
-      const uploaded = await uploadFileAsync(file);
-      if (uploaded && uploaded.url) {
-        activeExteriorImages.push(uploaded.url);
+      const uploaded = await uploadFileAsync(file, stockNumber);
+      if (uploaded && (uploaded.key || uploaded.url)) {
+        const key = uploaded.key || uploaded.url.replace(/^\/?api\/v1\/public\/(files|images)\//, "");
+        activeExteriorImages.push(key);
       }
     } catch (err) {
       console.error("Failed to upload exterior image:", err);
@@ -966,6 +971,7 @@ async function handleIntImagesFileChange(e) {
 
   const btn = $("btn-select-int-images");
   const origText = btn ? btn.innerHTML : "";
+  const stockNumber = $("v-stock")?.value.trim() || "";
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
@@ -974,9 +980,10 @@ async function handleIntImagesFileChange(e) {
       btn.innerHTML = `Uploading ${i + 1} of ${files.length}...`;
     }
     try {
-      const uploaded = await uploadFileAsync(file);
-      if (uploaded && uploaded.url) {
-        activeInteriorImages.push(uploaded.url);
+      const uploaded = await uploadFileAsync(file, stockNumber);
+      if (uploaded && (uploaded.key || uploaded.url)) {
+        const key = uploaded.key || uploaded.url.replace(/^\/?api\/v1\/public\/(files|images)\//, "");
+        activeInteriorImages.push(key);
       }
     } catch (err) {
       console.error("Failed to upload interior image:", err);
@@ -1028,9 +1035,10 @@ function renderSpecificPreviews(containerId, imageArray, isExterior) {
 
     const card = document.createElement("div");
     card.className = `image-preview-card ${isExterior && isFirst ? "is-cover" : ""}`;
+    const previewUrl = getPublicFileUrl(src);
 
     card.innerHTML = `
-      <img src="${src}" alt="Preview ${index + 1}" referrerpolicy="no-referrer">
+      <img src="${previewUrl}" alt="Preview ${index + 1}" referrerpolicy="no-referrer">
       ${isExterior && isFirst ? `<span class="image-preview-badge">Cover</span>` : ""}
       <div class="image-preview-actions">
         <button type="button" class="btn-img-prev" data-index="${index}" ${isFirst ? "disabled" : ""} title="Move Left">
@@ -1090,7 +1098,8 @@ function openImagePreviewModal(vehicleId) {
   const titleEl = $("preview-modal-title");
 
   if (modal && imgEl) {
-    const thumbnailSrc = vehicle.coverImage || vehicle.posterImage || (vehicle.images && vehicle.images[0]) || "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
+    const rawThumbnail = vehicle.coverImage || vehicle.posterImage || (vehicle.images && vehicle.images[0]) || "";
+    const thumbnailSrc = rawThumbnail ? getPublicFileUrl(rawThumbnail) : "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
     imgEl.src = thumbnailSrc;
     imgEl.alt = `${vehicle.make} ${vehicle.model}`;
     if (titleEl) {
@@ -1244,7 +1253,8 @@ export function openVehicleDetailsModal(vehicleId) {
 
   // Render Cover image / main image
   const mainImg = $("details-modal-main-img");
-  const coverSrc = vehicle.coverImage || vehicle.posterImage || (vehicle.images && vehicle.images[0]) || "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
+  const rawCover = vehicle.coverImage || vehicle.posterImage || (vehicle.images && vehicle.images[0]) || "";
+  const coverSrc = rawCover ? getPublicFileUrl(rawCover) : "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
   if (mainImg) {
     mainImg.src = coverSrc;
   }
@@ -1273,7 +1283,7 @@ export function openVehicleDetailsModal(vehicleId) {
     if (uniqueImages.length > 1) {
       uniqueImages.forEach((imgSrc) => {
         const thumb = document.createElement("img");
-        thumb.src = imgSrc;
+        thumb.src = getPublicFileUrl(imgSrc);
         thumb.referrerPolicy = "no-referrer";
         thumb.style.cssText = "width: 64px; height: 48px; object-fit: cover; border-radius: var(--radius-sm); border: 2px solid var(--border-color); cursor: pointer; flex-shrink: 0; transition: border-color 0.2s;";
         if (imgSrc === coverSrc) {
