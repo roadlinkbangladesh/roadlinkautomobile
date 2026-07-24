@@ -182,21 +182,37 @@ function renderLocationsTable(locations) {
     `;
   }).join('');
 
-  // Bind Row Action Buttons
-  tbody.querySelectorAll(".btn-order-up").forEach(btn => {
-    btn.onclick = () => moveLocationOrder(btn.dataset.id, -1);
-  });
-  tbody.querySelectorAll(".btn-order-down").forEach(btn => {
-    btn.onclick = () => moveLocationOrder(btn.dataset.id, 1);
-  });
-  tbody.querySelectorAll(".btn-make-default").forEach(btn => {
-    btn.onclick = () => handleSetDefault(btn.dataset.id);
-  });
-  tbody.querySelectorAll(".btn-edit-loc").forEach(btn => {
-    btn.onclick = () => editLocation(btn.dataset.id);
-  });
-  tbody.querySelectorAll(".btn-delete-loc").forEach(btn => {
-    btn.onclick = () => handleDeleteLocation(btn.dataset.id);
+  // Event delegation on table body for all row actions
+  tbody.addEventListener("click", (e) => {
+    const btnOrderUp = e.target.closest(".btn-order-up");
+    if (btnOrderUp) {
+      moveLocationOrder(btnOrderUp.dataset.id, -1);
+      return;
+    }
+
+    const btnOrderDown = e.target.closest(".btn-order-down");
+    if (btnOrderDown) {
+      moveLocationOrder(btnOrderDown.dataset.id, 1);
+      return;
+    }
+
+    const btnDefault = e.target.closest(".btn-make-default");
+    if (btnDefault) {
+      handleSetDefault(btnDefault.dataset.id);
+      return;
+    }
+
+    const btnEdit = e.target.closest(".btn-edit-loc");
+    if (btnEdit) {
+      editLocation(btnEdit.dataset.id);
+      return;
+    }
+
+    const btnDelete = e.target.closest(".btn-delete-loc");
+    if (btnDelete && !btnDelete.disabled) {
+      handleDeleteLocation(btnDelete.dataset.id);
+      return;
+    }
   });
 }
 
@@ -458,8 +474,3 @@ async function handleDeleteLocation(id) {
     alert(error.message || "Failed to delete location.");
   }
 }
-
-// Window global handlers
-window.editLocation = (id) => editLocation(id);
-window.deleteLocation = (id) => handleDeleteLocation(id);
-window.openLocationModal = (locObj) => openLocationModal(locObj);
