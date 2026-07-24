@@ -1,89 +1,72 @@
 /**
- * Helper utilities for parsing and normalizing Google Maps URLs for embedding and external navigation.
+ * Helper utilities for parsing and validating Google Maps Embed URLs.
+ * Serves as the single source of truth for Google Maps Embed handling.
  */
 
 /**
- * Validates whether a given URL string or iframe code is a valid Google Maps reference.
+ * Extracts and validates a Google Maps Embed URL from either iframe HTML code or a direct embed URL.
+ *
+ * @param {string} input - Raw input string (iframe HTML string or embed URL)
+ * @returns {{ valid: boolean, embedUrl?: string, error?: string }}
  */
-export function isValidGoogleMapsUrl(input) {
-  if (!input || typeof input !== "string") return false;
-  const clean = input.trim().toLowerCase();
-  
-  if (clean.includes("<iframe") && clean.includes("google.com/maps")) return true;
-  if (clean.includes("maps.app.goo.gl")) return true;
-  if (clean.includes("google.com/maps")) return true;
-  if (clean.includes("maps.google.com")) return true;
-  if (clean.includes("goo.gl/maps")) return true;
-  
-  return false;
-}
-
-/**
- * Generates an embeddable Google Maps iframe URL from any standard Google Maps link or address.
- */
-export function deriveEmbedMapUrl(mapInput, address = "") {
-  if (!mapInput || typeof mapInput !== "string" || !mapInput.trim()) {
-    return address ? `https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed` : "";
+export function parseAndValidateEmbedMapUrl(input) {
+  if (!input || typeof input !== "string" || !input.trim()) {
+    return { valid: true, embedUrl: "" };
   }
 
-  const clean = mapInput.trim();
+  let clean = input.trim();
 
-  // 1. If iframe HTML string pasted:
-  if (clean.startsWith("<iframe")) {
-    const match = clean.match(/src=["']([^"']+)["']/i);
-    if (match && match[1]) return match[1];
-  }
-
-  // 2. If already an embed URL:
-  if (clean.includes("output=embed") || clean.includes("/maps/embed")) {
-    return clean;
-  }
-
-  // 3. Extract @lat,lng coordinates if present:
-  const coordMatch = clean.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-  if (coordMatch) {
-    return `https://maps.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&output=embed`;
-  }
-
-  // 4. Extract /place/Name if present:
-  const placeMatch = clean.match(/\/maps\/place\/([^/]+)/);
-  if (placeMatch) {
-    const rawPlace = decodeURIComponent(placeMatch[1].replace(/\+/g, " "));
-    return `https://maps.google.com/maps?q=${encodeURIComponent(rawPlace)}&output=embed`;
-  }
-
-  // 5. Extract q= parameter if present:
-  const qMatch = clean.match(/[?&]q=([^&]+)/);
-  if (qMatch) {
-    return `https://maps.google.com/maps?q=${qMatch[1]}&output=embed`;
-  }
-
-  // 6. If mapInput is a valid map URL or shortened link (e.g. maps.app.goo.gl or standard link):
-  if (clean.startsWith("http://") || clean.startsWith("https://")) {
-    return `https://maps.google.com/maps?q=${encodeURIComponent(clean)}&output=embed`;
-  }
-
-  // 7. Fallback ONLY if mapInput is not a URL:
-  return `https://maps.google.com/maps?q=${encodeURIComponent(clean || address)}&output=embed`;
-}
-
-/**
- * Generates a clean external Google Maps navigation link for target="_blank".
- */
-export function deriveExternalMapUrl(mapInput, address = "") {
-  if (!mapInput || typeof mapInput !== "string") {
-    return address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : "#";
-  }
-
-  let clean = mapInput.trim();
-
-  // If iframe string pasted, extract src
-  if (clean.startsWith("<iframe")) {
-    const match = clean.match(/src=["']([^"']+)["']/i);
-    if (match && match[1]) {
-      clean = match[1];
+  // 1. If iframe HTML is pasted, extract the src attribute
+  if (clean.toLowerCase().includes("<iframe")) {
+    const srcMatch = clean.match(/src=["']([^"']+)["']/i);
+    if (srcMatch && srcMatch[1]) {
+      clean = srcMatch[1].trim();
+    } else {
+      return {
+        valid: false,
+        error: "Please use Google Maps → Share → Embed a map → Copy HTML, or paste the Google Maps Embed URL."
+      };
     }
   }
 
-  return clean;
+  // 2. Reject shortened or standard share links explicitly (maps.app.goo.gl, google.com/maps/place, etc.)
+  const lower = clean.toLowerCase();
+  if (
+    lower.includes("maps.app.goo.gl") ||
+    lower.includes("goo.gl/maps") ||
+    lower.includes("/maps/place/") ||
+    lower.includes("/maps/dir/") ||
+    lower.includes("/maps/search/")
+  ) {
+    return {
+      valid: false,
+      error: "Please use Google Maps → Share → Embed a map → Copy HTML, or paste the Google Maps Embed URL."
+    };
+  }
+
+  // 3. Ensure it is a valid Google Maps Embed URL
+  const isEmbed =
+    (lower.startsWith("https://www.google.com/maps/embed") ||
+     lower.startsWith("https://google.com/maps/embed") ||
+     lower.startsWith("https://maps.google.com/maps")) &&
+    (lower.includes("/embed") || lower.includes("output=embed"));
+
+  if (!isEmbed) {
+    return {
+      valid: false,
+      error: "Please use Google Maps → Share → Embed a map → Copy HTML, or paste the Google Maps Embed URL."
+    };
+  }
+
+  return {
+    valid: true,
+    embedUrl: clean
+  };
+}
+
+/**
+ * Helper to check if a given string is a valid embed URL or iframe code.
+ */
+export function isValidGoogleMapsUrl(input) {
+  return parseAndValidateEmbedMapUrl(input).valid;
 }
