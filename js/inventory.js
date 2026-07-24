@@ -66,6 +66,9 @@ export async function loadVehiclesAsync(params = {}, forceAdmin = false) {
   if (params.make) queryParts.push(`make=${encodeURIComponent(params.make)}`);
   if (params.sort) queryParts.push(`sort=${encodeURIComponent(params.sort)}`);
   if (params.page) queryParts.push(`page=${params.page}`);
+  if (params.includeSold) {
+    queryParts.push("includeSold=true");
+  }
   if (params.limit) queryParts.push(`limit=${params.limit || 100}`);
 
   if (queryParts.length > 0) {
