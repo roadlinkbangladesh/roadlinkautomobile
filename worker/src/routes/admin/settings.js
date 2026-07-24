@@ -1,4 +1,4 @@
-import { success, serverError } from "../../utils/response.js";
+import { success, badRequest, serverError } from "../../utils/response.js";
 import { authenticate } from "../../utils/auth.js";
 import { logAudit, getRequestMeta } from "../../utils/audit.js";
 
@@ -59,6 +59,19 @@ export async function updateSettings(request, env) {
         const email = body.email ?? "";
         const showEmail = (body.show_email ?? body.showEmail ?? true) ? 1 : 0;
 
+        // Branding assets
+        const companyLogoUrl = body.company_logo_url ?? body.companyLogoUrl ?? null;
+        const faviconUrl = body.favicon_url ?? body.faviconUrl ?? null;
+
+        // Featured Vehicles limit (Min: 1, Max: 9, Default: 6)
+        let featuredVehiclesLimit = parseInt(body.featured_vehicles_limit ?? body.featuredVehiclesLimit ?? 6, 10);
+        if (isNaN(featuredVehiclesLimit) || featuredVehiclesLimit < 1 || featuredVehiclesLimit > 9) {
+            return badRequest("Featured vehicles limit must be an integer between 1 and 9.");
+        }
+
+        // Show sold vehicles configuration
+        const showSoldVehicles = (body.show_sold_vehicles ?? body.showSoldVehicles ?? false) ? 1 : 0;
+
         // Legacy compatibility aliases
         const phone = showroomPhone || contactPhone || body.phone || "";
         const address = showroomAddress || corporateAddress || body.address || "";
@@ -69,63 +82,34 @@ export async function updateSettings(request, env) {
             companySlug = companyName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "roadlink";
         }
 
-        // Attempt update with company_slug
-        try {
-            await env.DB
-                .prepare(`
-                    UPDATE settings
-                    SET company_name = ?, company_slug = ?, phone = ?, whatsapp = ?, email = ?, address = ?,
-                        facebook = ?, youtube = ?, display_timezone = ?, display_locale = ?,
-                        default_currency = ?, session_timeout_minutes = ?, archive_retention_days = ?,
-                        seo_title_suffix = ?, seo_default_keywords = ?, seo_default_description = ?,
-                        showroom_address = ?, showroom_phone = ?, show_showroom = ?,
-                        corporate_address = ?, corporate_phone = ?, show_corporate = ?,
-                        contact_name = ?, contact_phone = ?, show_primary_contact = ?,
-                        show_whatsapp = ?, show_email = ?,
-                        updated_at = ?
-                    WHERE id = 1
-                `)
-                .bind(
-                    companyName, companySlug, phone, whatsapp, email, address,
-                    facebook, youtube, displayTimezone, displayLocale,
-                    defaultCurrency, sessionTimeoutMinutes, archiveRetentionDays,
-                    seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription,
-                    showroomAddress, showroomPhone, showShowroom,
-                    corporateAddress, corporatePhone, showCorporate,
-                    contactName, contactPhone, showPrimaryContact,
-                    showWhatsapp, showEmail,
-                    now
-                )
-                .run();
-        } catch (colErr) {
-            // Fallback if company_slug column doesn't exist yet before migration
-            await env.DB
-                .prepare(`
-                    UPDATE settings
-                    SET company_name = ?, phone = ?, whatsapp = ?, email = ?, address = ?,
-                        facebook = ?, youtube = ?, display_timezone = ?, display_locale = ?,
-                        default_currency = ?, session_timeout_minutes = ?, archive_retention_days = ?,
-                        seo_title_suffix = ?, seo_default_keywords = ?, seo_default_description = ?,
-                        showroom_address = ?, showroom_phone = ?, show_showroom = ?,
-                        corporate_address = ?, corporate_phone = ?, show_corporate = ?,
-                        contact_name = ?, contact_phone = ?, show_primary_contact = ?,
-                        show_whatsapp = ?, show_email = ?,
-                        updated_at = ?
-                    WHERE id = 1
-                `)
-                .bind(
-                    companyName, phone, whatsapp, email, address,
-                    facebook, youtube, displayTimezone, displayLocale,
-                    defaultCurrency, sessionTimeoutMinutes, archiveRetentionDays,
-                    seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription,
-                    showroomAddress, showroomPhone, showShowroom,
-                    corporateAddress, corporatePhone, showCorporate,
-                    contactName, contactPhone, showPrimaryContact,
-                    showWhatsapp, showEmail,
-                    now
-                )
-                .run();
-        }
+        await env.DB
+            .prepare(`
+                UPDATE settings
+                SET company_name = ?, company_slug = ?, phone = ?, whatsapp = ?, email = ?, address = ?,
+                    facebook = ?, youtube = ?, display_timezone = ?, display_locale = ?,
+                    default_currency = ?, session_timeout_minutes = ?, archive_retention_days = ?,
+                    seo_title_suffix = ?, seo_default_keywords = ?, seo_default_description = ?,
+                    showroom_address = ?, showroom_phone = ?, show_showroom = ?,
+                    corporate_address = ?, corporate_phone = ?, show_corporate = ?,
+                    contact_name = ?, contact_phone = ?, show_primary_contact = ?,
+                    show_whatsapp = ?, show_email = ?,
+                    company_logo_url = ?, favicon_url = ?, featured_vehicles_limit = ?, show_sold_vehicles = ?,
+                    updated_at = ?
+                WHERE id = 1
+            `)
+            .bind(
+                companyName, companySlug, phone, whatsapp, email, address,
+                facebook, youtube, displayTimezone, displayLocale,
+                defaultCurrency, sessionTimeoutMinutes, archiveRetentionDays,
+                seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription,
+                showroomAddress, showroomPhone, showShowroom,
+                corporateAddress, corporatePhone, showCorporate,
+                contactName, contactPhone, showPrimaryContact,
+                showWhatsapp, showEmail,
+                companyLogoUrl, faviconUrl, featuredVehiclesLimit, showSoldVehicles,
+                now
+            )
+            .run();
 
         await logAudit(env, {
             actingUserId: auth.user.id,

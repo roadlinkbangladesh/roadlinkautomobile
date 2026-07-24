@@ -36,6 +36,8 @@ export function mapDbToVehicle(row, images = []) {
     id: String(row.id),
     dbId: row.id,
     displayOrder: row.display_order ?? 0,
+    featuredPosition: row.featured_position ?? 0,
+    isNewArrival: Boolean(row.is_new_arrival),
     slug: row.slug,
     stockNumber: row.stock_number,
     featured: Boolean(row.is_featured),
@@ -236,7 +238,7 @@ export async function createAdminVehicle(request, env) {
 
     const result = await env.DB.prepare(`
       INSERT INTO vehicles (
-        slug, stock_number, make, model, year, status, is_published, is_featured,
+        slug, stock_number, make, model, year, status, is_published, is_featured, featured_position, is_new_arrival,
         display_order, grade, auction_grade, mileage, engine_cc, transmission,
         fuel, drive, body_type, exterior_color, interior_color, seats, doors,
         chassis_number, registration, steering, accident_history, purchase_price,
@@ -244,7 +246,7 @@ export async function createAdminVehicle(request, env) {
         auction_sheet_available, auction_sheet_url, youtube_url, arrival_date,
         created_at, updated_at
       ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?,
@@ -255,6 +257,8 @@ export async function createAdminVehicle(request, env) {
     `).bind(
       slug, data.stockNumber.trim(), data.make.trim(), data.model.trim(), parseInt(data.year, 10), data.status,
       data.published !== false ? 1 : 0, data.featured ? 1 : 0,
+      data.featuredPosition !== undefined ? parseInt(data.featuredPosition, 10) : 0,
+      data.isNewArrival ? 1 : 0,
       parseInt(data.displayOrder || 0, 10), data.grade || "", data.auctionGrade || "",
       data.mileage ? parseInt(data.mileage, 10) : 0, data.engineCC ? parseInt(data.engineCC, 10) : 0,
       data.transmission || "", data.fuel || "", data.drive || "", data.bodyType || "",
@@ -359,7 +363,7 @@ export async function updateAdminVehicle(request, env, ctx, params) {
     await env.DB.prepare(`
       UPDATE vehicles SET
         stock_number = ?, make = ?, model = ?, year = ?, status = ?,
-        is_published = ?, is_featured = ?, display_order = ?, grade = ?,
+        is_published = ?, is_featured = ?, featured_position = ?, is_new_arrival = ?, display_order = ?, grade = ?,
         auction_grade = ?, mileage = ?, engine_cc = ?, transmission = ?,
         fuel = ?, drive = ?, body_type = ?, exterior_color = ?, interior_color = ?,
         seats = ?, doors = ?, chassis_number = ?, registration = ?, steering = ?,
@@ -376,6 +380,8 @@ export async function updateAdminVehicle(request, env, ctx, params) {
       data.status || existingVehicle.status,
       data.published !== undefined ? (data.published ? 1 : 0) : (existingVehicle.published ? 1 : 0),
       data.featured !== undefined ? (data.featured ? 1 : 0) : (existingVehicle.featured ? 1 : 0),
+      data.featuredPosition !== undefined ? parseInt(data.featuredPosition, 10) : (data.featured_position !== undefined ? parseInt(data.featured_position, 10) : existingVehicle.featuredPosition),
+      data.isNewArrival !== undefined ? (data.isNewArrival ? 1 : 0) : (data.is_new_arrival !== undefined ? (data.is_new_arrival ? 1 : 0) : (existingVehicle.isNewArrival ? 1 : 0)),
       data.displayOrder !== undefined ? parseInt(data.displayOrder, 10) : existingVehicle.displayOrder,
       data.grade !== undefined ? data.grade : existingVehicle.grade,
       data.auctionGrade !== undefined ? data.auctionGrade : existingVehicle.auctionGrade,
@@ -642,8 +648,18 @@ export async function uploadFile(request, env) {
     const ext = fileName.split(".").pop().toLowerCase() || "bin";
     const uniqueName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
 
-    // Construct structured hierarchy key: uploads/<company_slug>/vehicles/<stock_number>/<filename>
-    const key = `uploads/${companySlug}/vehicles/${cleanStock}/${uniqueName}`;
+    const category = (formData.get("category") || formData.get("type") || formData.get("folder") || "").toLowerCase();
+    let key = "";
+
+    if (category === "branding" || category === "logo" || category === "favicon") {
+      key = `uploads/${companySlug}/branding/${uniqueName}`;
+    } else if (category === "carousel" || category === "slide" || category === "hero") {
+      key = `uploads/${companySlug}/carousel/${uniqueName}`;
+    } else {
+      const isDocument = category === "documents" || category === "document" || category === "auction_sheet" || category === "auction-sheet" || ["pdf", "doc", "docx"].includes(ext);
+      const mediaSubfolder = isDocument ? "documents" : "images";
+      key = `uploads/${companySlug}/vehicles/${cleanStock}/${mediaSubfolder}/${uniqueName}`;
+    }
 
     const arrayBuffer = await file.arrayBuffer();
     const bucket = getStorageBucket(env);

@@ -199,14 +199,14 @@ export async function createAdminLocation(request, env) {
 /**
  * PUT /api/v1/admin/locations/:id - Update an existing business location
  */
-export async function updateAdminLocation(request, env) {
+export async function updateAdminLocation(request, env, ctx, params) {
   const auth = await checkLocationsAuth(request, env);
   if (auth.errorResponse) return auth.errorResponse;
 
   try {
     const url = new URL(request.url);
     const parts = url.pathname.split("/");
-    const id = parseInt(parts[parts.length - 1], 10);
+    const id = parseInt(params?.id || parts[parts.length - 1], 10);
 
     if (!id || isNaN(id)) return badRequest("Invalid location ID.");
 
