@@ -132,6 +132,17 @@ export function validateFileUpload(file, category, config) {
   const mimeType = (file.type || "").toLowerCase();
   const ext = fileName.split(".").pop().toLowerCase() || "";
 
+  if (category === "logo") {
+    if (ext !== "png" && mimeType !== "image/png") {
+      return "Logo file must be in PNG format only (.png).";
+    }
+    const maxImgBytes = (config.max_image_upload_mb || 5) * 1024 * 1024;
+    if (size > maxImgBytes) {
+      return `Logo image file size exceeds maximum allowed limit of ${config.max_image_upload_mb}MB.`;
+    }
+    return null;
+  }
+
   const isDocument = category === "documents" || category === "document" || category === "auction_sheet" || category === "auction-sheet" || ext === "pdf";
 
   if (isDocument) {
