@@ -1,20 +1,14 @@
 /**
- * Roadlink Automobiles - Global Settings Management
- * Integrates with Cloudflare Worker Backend API for public website settings.
+ * Roadlink Automobiles - Global Settings & Locations Management
+ * Single source of truth for public website settings and business location rendering.
  */
 
-import { apiRequest, getPublicFileUrl } from "./shared/api.js";
+import { apiRequest, getPublicFileUrl, sanitizePhoneNumber } from "./shared/api.js";
 
 export const DEFAULT_SETTINGS = {
   companyName: "Roadlink Automobiles",
   address: "169 (Level 2), Fakirerpool, Dhaka 1000",
   phone: "+880 1311-503840",
-  showroomAddress: "169 (Level 2), Fakirerpool, Dhaka 1000",
-  showroomPhone: "+880 1311-503840",
-  showShowroom: true,
-  corporateAddress: "House 42, Road 11, Block D, Banani, Dhaka 1213",
-  corporatePhone: "+880 1711-998877",
-  showCorporate: false,
   contactName: "Sales Helpline / Managing Officer",
   contactPhone: "+880 1311-503840",
   showPrimaryContact: false,
@@ -45,14 +39,8 @@ export async function fetchPublicSettings() {
         const data = payload.data;
         cachedSettings = {
           companyName: data.company_name || data.companyName || DEFAULT_SETTINGS.companyName,
-          address: data.showroom_address || data.address || DEFAULT_SETTINGS.address,
-          phone: data.showroom_phone || data.phone || DEFAULT_SETTINGS.phone,
-          showroomAddress: data.showroom_address || data.showroomAddress || data.address || DEFAULT_SETTINGS.showroomAddress,
-          showroomPhone: data.showroom_phone || data.showroomPhone || data.phone || DEFAULT_SETTINGS.showroomPhone,
-          showShowroom: (data.show_showroom ?? data.showShowroom ?? 1) == 1,
-          corporateAddress: data.corporate_address || data.corporateAddress || DEFAULT_SETTINGS.corporateAddress,
-          corporatePhone: data.corporate_phone || data.corporatePhone || DEFAULT_SETTINGS.corporatePhone,
-          showCorporate: (data.show_corporate ?? data.showCorporate ?? 0) == 1,
+          address: data.address || DEFAULT_SETTINGS.address,
+          phone: data.phone || DEFAULT_SETTINGS.phone,
           contactName: data.contact_name || data.contactName || DEFAULT_SETTINGS.contactName,
           contactPhone: data.contact_phone || data.contactPhone || DEFAULT_SETTINGS.contactPhone,
           showPrimaryContact: (data.show_primary_contact ?? data.showPrimaryContact ?? 0) == 1,
@@ -101,68 +89,16 @@ export async function fetchPublicLocations() {
 }
 
 /**
- * Generates an embeddable Google Maps iframe URL from standard Google Maps links or addresses.
- */
-export function deriveEmbedMapUrl(mapInput, address = "") {
-  if (!mapInput || typeof mapInput !== "string" || !mapInput.trim()) {
-    return address ? `https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed` : "";
-  }
-  const clean = mapInput.trim();
-  if (clean.startsWith("<iframe")) {
-    const match = clean.match(/src=["']([^"']+)["']/i);
-    if (match && match[1]) return match[1];
-  }
-  if (clean.includes("output=embed") || clean.includes("/maps/embed")) {
-    return clean;
-  }
-  const coordMatch = clean.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-  if (coordMatch) {
-    return `https://maps.google.com/maps?q=${coordMatch[1]},${coordMatch[2]}&output=embed`;
-  }
-  const placeMatch = clean.match(/\/maps\/place\/([^/]+)/);
-  if (placeMatch) {
-    const rawPlace = decodeURIComponent(placeMatch[1].replace(/\+/g, " "));
-    return `https://maps.google.com/maps?q=${encodeURIComponent(rawPlace)}&output=embed`;
-  }
-  const qMatch = clean.match(/[?&]q=([^&]+)/);
-  if (qMatch) {
-    return `https://maps.google.com/maps?q=${qMatch[1]}&output=embed`;
-  }
-  if (clean.startsWith("http://") || clean.startsWith("https://")) {
-    return `https://maps.google.com/maps?q=${encodeURIComponent(clean)}&output=embed`;
-  }
-  return `https://maps.google.com/maps?q=${encodeURIComponent(clean || address)}&output=embed`;
-}
-
-/**
- * Generates external map navigation link.
- */
-export function deriveExternalMapUrl(mapInput, address = "") {
-  if (!mapInput || typeof mapInput !== "string") {
-    return address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : "#";
-  }
-  let clean = mapInput.trim();
-  if (clean.startsWith("<iframe")) {
-    const match = clean.match(/src=["']([^"']+)["']/i);
-    if (match && match[1]) clean = match[1];
-  }
-  return clean;
-}
-
-/**
- * Hydrates homepage contact section and footer contact list from database locations
+ * Hydrates homepage location section and footer contact list from database locations
  */
 function hydrateLocationsUI(locations) {
   const settings = getSettings();
   const defaultLoc = locations.find(l => l.isDefault) || locations[0];
   const mapIframe = document.getElementById("contact-map-iframe") || document.querySelector(".map-container iframe");
 
-  // 1. Initial Map Iframe setup
-  if (mapIframe && defaultLoc) {
-    const embedUrl = defaultLoc.mapEmbedUrl || defaultLoc.map_embed_url || deriveEmbedMapUrl(defaultLoc.mapUrl || defaultLoc.map_url, defaultLoc.address);
-    if (embedUrl) {
-      mapIframe.src = embedUrl;
-    }
+  // 1. Initial Map Iframe setup directly using canonical mapEmbedUrl
+  if (mapIframe && defaultLoc && defaultLoc.mapEmbedUrl) {
+    mapIframe.src = defaultLoc.mapEmbedUrl;
   }
 
   // 2. Homepage Location Cards & Contact Items (#dyn-contact-list)
@@ -170,15 +106,12 @@ function hydrateLocationsUI(locations) {
   if (contactList) {
     const items = [];
 
-    // Render Location Cards
+    // Render Location Cards from Business Locations
     locations.forEach((loc) => {
       const isDefault = loc.isDefault;
       const phonesHtml = (loc.phones || []).map(p => `
-        <a href="tel:${p.replace(/[^0-9+]/g, '')}" style="color: inherit; text-decoration: none; font-weight: 600;">${p}</a>
+        <a href="tel:${sanitizePhoneNumber(p)}" style="color: inherit; text-decoration: none; font-weight: 600;">${p}</a>
       `).join(' &bull; ') || 'Contact sales team';
-
-      const embedUrl = loc.mapEmbedUrl || loc.map_embed_url || deriveEmbedMapUrl(loc.mapUrl || loc.map_url, loc.address);
-      const extUrl = loc.mapUrl || loc.map_url || deriveExternalMapUrl(loc.mapUrl || loc.map_url, loc.address);
 
       items.push(`
         <li class="location-card-item ${isDefault ? 'active-location' : ''}" data-loc-id="${loc.id}" style="
@@ -201,112 +134,47 @@ function hydrateLocationsUI(locations) {
             ${loc.address}
           </p>
 
-          <div style="font-size: 0.85rem; color: var(--text-dark); display: flex; align-items: center; gap: 8px; padding-left: 26px; margin-bottom: 12px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone" style="color: var(--primary-blue); flex-shrink: 0;"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-            <div>${phonesHtml}</div>
-          </div>
+          <p style="font-size: 0.85rem; color: var(--text-dark); margin-bottom: 12px; padding-left: 26px;">
+            <strong>Phone:</strong> ${phonesHtml}
+          </p>
 
-          ${embedUrl ? `
-            <div style="padding-left: 26px; display: flex; gap: 10px; align-items: center;">
-              <button type="button" class="btn-select-map-loc" data-map-url="${embedUrl}" style="
-                background: var(--primary-blue); 
-                color: #fff; 
-                border: none; 
+          ${loc.mapEmbedUrl ? `
+            <div style="padding-left: 26px;">
+              <button type="button" class="btn-select-map-loc" data-map-url="${loc.mapEmbedUrl}" style="
+                background: var(--bg-neutral); 
+                border: 1px solid var(--border-color); 
                 padding: 6px 14px; 
                 border-radius: var(--radius-sm); 
                 font-size: 0.8rem; 
                 font-weight: 600; 
-                cursor: pointer; 
-                display: inline-flex; 
-                align-items: center; 
-                gap: 5px;
+                color: var(--primary-blue); 
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
               ">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>
-                Show on Map
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21 3 6"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>
+                Show Map Location
               </button>
-              <a href="${extUrl}" target="_blank" rel="noopener" style="font-size: 0.8rem; color: var(--primary-blue); font-weight: 600; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px;">
-                Open Directions &rarr;
-              </a>
             </div>
           ` : ''}
         </li>
       `);
     });
 
-    // Render Enabled Contact Channels (WhatsApp, Email, Primary Contact)
-    if (settings.showWhatsapp && settings.whatsapp) {
-      const waClean = settings.whatsapp.replace(/[^0-9]/g, '');
-      items.push(`
-        <li class="location-card-item global-contact-card" style="
-          padding: 16px 18px; 
-          border: 1.5px solid var(--border-color); 
-          border-radius: var(--radius-md); 
-          background: var(--bg-white); 
-          margin-bottom: 14px; 
-          display: flex; 
-          align-items: center; 
-          gap: 14px;
-        ">
-          <div style="width: 40px; height: 40px; border-radius: 50%; background: #25d366; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          </div>
-          <div>
-            <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-dark);">WhatsApp Hotline</h4>
-            <p style="margin: 2px 0 0 0; font-size: 0.88rem; color: var(--text-muted);"><a href="https://wa.me/${waClean}" target="_blank" rel="noopener" style="color: #25d366; font-weight: 700; text-decoration: none;">+${waClean}</a></p>
-          </div>
-        </li>
-      `);
-    }
-
-    if (settings.showEmail && settings.email) {
-      items.push(`
-        <li class="location-card-item global-contact-card" style="
-          padding: 16px 18px; 
-          border: 1.5px solid var(--border-color); 
-          border-radius: var(--radius-md); 
-          background: var(--bg-white); 
-          margin-bottom: 14px; 
-          display: flex; 
-          align-items: center; 
-          gap: 14px;
-        ">
-          <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary-blue); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          </div>
-          <div>
-            <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-dark);">Email Inquiry</h4>
-            <p style="margin: 2px 0 0 0; font-size: 0.88rem; color: var(--text-muted);"><a href="mailto:${settings.email}" style="color: var(--primary-blue); font-weight: 700; text-decoration: none;">${settings.email}</a></p>
-          </div>
-        </li>
-      `);
-    }
-
+    // Option to render Primary Contact Person if configured
     if (settings.showPrimaryContact && (settings.contactPhone || settings.contactName)) {
       items.push(`
-        <li class="location-card-item global-contact-card" style="
-          padding: 16px 18px; 
-          border: 1.5px solid var(--border-color); 
-          border-radius: var(--radius-md); 
-          background: var(--bg-white); 
-          margin-bottom: 14px; 
-          display: flex; 
-          align-items: center; 
-          gap: 14px;
-        ">
-          <div style="width: 40px; height: 40px; border-radius: 50%; background: #0891b2; color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-check"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
-          </div>
-          <div>
-            <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-dark);">${settings.contactName || 'Primary Contact'}</h4>
-            <p style="margin: 2px 0 0 0; font-size: 0.88rem; color: var(--text-muted);"><a href="tel:${settings.contactPhone.replace(/[^0-9+]/g, '')}" style="color: var(--primary-blue); font-weight: 700; text-decoration: none;">${settings.contactPhone}</a></p>
-          </div>
+        <li style="padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-neutral); margin-top: 10px;">
+          <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-dark); margin-bottom: 4px;">${settings.contactName || 'Primary Officer'}</div>
+          <p style="margin: 2px 0 0 0; font-size: 0.88rem; color: var(--text-muted);"><a href="tel:${sanitizePhoneNumber(settings.contactPhone)}" style="color: var(--primary-blue); font-weight: 700; text-decoration: none;">${settings.contactPhone}</a></p>
         </li>
       `);
     }
 
     contactList.innerHTML = items.join('');
 
-    // Add event listeners to "Show on Map" buttons
+    // Add event listeners to "Show Map Location" buttons
     contactList.querySelectorAll(".btn-select-map-loc").forEach(btn => {
       btn.addEventListener("click", () => {
         const url = btn.dataset.mapUrl;
@@ -314,7 +182,6 @@ function hydrateLocationsUI(locations) {
           mapIframe.src = url;
         }
 
-        // Highlight active card
         const parentCard = btn.closest(".location-card-item");
         contactList.querySelectorAll(".location-card-item").forEach(card => {
           card.style.borderColor = "var(--border-color)";
@@ -346,7 +213,7 @@ function hydrateLocationsUI(locations) {
       // Phone numbers
       if (Array.isArray(defaultLoc.phones) && defaultLoc.phones.length > 0) {
         const phoneLinks = defaultLoc.phones.map(p => `
-          <a href="tel:${p.replace(/[^0-9+]/g, '')}" style="color: inherit; text-decoration: none;">${p}</a>
+          <a href="tel:${sanitizePhoneNumber(p)}" style="color: inherit; text-decoration: none;">${p}</a>
         `).join(', ');
 
         footerItems.push(`
@@ -382,12 +249,19 @@ export function getSettings() {
 }
 
 /**
+ * Synchronous getter returning current cached business locations.
+ */
+export function getLocations() {
+  return cachedLocations;
+}
+
+/**
  * Dynamically updates contact details, company brand names, titles, and meta tags on the current HTML page based on stored settings.
  */
 export function hydratePageContacts() {
   const settings = getSettings();
   
-  // 1. Update Document Title if it mentions default company name or suffix
+  // 1. Update Document Title
   if (document.title && settings.companyName && settings.companyName !== DEFAULT_SETTINGS.companyName) {
     document.title = document.title.replace(/Roadlink Automobiles/g, settings.companyName);
   }
@@ -410,161 +284,22 @@ export function hydratePageContacts() {
     el.innerHTML = `&copy; ${year} ${settings.companyName}. All Rights Reserved.`;
   });
 
-  // 4. Update Homepage Location/Contact Section (#dyn-contact-list)
-  const contactList = document.getElementById("dyn-contact-list");
-  if (contactList) {
-    const itemsHtml = [];
-
-    // 1. Showroom Contact
-    if (settings.showShowroom && (settings.showroomAddress || settings.showroomPhone)) {
-      itemsHtml.push(`
-        <li class="location-item">
-          <div class="location-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-store"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/><path d="M18 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/><path d="M14 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/><path d="M10 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/><path d="M6 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"/></svg>
-          </div>
-          <div class="location-text">
-            <h4>Showroom Location</h4>
-            ${settings.showroomAddress ? `<p>${settings.showroomAddress}</p>` : ''}
-            ${settings.showroomPhone ? `<p style="margin-top: 4px;"><a href="tel:${settings.showroomPhone.replace(/[^0-9+]/g, '')}">${settings.showroomPhone}</a></p>` : ''}
-          </div>
-        </li>
-      `);
-    }
-
-    // 2. Corporate Office Contact
-    if (settings.showCorporate && (settings.corporateAddress || settings.corporatePhone)) {
-      itemsHtml.push(`
-        <li class="location-item">
-          <div class="location-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-building-2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
-          </div>
-          <div class="location-text">
-            <h4>Corporate Office</h4>
-            ${settings.corporateAddress ? `<p>${settings.corporateAddress}</p>` : ''}
-            ${settings.corporatePhone ? `<p style="margin-top: 4px;"><a href="tel:${settings.corporatePhone.replace(/[^0-9+]/g, '')}">${settings.corporatePhone}</a></p>` : ''}
-          </div>
-        </li>
-      `);
-    }
-
-    // 3. Primary Contact Person
-    if (settings.showPrimaryContact && (settings.contactPhone || settings.contactName)) {
-      itemsHtml.push(`
-        <li class="location-item">
-          <div class="location-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-check"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
-          </div>
-          <div class="location-text">
-            <h4>${settings.contactName || 'Primary Contact'}</h4>
-            ${settings.contactPhone ? `<p><a href="tel:${settings.contactPhone.replace(/[^0-9+]/g, '')}">${settings.contactPhone}</a></p>` : ''}
-          </div>
-        </li>
-      `);
-    }
-
-    // 4. WhatsApp
-    if (settings.showWhatsapp && settings.whatsapp) {
-      const waClean = settings.whatsapp.replace(/[^0-9]/g, '');
-      itemsHtml.push(`
-        <li class="location-item">
-          <div class="location-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          </div>
-          <div class="location-text">
-            <h4>WhatsApp Hotline</h4>
-            <p><a href="https://wa.me/${waClean}" target="_blank" rel="noopener">+${waClean}</a></p>
-          </div>
-        </li>
-      `);
-    }
-
-    // 5. Email
-    if (settings.showEmail && settings.email) {
-      itemsHtml.push(`
-        <li class="location-item">
-          <div class="location-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          </div>
-          <div class="location-text">
-            <h4>Email Inquiry</h4>
-            <p><a href="mailto:${settings.email}">${settings.email}</a></p>
-          </div>
-        </li>
-      `);
-    }
-
-    if (itemsHtml.length > 0) {
-      contactList.innerHTML = itemsHtml.join('');
-    }
-  }
-
-  // 6. Update Footer Contacts List (.footer-contact-list)
-  document.querySelectorAll(".footer-contact-list").forEach(list => {
-    const footerItems = [];
-
-    // Location
-    let primaryAddress = '';
-    if (settings.showShowroom && settings.showroomAddress) primaryAddress = settings.showroomAddress;
-    else if (settings.showCorporate && settings.corporateAddress) primaryAddress = settings.corporateAddress;
-    else if (settings.showroomAddress || settings.address) primaryAddress = settings.showroomAddress || settings.address;
-
-    if (primaryAddress) {
-      footerItems.push(`
-        <li class="footer-contact-item">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span>${primaryAddress}</span>
-        </li>
-      `);
-    }
-
-    // Phone
-    let primaryPhone = '';
-    if (settings.showShowroom && settings.showroomPhone) primaryPhone = settings.showroomPhone;
-    else if (settings.showPrimaryContact && settings.contactPhone) primaryPhone = settings.contactPhone;
-    else if (settings.showCorporate && settings.corporatePhone) primaryPhone = settings.corporatePhone;
-    else if (settings.showroomPhone || settings.phone) primaryPhone = settings.showroomPhone || settings.phone;
-
-    if (primaryPhone) {
-      footerItems.push(`
-        <li class="footer-contact-item">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          <span><a href="tel:${primaryPhone.replace(/[^0-9+]/g, '')}" style="color: inherit; text-decoration: none;">${primaryPhone}</a></span>
-        </li>
-      `);
-    }
-
-    // Email
-    if (settings.showEmail && settings.email) {
-      footerItems.push(`
-        <li class="footer-contact-item">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-          <span><a href="mailto:${settings.email}" style="color: inherit; text-decoration: none;">${settings.email}</a></span>
-        </li>
-      `);
-    }
-
-    if (footerItems.length > 0) {
-      list.innerHTML = footerItems.join('');
-    }
-  });
-
-  // Hydrate Stock Page Hero Banner Image if configured
+  // 4. Hydrate Stock Page Hero Banner Image if configured
   const stockBannerImg = document.getElementById("stock-banner-img");
   if (stockBannerImg && settings.stockBannerUrl) {
     stockBannerImg.src = getPublicFileUrl(settings.stockBannerUrl);
   }
 
-  // 7. Hydrate Anchor Tags (tel, mailto, wa.me, facebook, youtube)
+  // 5. Hydrate Anchor Tags (tel, mailto, wa.me, facebook, youtube)
   document.querySelectorAll("a").forEach(link => {
     const href = link.getAttribute("href") || "";
     
     if (href.startsWith("tel:") || link.classList.contains("btn-call-action")) {
-      const targetPhone = settings.showroomPhone || settings.phone;
+      const targetPhone = settings.phone;
       if (targetPhone) {
-        const cleanPhone = targetPhone.replace(/[^0-9+]/g, "");
+        const cleanPhone = sanitizePhoneNumber(targetPhone);
         link.href = `tel:${cleanPhone}`;
         if (link.classList.contains("btn-call-action")) {
-          // Keep inner SVG, update text
           const svg = link.querySelector("svg");
           if (svg) {
             link.innerHTML = svg.outerHTML + ` Call ${targetPhone}`;
@@ -584,7 +319,7 @@ export function hydratePageContacts() {
       }
     } else if (href.includes("wa.me/")) {
       if (settings.whatsapp) {
-        const waNumber = settings.whatsapp.replace(/[^0-9]/g, "");
+        const waNumber = sanitizePhoneNumber(settings.whatsapp);
         const waMatch = href.match(/wa\.me\/([0-9]+)/);
         if (waMatch) {
           link.href = href.replace(waMatch[1], waNumber);
@@ -599,16 +334,16 @@ export function hydratePageContacts() {
     }
   });
 
-  // 8. Hydrate JSON-LD Structured Data
+  // 6. Hydrate JSON-LD Structured Data
   document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
     try {
       const json = JSON.parse(script.textContent);
       if (json['@type'] === 'AutoDealer' || json['@type'] === 'Organization') {
         if (settings.companyName) json.name = settings.companyName;
-        if (settings.showroomPhone || settings.phone) json.telephone = settings.showroomPhone || settings.phone;
+        if (settings.phone) json.telephone = settings.phone;
         if (settings.email) json.email = settings.email;
-        if (json.address && (settings.showroomAddress || settings.address)) {
-          json.address.streetAddress = settings.showroomAddress || settings.address;
+        if (json.address && settings.address) {
+          json.address.streetAddress = settings.address;
         }
         script.textContent = JSON.stringify(json, null, 2);
       }
