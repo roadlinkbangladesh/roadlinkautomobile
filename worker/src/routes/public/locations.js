@@ -104,8 +104,8 @@ export async function getPublicLocationBySlug(request, env) {
 
     return success({
       ...location,
-      mapEmbedUrl: location.map_embed_url || deriveEmbedMapUrl(location.map_url, location.address),
-      mapUrl: location.map_url || deriveExternalMapUrl(location.map_url, location.address),
+      mapEmbedUrl: location.mapEmbedUrl || deriveEmbedMapUrl(location.mapUrl, location.address),
+      mapUrl: location.mapUrl || deriveExternalMapUrl(location.mapUrl, location.address),
       isVisible: Boolean(location.isVisible),
       isDefault: Boolean(location.isDefault),
       phones: phoneMap[location.id] || []
