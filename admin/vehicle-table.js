@@ -4,6 +4,7 @@
  */
 
 import { getAllVehicles } from "../js/inventory.js";
+import { getPublicFileUrl } from "../js/shared/api.js";
 import { hasPermission } from "./auth.js";
 
 const STORAGE_KEYS = {
@@ -373,7 +374,8 @@ export function renderVehicleTable() {
       statusStyle = "background-color: rgba(15, 23, 42, 0.08); color: #0f172a; border: 1px solid rgba(15, 23, 42, 0.2);";
     }
 
-    const thumbnailSrc = v.coverImage || v.posterImage || (v.images && v.images[0]) || "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
+    const rawCover = v.coverImage || v.posterImage || (v.images && v.images[0]) || "";
+    const thumbnailSrc = rawCover ? getPublicFileUrl(rawCover) : "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
     const vehicleName = `${v.year} ${v.make} ${v.model} ${v.grade ? `(${v.grade})` : ""}`.trim();
 
     const canEdit = hasPermission("vehicles.edit");
