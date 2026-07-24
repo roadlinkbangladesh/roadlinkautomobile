@@ -42,6 +42,18 @@ import {
     getPublicFile,
     getPublicImage
 } from "./routes/public/vehicles.js";
+import {
+    getPublicLocations,
+    getPublicLocationBySlug
+} from "./routes/public/locations.js";
+import {
+    listAdminLocations,
+    createAdminLocation,
+    updateAdminLocation,
+    deleteAdminLocation,
+    reorderAdminLocations,
+    setDefaultAdminLocation
+} from "./routes/admin/locations.js";
 
 const routes = {
 
@@ -52,12 +64,24 @@ const routes = {
     [`GET:${API.PUBLIC}/files/:key`]: getPublicFile,
     [`GET:${API.PUBLIC}/images/:key`]: getPublicImage,
 
+    // Public Locations
+    [`GET:${API.PUBLIC}/locations`]: getPublicLocations,
+    [`GET:${API.PUBLIC}/locations/:slug`]: getPublicLocationBySlug,
+
     // Authentication
     [`POST:${API.AUTH}/login`]: login,
 
     // Settings
     [`GET:${API.ADMIN}/settings`]: getSettings,
     [`PUT:${API.ADMIN}/settings`]: updateSettings,
+
+    // Business Locations Management
+    [`GET:${API.ADMIN}/locations`]: listAdminLocations,
+    [`POST:${API.ADMIN}/locations`]: createAdminLocation,
+    [`PUT:${API.ADMIN}/locations/reorder`]: reorderAdminLocations,
+    [`PUT:${API.ADMIN}/locations/:id/default`]: setDefaultAdminLocation,
+    [`PUT:${API.ADMIN}/locations/:id`]: updateAdminLocation,
+    [`DELETE:${API.ADMIN}/locations/:id`]: deleteAdminLocation,
 
     // Dashboard Statistics
     [`GET:${API.ADMIN}/dashboard/stats`]: getDashboardStats,
