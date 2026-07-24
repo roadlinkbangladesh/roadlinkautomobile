@@ -84,8 +84,7 @@ export async function loadVehiclesAsync(params = {}, forceAdmin = false) {
         items = items.filter(v => 
           v.published !== false && 
           v.isPublished !== false &&
-          v.status?.toLowerCase() !== 'draft' && 
-          v.status?.toLowerCase() !== 'sold'
+          v.status?.toLowerCase() !== 'draft'
         );
         publicVehicles = items;
         if (!isAdminContext()) {
