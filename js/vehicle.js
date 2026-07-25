@@ -647,7 +647,7 @@ function hydrateAuctionSheet(car) {
   const downloadBtn = document.getElementById('btn-download-auction');
 
   if (car.auctionSheetUrl && car.auctionSheetAvailable) {
-    const fileUrl = `/api/v1/public/vehicles/${encodeURIComponent(car.stockNumber || car.id)}/auction-sheet`;
+    const fileUrl = getPublicFileUrl(car.auctionSheetUrl);
 
     if (downloadBtn) {
       downloadBtn.onclick = (e) => {
