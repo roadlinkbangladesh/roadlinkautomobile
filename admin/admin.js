@@ -90,7 +90,7 @@ async function init() {
 
   setUnauthorizedHandler(() => {
     clearToken();
-    showLoginView();
+    showLoginView("Your session has expired or has been invalidated. Please sign in again.");
   });
 
   window.applyUIPermissions = applyUIPermissions;
