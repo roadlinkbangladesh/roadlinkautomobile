@@ -322,6 +322,12 @@ export async function updateRole(request, env, ctx, params) {
                         .run();
                 }
             }
+
+            // Revoke active sessions for all users assigned to this role so updated permissions take immediate effect
+            await env.DB
+                .prepare(`UPDATE users SET token_version = token_version + 1 WHERE role_id = ?`)
+                .bind(id)
+                .run();
         }
 
         await logAudit(env, {
