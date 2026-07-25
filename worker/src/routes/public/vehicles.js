@@ -194,3 +194,68 @@ export async function getPublicFile(request, env, ctx, params) {
 }
 
 export const getPublicImage = getPublicFile;
+
+/**
+ * GET /api/v1/public/vehicles/:identifier/auction-sheet - Stream/serve auction sheet for a published vehicle
+ */
+export async function getPublicVehicleAuctionSheet(request, env, ctx, params) {
+  try {
+    const vehicle = await getVehicleByIdOrStock(env.DB, params.identifier);
+    if (!vehicle || !vehicle.published || vehicle.archivedAt) {
+      return notFound("Vehicle not found.");
+    }
+
+    if (!vehicle.auctionSheetAvailable || !vehicle.auctionSheetUrl) {
+      return notFound("Auction sheet not available for this vehicle.");
+    }
+
+    let key = vehicle.auctionSheetUrl.trim();
+    if (key.startsWith("http://") || key.startsWith("https://")) {
+      if (key.includes("/uploads/")) {
+        key = key.substring(key.indexOf("uploads/"));
+      } else if (key.includes("/api/v1/public/files/")) {
+        key = key.substring(key.indexOf("/api/v1/public/files/") + "/api/v1/public/files/".length);
+      }
+    }
+    if (key.startsWith("/api/v1/public/files/")) {
+      key = key.replace(/^\/api\/v1\/public\/files\//, "");
+    }
+    key = key.replace(/^\/+/, "");
+
+    const bucket = getStorageBucket(env);
+    if (!bucket) {
+      return notFound("Storage service not configured.");
+    }
+
+    const object = await bucket.get(key);
+    if (!object) {
+      return notFound("Auction sheet file not found.");
+    }
+
+    const headers = new Headers();
+    headers.set("Cache-Control", "public, max-age=3600");
+
+    const ext = key.split(".").pop().toLowerCase();
+    const mimeTypes = {
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      webp: "image/webp",
+      gif: "image/gif",
+      svg: "image/svg+xml",
+      pdf: "application/pdf"
+    };
+
+    const contentType = object.httpMetadata?.contentType || mimeTypes[ext] || "application/octet-stream";
+    headers.set("Content-Type", contentType);
+
+    const safeStock = (vehicle.stockNumber || vehicle.id).toString().replace(/[^a-zA-Z0-9_-]/g, "");
+    const filename = `Auction-Sheet-${safeStock}.${ext}`;
+    headers.set("Content-Disposition", `inline; filename="${filename}"`);
+
+    return new Response(object.body, { headers });
+  } catch (error) {
+    console.error("Get public vehicle auction sheet error:", error);
+    return notFound("Auction sheet not found.");
+  }
+}
