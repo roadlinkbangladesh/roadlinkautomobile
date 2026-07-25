@@ -186,14 +186,27 @@ export async function createUser(request, env) {
         const now = new Date().toISOString();
         const roleSlug = roleExists.name.toLowerCase();
 
-        const result = await env.DB
+        await env.DB
             .prepare(`
                 INSERT INTO users (username, password_hash, display_name, role_id, is_active, must_change_password, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                RETURNING id, username, display_name, role_id, is_active, must_change_password, created_at, updated_at
             `)
             .bind(username, passwordHash, displayName, roleId, isActive, 1, now, now)
+            .run();
+
+        const result = await env.DB
+            .prepare(`
+                SELECT id, username, display_name, role_id, is_active, must_change_password, created_at, updated_at
+                FROM users
+                WHERE LOWER(username) = LOWER(?)
+                LIMIT 1
+            `)
+            .bind(username)
             .first();
+
+        if (!result) {
+            throw new Error("Failed to fetch newly created user record.");
+        }
 
         await logAudit(env, {
             actingUserId: auth.user.id,
@@ -359,12 +372,21 @@ export async function updateUser(request, env, ctx, params) {
             UPDATE users
             SET ${updatedFields.join(", ")}
             WHERE id = ?
-            RETURNING id, username, display_name, role_id, is_active, must_change_password, created_at, updated_at
         `;
 
-        const result = await env.DB
+        await env.DB
             .prepare(query)
             .bind(...bindings)
+            .run();
+
+        const result = await env.DB
+            .prepare(`
+                SELECT id, username, display_name, role_id, is_active, must_change_password, created_at, updated_at
+                FROM users
+                WHERE id = ?
+                LIMIT 1
+            `)
+            .bind(id)
             .first();
 
         // Specific action audit
@@ -734,14 +756,23 @@ export async function updateProfile(request, env) {
 
         const now = new Date().toISOString();
 
-        const result = await env.DB
+        await env.DB
             .prepare(`
                 UPDATE users
                 SET display_name = ?, updated_at = ?
                 WHERE id = ?
-                RETURNING id, username, display_name, role_id, is_active, created_at, updated_at
             `)
             .bind(displayName, now, auth.user.id)
+            .run();
+
+        const result = await env.DB
+            .prepare(`
+                SELECT id, username, display_name, role_id, is_active, created_at, updated_at
+                FROM users
+                WHERE id = ?
+                LIMIT 1
+            `)
+            .bind(auth.user.id)
             .first();
 
         await logAudit(env, {
