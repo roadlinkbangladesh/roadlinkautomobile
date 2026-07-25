@@ -129,10 +129,15 @@ export async function verifyPassword(password, storedHash) {
         ["deriveBits"]
     );
 
+    let formattedHashAlg = hashAlgorithm.toUpperCase();
+    if (!formattedHashAlg.includes("-") && formattedHashAlg.startsWith("SHA")) {
+        formattedHashAlg = formattedHashAlg.replace("SHA", "SHA-");
+    }
+
     const derivedKey = await crypto.subtle.deriveBits(
         {
             name: PASSWORD.ALGORITHM,
-            hash: hashAlgorithm.toUpperCase(),
+            hash: formattedHashAlg,
             salt,
             iterations: Number(iterations)
         },
