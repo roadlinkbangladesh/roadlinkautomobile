@@ -188,11 +188,11 @@ export async function createUser(request, env) {
 
         const result = await env.DB
             .prepare(`
-                INSERT INTO users (username, password_hash, display_name, role, role_id, is_active, must_change_password, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+                INSERT INTO users (username, password_hash, display_name, role_id, is_active, must_change_password, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 RETURNING id, username, display_name, role_id, is_active, must_change_password, created_at, updated_at
             `)
-            .bind(username, passwordHash, displayName, roleSlug, roleId, isActive, now, now)
+            .bind(username, passwordHash, displayName, roleId, isActive, 1, now, now)
             .first();
 
         await logAudit(env, {
@@ -332,8 +332,6 @@ export async function updateUser(request, env, ctx, params) {
             if (!roleExists) {
                 return badRequest("Invalid role. Selected role does not exist.");
             }
-            updatedFields.push("role = ?");
-            bindings.push(roleExists.name.toLowerCase());
             updatedFields.push("role_id = ?");
             bindings.push(roleId);
         }
@@ -341,6 +339,10 @@ export async function updateUser(request, env, ctx, params) {
         if (isActive !== undefined) {
             updatedFields.push("is_active = ?");
             bindings.push(isActive ? 1 : 0);
+        }
+
+        if (isActive !== undefined || roleId !== undefined) {
+            updatedFields.push("token_version = token_version + 1");
         }
 
         if (updatedFields.length === 0) {
@@ -563,7 +565,7 @@ export async function resetPassword(request, env, ctx, params) {
         await env.DB
             .prepare(`
                 UPDATE users
-                SET password_hash = ?, must_change_password = 1, updated_at = ?
+                SET password_hash = ?, must_change_password = 1, token_version = token_version + 1, updated_at = ?
                 WHERE id = ?
             `)
             .bind(passwordHash, now, id)
@@ -654,7 +656,7 @@ export async function changePassword(request, env) {
         await env.DB
             .prepare(`
                 UPDATE users
-                SET password_hash = ?, must_change_password = 0, updated_at = ?
+                SET password_hash = ?, must_change_password = 0, token_version = token_version + 1, updated_at = ?
                 WHERE id = ?
             `)
             .bind(newHash, now, auth.user.id)
