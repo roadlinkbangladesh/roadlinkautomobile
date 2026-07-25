@@ -186,7 +186,8 @@ export async function createUser(request, env) {
         const now = new Date().toISOString();
         const roleSlug = roleExists.name.toLowerCase();
 
-        const legacyRole = roleExists.name.toLowerCase();
+        // Safe legacy role string fallback if DB still has legacy role column with CHECK(role IN ('admin','manager'))
+        const legacyRole = (roleSlug === "admin" || roleSlug === "super administrator") ? "admin" : "manager";
 
         try {
             await env.DB
@@ -197,7 +198,11 @@ export async function createUser(request, env) {
                 .bind(username, passwordHash, displayName, roleId, isActive ? 1 : 0, 1, now, now)
                 .run();
         } catch (insertErr) {
-            if (insertErr && insertErr.message && (insertErr.message.includes("users.role") || insertErr.message.includes("NOT NULL constraint failed"))) {
+            if (insertErr && insertErr.message && (
+                insertErr.message.includes("users.role") || 
+                insertErr.message.includes("NOT NULL constraint failed") ||
+                insertErr.message.includes("CHECK constraint failed")
+            )) {
                 await env.DB
                     .prepare(`
                         INSERT INTO users (username, password_hash, display_name, role_id, role, is_active, must_change_password, token_version, failed_login_attempts, created_at, updated_at)
