@@ -1369,19 +1369,6 @@ button:disabled {
 .modal-footer-row-stacked .btn {
   width: 100%;
 }
-.btn-danger {
-  background-color: var(--primary-red);
-  color: var(--bg-white);
-  border: none;
-  padding: 12px 24px;
-  font-weight: 700;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-.btn-danger:hover {
-  background-color: #be121c;
-}
 .form-error-alert {
   background-color: rgba(227, 27, 35, 0.05);
   border: 1px solid rgba(227, 27, 35, 0.15);
