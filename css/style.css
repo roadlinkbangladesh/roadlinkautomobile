@@ -3542,4 +3542,34 @@ section {
   box-shadow: var(--shadow-sm);
 }
 
+.auction-modal-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+
+.auction-modal-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(27, 54, 93, 0.15);
+  border-top-color: var(--primary-blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.auction-modal-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
 
