@@ -188,8 +188,8 @@ export async function createUser(request, env) {
 
         await env.DB
             .prepare(`
-                INSERT INTO users (username, password_hash, display_name, role_id, is_active, must_change_password, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO users (username, password_hash, display_name, role_id, is_active, must_change_password, token_version, failed_login_attempts, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
             `)
             .bind(username, passwordHash, displayName, roleId, isActive, 1, now, now)
             .run();
@@ -233,7 +233,7 @@ export async function createUser(request, env) {
         });
     } catch (error) {
         console.error("Create user error:", error);
-        return serverError("Failed to create user.");
+        return serverError(error.message || "Failed to create user.");
     }
 }
 
