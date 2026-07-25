@@ -1,11 +1,23 @@
 import { $ } from "./utils.js";
 
-export function showLoginView() {
+export function showLoginView(reasonMessage = null) {
   const loginView = $("login-view");
   const adminLayout = $("admin-layout");
   const usernameInput = $("username");
   const passwordInput = $("password");
   const loginErrorPanel = $("login-error");
+  const errorMessageText = $("error-message");
+
+  // Close all open dialogs, modals, drawers, and overlays
+  document.querySelectorAll(".modal, .modal-backdrop, .overlay, .drawer, dialog").forEach(el => {
+    el.classList.remove("active", "show", "open");
+    if (el.style && el.tagName !== "DIALOG") {
+      el.style.display = "none";
+    }
+    if (typeof el.close === "function") {
+      try { el.close(); } catch (e) {}
+    }
+  });
 
   if (loginView) loginView.style.display = "flex";
   if (adminLayout) adminLayout.style.display = "none";
@@ -19,7 +31,11 @@ export function showLoginView() {
     passwordInput.value = "";
     passwordInput.type = "password";
   }
-  if (loginErrorPanel) {
+
+  if (reasonMessage) {
+    if (errorMessageText) errorMessageText.textContent = reasonMessage;
+    if (loginErrorPanel) loginErrorPanel.style.display = "flex";
+  } else if (loginErrorPanel) {
     loginErrorPanel.style.display = "none";
   }
 
