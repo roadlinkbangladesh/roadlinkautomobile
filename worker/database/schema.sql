@@ -35,11 +35,24 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     must_change_password INTEGER NOT NULL DEFAULT 0 CHECK(must_change_password IN (0,1)),
-    token_version INTEGER NOT NULL DEFAULT 1
+    token_version INTEGER NOT NULL DEFAULT 1,
+    failed_login_attempts INTEGER NOT NULL DEFAULT 0,
+    last_failed_login_at TEXT,
+    locked_until TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_role_id ON users(role_id);
+CREATE INDEX IF NOT EXISTS idx_users_locked ON users(locked_until);
+
+CREATE TABLE IF NOT EXISTS login_security (
+    ip_address TEXT PRIMARY KEY,
+    failed_attempts INTEGER NOT NULL DEFAULT 0,
+    last_attempt_at TEXT NOT NULL,
+    locked_until TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_login_security_locked ON login_security(locked_until);
 
 CREATE TABLE IF NOT EXISTS settings (
 
