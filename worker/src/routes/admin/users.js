@@ -186,13 +186,29 @@ export async function createUser(request, env) {
         const now = new Date().toISOString();
         const roleSlug = roleExists.name.toLowerCase();
 
-        await env.DB
-            .prepare(`
-                INSERT INTO users (username, password_hash, display_name, role_id, is_active, must_change_password, token_version, failed_login_attempts, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
-            `)
-            .bind(username, passwordHash, displayName, roleId, isActive, 1, now, now)
-            .run();
+        const legacyRole = roleExists.name.toLowerCase();
+
+        try {
+            await env.DB
+                .prepare(`
+                    INSERT INTO users (username, password_hash, display_name, role_id, is_active, must_change_password, token_version, failed_login_attempts, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
+                `)
+                .bind(username, passwordHash, displayName, roleId, isActive ? 1 : 0, 1, now, now)
+                .run();
+        } catch (insertErr) {
+            if (insertErr && insertErr.message && (insertErr.message.includes("users.role") || insertErr.message.includes("NOT NULL constraint failed"))) {
+                await env.DB
+                    .prepare(`
+                        INSERT INTO users (username, password_hash, display_name, role_id, role, is_active, must_change_password, token_version, failed_login_attempts, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
+                    `)
+                    .bind(username, passwordHash, displayName, roleId, legacyRole, isActive ? 1 : 0, 1, now, now)
+                    .run();
+            } else {
+                throw insertErr;
+            }
+        }
 
         const result = await env.DB
             .prepare(`
