@@ -24,7 +24,7 @@ export async function listUsers(request, env) {
     try {
         const users = await env.DB
             .prepare(`
-                SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, r.is_system_role, r.system_role_key, u.is_active, u.last_login_at, u.created_at, u.updated_at, u.must_change_password
+                SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, r.is_system_role, r.system_role_key, u.is_active, u.last_login_at, u.created_at, u.updated_at, u.must_change_password, u.failed_login_attempts, u.last_failed_login_at, u.locked_until
                 FROM users u
                 LEFT JOIN roles r ON u.role_id = r.id
                 ORDER BY u.id ASC
@@ -32,6 +32,7 @@ export async function listUsers(request, env) {
             .all();
 
         const results = users.results || [];
+        const nowMs = Date.now();
 
         // If not Super Administrator, filter list to only show users strictly less privileged than caller's role (plus self)
         let viewableUsers = results;
@@ -45,11 +46,18 @@ export async function listUsers(request, env) {
             viewableUsers = filtered;
         }
 
-        const list = viewableUsers.map(u => ({
-            ...u,
-            is_active: u.is_active === 1,
-            must_change_password: u.must_change_password === 1
-        }));
+        const list = viewableUsers.map(u => {
+            const isLocked = u.locked_until ? (new Date(u.locked_until).getTime() > nowMs) : false;
+            return {
+                ...u,
+                is_active: u.is_active === 1,
+                must_change_password: u.must_change_password === 1,
+                failed_login_attempts: u.failed_login_attempts || 0,
+                last_failed_login_at: u.last_failed_login_at || null,
+                locked_until: u.locked_until || null,
+                is_locked: isLocked
+            };
+        });
 
         return success(list);
     } catch (error) {
@@ -73,7 +81,7 @@ export async function getUser(request, env, ctx, params) {
     try {
         const user = await env.DB
             .prepare(`
-                SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, r.is_system_role, r.system_role_key, u.is_active, u.last_login_at, u.created_at, u.updated_at, u.must_change_password
+                SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, r.is_system_role, r.system_role_key, u.is_active, u.last_login_at, u.created_at, u.updated_at, u.must_change_password, u.failed_login_attempts, u.last_failed_login_at, u.locked_until
                 FROM users u
                 LEFT JOIN roles r ON u.role_id = r.id
                 WHERE u.id = ?
@@ -93,10 +101,17 @@ export async function getUser(request, env, ctx, params) {
             }
         }
 
+        const nowMs = Date.now();
+        const isLocked = user.locked_until ? (new Date(user.locked_until).getTime() > nowMs) : false;
+
         return success({
             ...user,
             is_active: user.is_active === 1,
-            must_change_password: user.must_change_password === 1
+            must_change_password: user.must_change_password === 1,
+            failed_login_attempts: user.failed_login_attempts || 0,
+            last_failed_login_at: user.last_failed_login_at || null,
+            locked_until: user.locked_until || null,
+            is_locked: isLocked
         });
     } catch (error) {
         console.error("Get user error:", error);
@@ -817,5 +832,94 @@ export async function updateProfile(request, env) {
     } catch (error) {
         console.error("Update profile error:", error);
         return serverError("Failed to update profile.");
+    }
+}
+
+/**
+ * POST /api/v1/admin/users/:id/unlock
+ */
+export async function unlockUser(request, env, ctx, params) {
+    const auth = await authenticate(request, env, "users.manage");
+    if (auth.errorResponse) return auth.errorResponse;
+
+    const id = parseInt(params.id);
+    if (isNaN(id)) {
+        return badRequest("Invalid user ID.");
+    }
+
+    const { ipAddress, userAgent } = getRequestMeta(request);
+    const clientIp = ipAddress || "127.0.0.1";
+
+    try {
+        const user = await env.DB
+            .prepare(`
+                SELECT u.id, u.username, u.role_id, u.failed_login_attempts, u.locked_until
+                FROM users u
+                WHERE u.id = ?
+                LIMIT 1
+            `)
+            .bind(id)
+            .first();
+
+        if (!user) {
+            return notFound("User not found.");
+        }
+
+        // Delegated Administrator Guard: Cannot unlock account of someone equal or more privileged
+        if (!auth.user.is_super_admin) {
+            if (id !== auth.user.id && !(await isStrictlyLessPrivileged(env, user.role_id, auth.user.role_id))) {
+                return forbidden("Access denied. You do not have permission to unlock this user's account.");
+            }
+        }
+
+        const nowMs = Date.now();
+        const isLocked = user.locked_until ? (new Date(user.locked_until).getTime() > nowMs) : false;
+
+        // Perform unlock action: reset failed_login_attempts to zero, clear locked_until, without changing password or other user fields
+        const nowIso = new Date().toISOString();
+        await env.DB
+            .prepare(`
+                UPDATE users
+                SET failed_login_attempts = 0,
+                    last_failed_login_at = NULL,
+                    locked_until = NULL,
+                    updated_at = ?
+                WHERE id = ?
+            `)
+            .bind(nowIso, user.id)
+            .run();
+
+        // Audit Log for manual admin unlock (login.unlock.admin)
+        await logAudit(env, {
+            actingUserId: auth.user.id,
+            actingUsername: auth.user.username,
+            targetUserId: user.id,
+            targetRoleId: user.role_id,
+            action: "login.unlock.admin",
+            resourceType: "user",
+            resourceId: String(user.id),
+            status: "SUCCESS",
+            reason: "Administrator manually unlocked user account",
+            ipAddress: clientIp,
+            userAgent,
+            details: {
+                unlocked_by: auth.user.username,
+                target_username: user.username,
+                was_locked: isLocked,
+                previous_failed_attempts: user.failed_login_attempts || 0
+            }
+        });
+
+        return success({
+            id: user.id,
+            username: user.username,
+            is_locked: false,
+            failed_login_attempts: 0,
+            locked_until: null
+        }, "User account unlocked successfully.");
+
+    } catch (error) {
+        console.error("Unlock user error:", error);
+        return serverError("Failed to unlock user account.");
     }
 }
