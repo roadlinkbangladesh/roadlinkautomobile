@@ -28,9 +28,13 @@ export async function login(request, env) {
 
         // 1. Fetch platform settings for brute force thresholds
         const config = await platformConfig.getConfig(env);
-        const maxAttempts = config.max_failed_login_attempts || 5;
-        const lockoutMinutes = config.lockout_duration_minutes || 30;
-        const lockoutMs = lockoutMinutes * 60 * 1000;
+        const maxAccountAttempts = config.max_failed_login_attempts || 5;
+        const accountLockoutMinutes = config.account_lockout_duration_minutes || config.lockout_duration_minutes || 15;
+        const accountLockoutMs = accountLockoutMinutes * 60 * 1000;
+
+        const maxIpAttempts = config.max_ip_failed_attempts || 15;
+        const ipLockoutMinutes = config.ip_lockout_duration_minutes || config.lockout_duration_minutes || 15;
+        const ipLockoutMs = ipLockoutMinutes * 60 * 1000;
 
         // 2. Check IP security state from login_security table
         const ipRecord = await env.DB
@@ -40,11 +44,13 @@ export async function login(request, env) {
 
         let isIpLocked = false;
         let isIpLockExpired = false;
+        let ipRemainingMs = 0;
 
         if (ipRecord && ipRecord.locked_until) {
             const lockedUntilTime = new Date(ipRecord.locked_until).getTime();
             if (lockedUntilTime > nowMs) {
                 isIpLocked = true;
+                ipRemainingMs = lockedUntilTime - nowMs;
             } else {
                 isIpLockExpired = true;
             }
@@ -64,11 +70,13 @@ export async function login(request, env) {
 
         let isAccountLocked = false;
         let isAccountLockExpired = false;
+        let accountRemainingMs = 0;
 
         if (user && user.locked_until) {
             const lockedUntilTime = new Date(user.locked_until).getTime();
             if (lockedUntilTime > nowMs) {
                 isAccountLocked = true;
+                accountRemainingMs = lockedUntilTime - nowMs;
             } else {
                 isAccountLockExpired = true;
             }
@@ -83,7 +91,7 @@ export async function login(request, env) {
             
             await logAudit(env, {
                 actingUsername: username,
-                action: "login.unlock",
+                action: "login.unlock.auto",
                 resourceType: "auth",
                 status: "SUCCESS",
                 reason: "IP lockout duration expired",
@@ -102,7 +110,8 @@ export async function login(request, env) {
             await logAudit(env, {
                 actingUserId: user.id,
                 actingUsername: user.username,
-                action: "login.unlock",
+                targetUserId: user.id,
+                action: "login.unlock.auto",
                 resourceType: "auth",
                 status: "SUCCESS",
                 reason: "Account lockout duration expired",
@@ -112,11 +121,15 @@ export async function login(request, env) {
         }
 
         // 4. Enforce Lockout Check (Step 2)
-        // If either IP or Account is currently locked out, reject immediately with HTTP 429
+        // If either IP or Account is currently locked out, reject immediately with HTTP 429 and Retry-After header
         if (isIpLocked || isAccountLocked) {
+            const remainingMs = Math.max(ipRemainingMs, accountRemainingMs);
+            const retryAfterSeconds = Math.max(1, Math.ceil(remainingMs / 1000));
+
             await logAudit(env, {
                 actingUserId: user?.id || null,
                 actingUsername: user?.username || username,
+                targetUserId: user?.id || null,
                 action: isAccountLocked ? "login.lockout.account" : "login.lockout.ip",
                 resourceType: "auth",
                 status: "BLOCKED",
@@ -125,7 +138,7 @@ export async function login(request, env) {
                 userAgent
             });
 
-            return tooManyRequests("Too many unsuccessful sign-in attempts. Please try again later.");
+            return tooManyRequests("Too many unsuccessful sign-in attempts. Please try again later.", retryAfterSeconds);
         }
 
         // 5. Validate Password (Step 3)
@@ -139,8 +152,8 @@ export async function login(request, env) {
             // Update IP failure counter
             const currentIpAttempts = (ipRecord && !isIpLockExpired) ? (ipRecord.failed_attempts || 0) : 0;
             const newIpAttempts = currentIpAttempts + 1;
-            const ipWillLock = newIpAttempts >= maxAttempts;
-            const ipLockedUntilIso = ipWillLock ? new Date(nowMs + lockoutMs).toISOString() : null;
+            const ipWillLock = newIpAttempts >= maxIpAttempts;
+            const ipLockedUntilIso = ipWillLock ? new Date(nowMs + ipLockoutMs).toISOString() : null;
 
             await env.DB.prepare(`
                 INSERT INTO login_security (ip_address, failed_attempts, last_attempt_at, locked_until)
@@ -157,18 +170,19 @@ export async function login(request, env) {
                     action: "login.lockout.ip",
                     resourceType: "auth",
                     status: "FAILURE",
-                    reason: `IP locked for ${lockoutMinutes} minutes after ${newIpAttempts} failed attempts`,
+                    reason: `IP locked for ${ipLockoutMinutes} minutes after ${newIpAttempts} failed attempts`,
                     ipAddress: clientIp,
                     userAgent
                 });
             }
 
             // Update Account failure counter if user exists
+            let accountWillLock = false;
             if (user) {
                 const currentAccountAttempts = (!isAccountLockExpired) ? (user.failed_login_attempts || 0) : 0;
                 const newAccountAttempts = currentAccountAttempts + 1;
-                const accountWillLock = newAccountAttempts >= maxAttempts;
-                const accountLockedUntilIso = accountWillLock ? new Date(nowMs + lockoutMs).toISOString() : null;
+                accountWillLock = newAccountAttempts >= maxAccountAttempts;
+                const accountLockedUntilIso = accountWillLock ? new Date(nowMs + accountLockoutMs).toISOString() : null;
 
                 await env.DB.prepare(`
                     UPDATE users
@@ -183,10 +197,11 @@ export async function login(request, env) {
                     await logAudit(env, {
                         actingUserId: user.id,
                         actingUsername: user.username,
+                        targetUserId: user.id,
                         action: "login.lockout.account",
                         resourceType: "auth",
                         status: "FAILURE",
-                        reason: `Account locked for ${lockoutMinutes} minutes after ${newAccountAttempts} failed attempts`,
+                        reason: `Account locked for ${accountLockoutMinutes} minutes after ${newAccountAttempts} failed attempts`,
                         ipAddress: clientIp,
                         userAgent
                     });
@@ -197,6 +212,7 @@ export async function login(request, env) {
             await logAudit(env, {
                 actingUserId: user?.id || null,
                 actingUsername: user?.username || username,
+                targetUserId: user?.id || null,
                 action: "login.failure",
                 resourceType: "auth",
                 status: "FAILURE",
@@ -204,6 +220,12 @@ export async function login(request, env) {
                 ipAddress: clientIp,
                 userAgent
             });
+
+            if (ipWillLock || accountWillLock) {
+                const lockMs = ipWillLock ? ipLockoutMs : accountLockoutMs;
+                const retryAfter = Math.max(1, Math.ceil(lockMs / 1000));
+                return tooManyRequests("Too many unsuccessful sign-in attempts. Please try again later.", retryAfter);
+            }
 
             return unauthorized("Invalid username or password.");
         }
