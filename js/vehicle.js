@@ -521,12 +521,14 @@ function hydrateDescription(car) {
 }
 
 /**
- * Opens Auction Sheet Modal supporting both images and PDFs without exposing R2 direct URL.
+ * Opens Auction Sheet Modal supporting both images and PDFs without exposing direct storage URLs.
  */
-function openAuctionSheetModal(fileUrl, carTitle) {
+function openAuctionSheetModal(fileUrl, carTitle, rawSheetUrl = "") {
   closeAuctionSheetModal();
 
-  const isPdf = fileUrl.toLowerCase().includes(".pdf") || fileUrl.toLowerCase().includes("pdf");
+  const isPdf = rawSheetUrl.toLowerCase().endsWith(".pdf") || 
+                rawSheetUrl.toLowerCase().includes(".pdf") || 
+                fileUrl.toLowerCase().includes(".pdf");
 
   const overlay = document.createElement("div");
   overlay.className = "auction-sheet-modal-overlay";
@@ -540,11 +542,16 @@ function openAuctionSheetModal(fileUrl, carTitle) {
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
-      <div class="auction-modal-body">
-        ${isPdf 
-          ? `<iframe src="${fileUrl}" title="Official Japanese Auction Certificate for ${carTitle}"></iframe>`
-          : `<img src="${fileUrl}" alt="Official Japanese Auction Certificate for ${carTitle}" loading="eager">`
-        }
+      <div class="auction-modal-body" id="auction-modal-body">
+        <div class="auction-modal-loading" id="auction-modal-loading">
+          <div class="auction-modal-spinner"></div>
+          <p>Loading auction document...</p>
+        </div>
+        <div class="auction-modal-error" id="auction-modal-error" style="display: none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-red);"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <p style="font-weight: 600; color: var(--text-dark); margin-top: 8px;">Unable to display document</p>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">The auction document could not be loaded or is temporarily unavailable.</p>
+        </div>
       </div>
     </div>
   `;
@@ -552,6 +559,53 @@ function openAuctionSheetModal(fileUrl, carTitle) {
   overlay.innerHTML = contentHtml;
   document.body.appendChild(overlay);
   document.body.style.overflow = "hidden";
+
+  const modalBody = overlay.querySelector("#auction-modal-body");
+  const loadingEl = overlay.querySelector("#auction-modal-loading");
+  const errorEl = overlay.querySelector("#auction-modal-error");
+
+  const showError = () => {
+    if (loadingEl) loadingEl.style.display = "none";
+    if (errorEl) errorEl.style.display = "flex";
+  };
+
+  const hideLoading = () => {
+    if (loadingEl) loadingEl.style.display = "none";
+  };
+
+  if (isPdf) {
+    const iframe = document.createElement("iframe");
+    iframe.src = fileUrl;
+    iframe.title = `Official Japanese Auction Certificate for ${carTitle}`;
+    iframe.style.display = "none";
+    iframe.style.width = "100%";
+    iframe.style.height = "75vh";
+    iframe.style.border = "none";
+
+    iframe.onload = () => {
+      hideLoading();
+      iframe.style.display = "block";
+    };
+    iframe.onerror = showError;
+
+    modalBody.appendChild(iframe);
+  } else {
+    const img = new Image();
+    img.src = fileUrl;
+    img.alt = `Official Japanese Auction Certificate for ${carTitle}`;
+    img.style.display = "none";
+    img.style.maxWidth = "100%";
+    img.style.maxHeight = "75vh";
+    img.style.objectFit = "contain";
+
+    img.onload = () => {
+      hideLoading();
+      img.style.display = "block";
+    };
+    img.onerror = showError;
+
+    modalBody.appendChild(img);
+  }
 
   const closeBtn = overlay.querySelector("#btn-close-auction-modal");
   if (closeBtn) {
@@ -567,15 +621,18 @@ function openAuctionSheetModal(fileUrl, carTitle) {
   const handleKeydown = (e) => {
     if (e.key === "Escape") {
       closeAuctionSheetModal();
-      document.removeEventListener("keydown", handleKeydown);
     }
   };
   document.addEventListener("keydown", handleKeydown);
+  overlay._handleKeydown = handleKeydown;
 }
 
 function closeAuctionSheetModal() {
   const overlay = document.getElementById("auction-sheet-modal-overlay");
   if (overlay) {
+    if (overlay._handleKeydown) {
+      document.removeEventListener("keydown", overlay._handleKeydown);
+    }
     overlay.remove();
     document.body.style.overflow = "";
   }
@@ -590,17 +647,19 @@ function hydrateAuctionSheet(car) {
   const downloadBtn = document.getElementById('btn-download-auction');
 
   if (car.auctionSheetUrl && car.auctionSheetAvailable) {
-    const fileUrl = getPublicFileUrl(car.auctionSheetUrl);
+    const fileUrl = `/api/v1/public/vehicles/${encodeURIComponent(car.stockNumber || car.id)}/auction-sheet`;
+
     if (downloadBtn) {
-      downloadBtn.setAttribute('href', fileUrl);
-      downloadBtn.setAttribute('download', `Auction-Sheet-${car.stockNumber || car.id}`);
+      downloadBtn.onclick = (e) => {
+        e.preventDefault();
+        openAuctionSheetModal(fileUrl, `${car.year} ${car.make} ${car.model}`, car.auctionSheetUrl);
+      };
     }
 
     if (viewBtn) {
-      viewBtn.setAttribute('href', '#');
       viewBtn.onclick = (e) => {
         e.preventDefault();
-        openAuctionSheetModal(fileUrl, `${car.year} ${car.make} ${car.model}`);
+        openAuctionSheetModal(fileUrl, `${car.year} ${car.make} ${car.model}`, car.auctionSheetUrl);
       };
     }
     section.style.display = 'block';
