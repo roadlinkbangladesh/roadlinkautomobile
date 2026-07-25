@@ -3,7 +3,7 @@
  * Fully responsive, modern, vanilla JS only.
  */
 
-import "./settings-loader.js";
+import { fetchPublicSettings, getPublicSettings } from "./settings-loader.js";
 import { getAllVehicles, loadVehiclesAsync } from "./inventory.js";
 
 // App State
@@ -11,6 +11,49 @@ let allVehicles = [];
 let filteredVehicles = [];
 let currentLimit = 9;
 const LIMIT_INCREMENT = 9;
+
+/**
+ * Synchronizes the visibility of the visitor's "Show Sold Vehicles" controls
+ * based on the global administrator setting from System Settings.
+ */
+function syncSoldVehiclesGlobalConfig() {
+  const settings = getPublicSettings();
+  const globalShowSold = Boolean(settings?.showSoldVehicles ?? settings?.show_sold_vehicles ?? true);
+
+  const soldToggleWrapper = document.querySelector('.sold-toggle-wrapper');
+  const showSoldToggle = document.getElementById('toggle-show-sold');
+  const statusSelect = document.getElementById('filter-status');
+
+  if (!globalShowSold) {
+    if (soldToggleWrapper) {
+      soldToggleWrapper.style.display = 'none';
+    }
+    if (showSoldToggle) {
+      showSoldToggle.checked = false;
+    }
+    if (statusSelect) {
+      const soldOption = statusSelect.querySelector('option[value="Sold"]');
+      if (soldOption) {
+        soldOption.style.display = 'none';
+      }
+      if (statusSelect.value === 'Sold') {
+        statusSelect.value = 'All';
+      }
+    }
+  } else {
+    if (soldToggleWrapper) {
+      soldToggleWrapper.style.display = 'flex';
+    }
+    if (statusSelect) {
+      const soldOption = statusSelect.querySelector('option[value="Sold"]');
+      if (soldOption) {
+        soldOption.style.display = '';
+      }
+    }
+  }
+
+  return globalShowSold;
+}
 
 if (typeof window !== "undefined" && typeof document !== "undefined") {
   const initStock = async () => {
@@ -25,10 +68,12 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
     // Mobile navigation setup
     initMobileMenu();
 
-    // Load and initial render of vehicles
+    // Load public settings to fetch global administrator configuration
     try {
-      const showSold =
-          document.getElementById("toggle-show-sold")?.checked || false;
+      await fetchPublicSettings();
+      const globalShowSold = syncSoldVehiclesGlobalConfig();
+
+      const showSold = globalShowSold && (document.getElementById("toggle-show-sold")?.checked || false);
       
       allVehicles = (
           await loadVehiclesAsync({
@@ -184,6 +229,12 @@ function setupEventListeners() {
   const showSoldToggle = document.getElementById('toggle-show-sold');
   if (showSoldToggle) {
     showSoldToggle.addEventListener('change', async () => {
+      const globalShowSold = syncSoldVehiclesGlobalConfig();
+      if (!globalShowSold) {
+        showSoldToggle.checked = false;
+        return;
+      }
+
       const statusSelect = document.getElementById('filter-status');
   
       // If user unchecks Show Sold, but Status selection was "Sold", reset Status back to "All"
@@ -222,6 +273,7 @@ function setupEventListeners() {
         showSoldToggle.checked = false;
       }
       
+      syncSoldVehiclesGlobalConfig();
       applyFiltersAndRender(true);
     });
   }
@@ -244,6 +296,8 @@ function applyFiltersAndRender(resetPagination = false) {
     currentLimit = LIMIT_INCREMENT;
   }
 
+  const globalShowSold = syncSoldVehiclesGlobalConfig();
+
   const searchVal = document.getElementById('search-input')?.value.toLowerCase().trim() || '';
   const makeVal = document.getElementById('filter-make')?.value || 'All';
   const bodyTypeVal = document.getElementById('filter-body-type')?.value || 'All';
@@ -254,19 +308,21 @@ function applyFiltersAndRender(resetPagination = false) {
 
   // Toggle/Sync "Show Sold Vehicles" checkbox automatically if user clicks "Sold" in the dropdown status filter
   const showSoldToggle = document.getElementById('toggle-show-sold');
-  if (statusVal === 'Sold' && showSoldToggle && !showSoldToggle.checked) {
+  if (statusVal === 'Sold' && showSoldToggle && !showSoldToggle.checked && globalShowSold) {
     showSoldToggle.checked = true;
   }
 
-  const showSold = showSoldToggle?.checked || false;
+  const showSold = globalShowSold && (showSoldToggle?.checked || statusVal === 'Sold');
 
   // Apply filters
   filteredVehicles = allVehicles.filter(car => {
     const status = car.status.toLowerCase();
 
-    // 0. Hide Sold vehicles unless Show Sold checkbox is active
-    if (!showSold && status === 'sold') {
-      return false;
+    // 0. Hide Sold vehicles if global setting disables them OR visitor toggle is off
+    if (!globalShowSold || !showSold) {
+      if (status === 'sold') {
+        return false;
+      }
     }
 
     // 1. Search Box
