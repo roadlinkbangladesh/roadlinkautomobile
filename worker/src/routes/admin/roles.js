@@ -170,13 +170,22 @@ export async function createRole(request, env) {
         const now = new Date().toISOString();
 
         // Insert role
-        const role = await env.DB
+        await env.DB
             .prepare(`
                 INSERT INTO roles (name, description, is_system_role, created_at, updated_at)
                 VALUES (?, ?, 0, ?, ?)
-                RETURNING id, name, description, is_system_role, created_at, updated_at
             `)
             .bind(name, description, now, now)
+            .run();
+
+        const role = await env.DB
+            .prepare(`
+                SELECT id, name, description, is_system_role, created_at, updated_at
+                FROM roles
+                WHERE LOWER(name) = LOWER(?)
+                LIMIT 1
+            `)
+            .bind(name)
             .first();
 
         // Insert permissions
@@ -294,14 +303,23 @@ export async function updateRole(request, env, ctx, params) {
         const now = new Date().toISOString();
 
         // System role immutability: preserve system role attributes
-        const updated = await env.DB
+        await env.DB
             .prepare(`
                 UPDATE roles
                 SET name = ?, description = ?, updated_at = ?
                 WHERE id = ?
-                RETURNING id, name, description, is_system_role, system_role_key, created_at, updated_at
             `)
             .bind(name, description, now, id)
+            .run();
+
+        const updated = await env.DB
+            .prepare(`
+                SELECT id, name, description, is_system_role, system_role_key, created_at, updated_at
+                FROM roles
+                WHERE id = ?
+                LIMIT 1
+            `)
+            .bind(id)
             .first();
 
         // Sync permissions if provided
