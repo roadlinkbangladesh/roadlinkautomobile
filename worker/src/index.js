@@ -38,6 +38,7 @@ import {
 import {
     listPublicVehicles,
     getPublicVehicle,
+    getPublicVehicleAuctionSheet,
     getPublicFile,
     getPublicImage
 } from "./routes/public/vehicles.js";
@@ -76,6 +77,7 @@ const routes = {
 
     // Public API
     [`GET:${API.PUBLIC}/vehicles`]: listPublicVehicles,
+    [`GET:${API.PUBLIC}/vehicles/:identifier/auction-sheet`]: getPublicVehicleAuctionSheet,
     [`GET:${API.PUBLIC}/vehicles/:identifier`]: getPublicVehicle,
     [`GET:${API.PUBLIC}/settings`]: getPublicSettings,
     [`GET:${API.PUBLIC}/files/:key`]: getPublicFile,
