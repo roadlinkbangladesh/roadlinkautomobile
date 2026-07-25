@@ -125,7 +125,7 @@ INSERT OR IGNORE INTO users (
 )
 VALUES (
     'admin',
-    'PASSWORD_NOT_SET',
+    'pbkdf2$sha-256$100000$32$CX7NBWxGwmL2Ha7R3BHKnw$VZ5tgZ2FPoMG3EsWTyIOmuTUL7Fxqi8InzddPtSyp20',
     'Administrator',
     1,
     1,
