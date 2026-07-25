@@ -11,7 +11,9 @@ const DEFAULT_CONFIG = {
   max_image_width: 1920,         // Target max width
   image_quality: 85,             // Target compression quality
   max_auction_sheet_mb: 20,      // Max size for PDF auction sheet
-  orphan_cleanup_days: 7         // Threshold in days for unreferenced orphan files
+  orphan_cleanup_days: 7,        // Threshold in days for unreferenced orphan files
+  max_failed_login_attempts: 5,  // Max failed login attempts allowed before lockout
+  lockout_duration_minutes: 30   // Lockout duration in minutes
 };
 
 class PlatformConfigService {
@@ -69,6 +71,8 @@ class PlatformConfigService {
     config.image_quality = Math.max(10, Math.min(100, Number(config.image_quality) || 85));
     config.max_auction_sheet_mb = Math.max(1, Math.min(100, Number(config.max_auction_sheet_mb) || 20));
     config.orphan_cleanup_days = Math.max(1, Math.min(365, Number(config.orphan_cleanup_days) || 7));
+    config.max_failed_login_attempts = Math.max(1, Math.min(100, Number(config.max_failed_login_attempts) || 5));
+    config.lockout_duration_minutes = Math.max(1, Math.min(1440, Number(config.lockout_duration_minutes) || 30));
 
     this._cache = config;
     this._lastFetched = now;
