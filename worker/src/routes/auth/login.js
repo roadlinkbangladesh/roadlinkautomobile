@@ -1,4 +1,4 @@
-import { badRequest, unauthorized, serverError, success } from "../../utils/response.js";
+import { badRequest, unauthorized, forbidden, tooManyRequests, serverError, success } from "../../utils/response.js";
 import { verifyPassword } from "../../utils/password.js";
 import { createToken } from "../../utils/jwt.js";
 import { JWT } from "../../config/constants.js";
@@ -125,10 +125,7 @@ export async function login(request, env) {
                 userAgent
             });
 
-            return Response.json({
-                success: false,
-                message: "Too many unsuccessful sign-in attempts. Please try again later."
-            }, { status: 429 });
+            return tooManyRequests("Too many unsuccessful sign-in attempts. Please try again later.");
         }
 
         // 5. Validate Password (Step 3)
@@ -223,10 +220,7 @@ export async function login(request, env) {
                 ipAddress: clientIp,
                 userAgent
             });
-            return Response.json({
-                success: false,
-                message: "Your account is deactivated."
-            }, { status: 403 });
+            return forbidden("Your account is deactivated.");
         }
 
         // 6. On Successful Authentication (Step 4)
