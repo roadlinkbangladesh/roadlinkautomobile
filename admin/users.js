@@ -108,6 +108,37 @@ function renderUsersTable() {
       ? "background-color: rgba(37, 211, 102, 0.08); color: #25d366; border: 1px solid rgba(37, 211, 102, 0.2);"
       : "background-color: rgba(227, 27, 35, 0.08); color: #e31b23; border: 1px solid rgba(227, 27, 35, 0.2);";
 
+    const isLocked = u.is_locked || (u.locked_until && new Date(u.locked_until).getTime() > Date.now());
+    let lockBadge = "";
+    if (isLocked) {
+      let lockedUntilFormatted = "";
+      try {
+        const tz = systemSettings?.displayTimezone || systemSettings?.display_timezone || "Asia/Dhaka";
+        const locale = systemSettings?.displayLocale || systemSettings?.display_locale || "en-BD";
+        lockedUntilFormatted = new Date(u.locked_until).toLocaleString(locale, {
+          timeZone: tz,
+          hour12: true,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit"
+        });
+      } catch (e) {
+        lockedUntilFormatted = new Date(u.locked_until).toLocaleTimeString();
+      }
+      lockBadge = `
+        <span class="badge" title="Locked until ${lockedUntilFormatted} (${u.failed_login_attempts || 0} failed attempts)" style="padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; background-color: rgba(227, 27, 35, 0.15); color: #e31b23; border: 1px solid rgba(227, 27, 35, 0.4);">
+          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Locked
+        </span>
+      `;
+    } else if (u.failed_login_attempts > 0) {
+      lockBadge = `
+        <span class="badge" title="${u.failed_login_attempts} failed login attempts" style="padding: 4px 8px; border-radius: var(--radius-full); font-size: 0.7rem; font-weight: 600; display: inline-block; margin-left: 4px; background-color: rgba(230, 162, 44, 0.1); color: #e6a23c; border: 1px solid rgba(230, 162, 44, 0.25);">
+          ${u.failed_login_attempts} Failed
+        </span>
+      `;
+    }
+
     let lastLogin = "Never";
     if (u.last_login_at) {
       try {
@@ -140,6 +171,16 @@ function renderUsersTable() {
     }
     const resetDisabled = isSelf ? "disabled title='You cannot reset your own password here'" : "";
 
+    let unlockButton = "";
+    if (isLocked || (u.failed_login_attempts && u.failed_login_attempts > 0)) {
+      unlockButton = `
+        <button class="btn-action-unlock btn-user-unlock" data-id="${u.id}" style="padding: 6px 12px; font-size: 0.8rem; border-radius: var(--radius-sm); border-color: rgba(37, 211, 102, 0.4); color: #25d366; background: rgba(37, 211, 102, 0.08);">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+          Unlock
+        </button>
+      `;
+    }
+
     row.innerHTML = `
       <td style="font-weight: 600; font-family: var(--font-display);">${u.display_name}</td>
       <td style="font-weight: 700; font-family: var(--font-mono); font-size: 0.85rem; color: var(--primary-blue);">${u.username}</td>
@@ -148,10 +189,12 @@ function renderUsersTable() {
         <span class="badge" style="padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; ${statusStyle}">
           ${statusText}
         </span>
+        ${lockBadge}
       </td>
       <td style="font-size: 0.85rem; color: var(--text-muted); font-family: var(--font-mono);">${lastLogin}</td>
       <td>
         <div class="action-buttons" style="justify-content: flex-end; gap: 6px;">
+          ${unlockButton}
           <button class="btn-action-edit btn-user-edit" data-id="${u.id}" style="padding: 6px 12px; font-size: 0.8rem; border-radius: var(--radius-sm);">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
             Edit
@@ -354,12 +397,13 @@ function bindUsersEvents() {
     });
   }
 
-  // Edit / Delete / Reset delegation
+  // Edit / Delete / Reset / Unlock delegation
   if (tableBody) {
     tableBody.addEventListener("click", async (e) => {
       const editBtn = e.target.closest(".btn-user-edit");
       const deleteBtn = e.target.closest(".btn-user-delete");
       const resetBtn = e.target.closest(".btn-user-reset");
+      const unlockBtn = e.target.closest(".btn-user-unlock");
 
       if (editBtn) {
         const id = editBtn.getAttribute("data-id");
@@ -382,6 +426,14 @@ function bindUsersEvents() {
         const user = usersList.find(u => u.id === id);
         if (user) {
           await executePasswordReset(user);
+        }
+      }
+
+      if (unlockBtn) {
+        const id = parseInt(unlockBtn.getAttribute("data-id"));
+        const user = usersList.find(u => u.id === id);
+        if (user) {
+          await executeAccountUnlock(user, unlockBtn);
         }
       }
     });
@@ -578,5 +630,38 @@ async function executePasswordReset(user) {
   } catch (err) {
     console.error("Password reset failure:", err);
     alert("Network error occurred during password reset.");
+  }
+}
+
+/**
+ * Initiates manual administrative account unlock.
+ */
+async function executeAccountUnlock(user, btn) {
+  if (!user) return;
+  const originalText = btn ? btn.innerHTML : "Unlock";
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Unlocking...";
+  }
+
+  try {
+    const response = await apiFetch(`/api/v1/admin/users/${user.id}/unlock`, {
+      method: "POST"
+    });
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      await fetchUsers();
+    } else {
+      alert(result.message || "Failed to unlock user account.");
+    }
+  } catch (err) {
+    console.error("Account unlock failure:", err);
+    alert("Network error occurred during account unlock.");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
   }
 }
