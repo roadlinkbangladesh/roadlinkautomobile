@@ -66,15 +66,36 @@ export async function logAudit(env, {
 }
 
 /**
- * Extracts request IP and User Agent headers safely
+ * Safely extracts client IP address and User Agent header.
+ * IP Resolution Priority:
+ * 1. CF-Connecting-IP (Authentic client IP provided by Cloudflare edge proxy)
+ * 2. X-Forwarded-For (First client IP entry in proxy chain)
+ * 3. X-Real-IP (Direct reverse proxy header)
+ * 4. Fallback to default local loopback IP if undetermined
  */
 export function getRequestMeta(request) {
     if (!request || !request.headers) {
-        return { ipAddress: null, userAgent: null };
+        return { ipAddress: "127.0.0.1", userAgent: null };
     }
-    const ipAddress = request.headers.get("CF-Connecting-IP") || 
-                      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || 
-                      null;
+
+    let ipAddress = request.headers.get("CF-Connecting-IP");
+
+    if (!ipAddress) {
+        const xff = request.headers.get("x-forwarded-for");
+        if (xff) {
+            const firstIp = xff.split(",")[0]?.trim();
+            if (firstIp) ipAddress = firstIp;
+        }
+    }
+
+    if (!ipAddress) {
+        ipAddress = request.headers.get("x-real-ip");
+    }
+
+    if (!ipAddress) {
+        ipAddress = "127.0.0.1";
+    }
+
     const userAgent = request.headers.get("user-agent") || null;
     return { ipAddress, userAgent };
 }
