@@ -66,7 +66,10 @@ export async function authenticate(request, env, requiredPermission = null, isCh
     }
 
     // Attach system role boolean flag
-    user.is_super_admin = user.is_system_role === 1 || user.system_role_key === "SUPER_ADMIN";
+    user.is_super_admin = (user.is_system_role === 1 && user.system_role_key === "SUPER_ADMIN") ||
+        user.system_role_key === "SUPER_ADMIN" ||
+        user.role_id === 1 ||
+        user.role_name === "Super Administrator";
 
     // Retrieve role permissions
     const permissionsQuery = await env.DB
@@ -142,19 +145,25 @@ export async function isStrictlyLessPrivileged(env, roleAId, roleBId) {
 
     // Fetch system role details for both roles
     const roleA = await env.DB
-        .prepare(`SELECT id, is_system_role, system_role_key FROM roles WHERE id = ? LIMIT 1`)
+        .prepare(`SELECT id, name, is_system_role, system_role_key FROM roles WHERE id = ? LIMIT 1`)
         .bind(rAId)
         .first();
 
     const roleB = await env.DB
-        .prepare(`SELECT id, is_system_role, system_role_key FROM roles WHERE id = ? LIMIT 1`)
+        .prepare(`SELECT id, name, is_system_role, system_role_key FROM roles WHERE id = ? LIMIT 1`)
         .bind(rBId)
         .first();
 
     if (!roleA || !roleB) return false;
 
-    const isBSuperAdmin = roleB.is_system_role === 1 || roleB.system_role_key === "SUPER_ADMIN";
-    const isASuperAdmin = roleA.is_system_role === 1 || roleA.system_role_key === "SUPER_ADMIN";
+    const isBSuperAdmin = (roleB.is_system_role === 1 && roleB.system_role_key === "SUPER_ADMIN") ||
+        roleB.system_role_key === "SUPER_ADMIN" ||
+        roleB.id === 1 ||
+        roleB.name === "Super Administrator";
+    const isASuperAdmin = (roleA.is_system_role === 1 && roleA.system_role_key === "SUPER_ADMIN") ||
+        roleA.system_role_key === "SUPER_ADMIN" ||
+        roleA.id === 1 ||
+        roleA.name === "Super Administrator";
 
     // Super Administrator is more privileged than any non-Super Administrator role
     if (isBSuperAdmin) {
