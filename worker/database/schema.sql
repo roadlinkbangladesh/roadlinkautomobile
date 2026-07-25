@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS users (
     last_login_at TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    must_change_password INTEGER NOT NULL DEFAULT 0 CHECK(must_change_password IN (0,1))
+    must_change_password INTEGER NOT NULL DEFAULT 0 CHECK(must_change_password IN (0,1)),
+    token_version INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
