@@ -36,6 +36,21 @@ export async function authenticate(request, env, requiredPermission = null, isCh
         return { errorResponse: unauthorized("User not found.") };
     }
 
+    // Verify token version matches current database record for immediate session revocation
+    if (decoded.token_version === undefined || decoded.token_version !== user.token_version) {
+        await logAudit(env, {
+            actingUserId: user.id,
+            actingUsername: user.username,
+            action: "security.session_revoked",
+            resourceType: "auth",
+            status: "FAILURE",
+            reason: "Session revoked due to token version mismatch",
+            ipAddress,
+            userAgent
+        });
+        return { errorResponse: unauthorized("Your session has expired or has been invalidated. Please sign in again.") };
+    }
+
     if (user.is_active !== 1) {
         await logAudit(env, {
             actingUserId: user.id,
