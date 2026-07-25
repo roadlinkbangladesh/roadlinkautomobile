@@ -94,12 +94,13 @@ export async function login(request, env) {
             .all();
         const permissions = (permissionsQuery.results || []).map(p => p.permission_key);
 
-        // Generate JWT
+        // Generate JWT with session token_version
         const token = await createToken(
             {
                 id: user.id,
                 username: user.username,
-                role_id: user.role_id
+                role_id: user.role_id,
+                token_version: user.token_version ?? 1
             },
             env.JWT_SECRET,
             expiresIn
