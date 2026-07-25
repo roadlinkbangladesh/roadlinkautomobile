@@ -454,7 +454,6 @@ function renderVehicleCard(car) {
 
   // Dynamic Grade presentation
   const gradeBadge = car.grade ? `<span class="vehicle-badge auction-grade">Grade ${car.grade}</span>` : '';
-  const auctionSheetBadge = (car.auctionSheetAvailable && car.auctionSheetUrl) ? `<span class="vehicle-badge badge-auction-sheet" style="background: #059669; color: white;">Auction Sheet Verified</span>` : '';
 
   // WhatsApp click query assembly
   const whatsappMsg = `Hi Roadlink Automobiles, I am interested in your reconditioned ${car.year} ${car.make} ${car.model} (Stock No: ${car.stockNumber}). Please let me know its availability and pricing options. Thank you.`;
@@ -467,7 +466,6 @@ function renderVehicleCard(car) {
         ${statusBadge}
         ${featuredBadge}
         ${gradeBadge}
-        ${auctionSheetBadge}
         <img src="${car.posterImage || car.images[0]}" alt="${car.year} ${car.make} ${car.model}" class="vehicle-img" loading="lazy">
       </div>
     </a>
