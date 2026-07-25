@@ -12,8 +12,11 @@ const DEFAULT_CONFIG = {
   image_quality: 85,             // Target compression quality
   max_auction_sheet_mb: 20,      // Max size for PDF auction sheet
   orphan_cleanup_days: 7,        // Threshold in days for unreferenced orphan files
-  max_failed_login_attempts: 5,  // Max failed login attempts allowed before lockout
-  lockout_duration_minutes: 30   // Lockout duration in minutes
+  max_failed_login_attempts: 5,  // Max failed account login attempts allowed before lockout (5)
+  account_lockout_duration_minutes: 15, // Account lockout duration in minutes (15 min / 900s)
+  max_ip_failed_attempts: 15,    // Max failed IP login attempts allowed before lockout (15)
+  ip_lockout_duration_minutes: 15, // IP lockout duration in minutes (15 min / 900s)
+  lockout_duration_minutes: 15   // Legacy fallback lockout duration in minutes
 };
 
 class PlatformConfigService {
@@ -72,7 +75,10 @@ class PlatformConfigService {
     config.max_auction_sheet_mb = Math.max(1, Math.min(100, Number(config.max_auction_sheet_mb) || 20));
     config.orphan_cleanup_days = Math.max(1, Math.min(365, Number(config.orphan_cleanup_days) || 7));
     config.max_failed_login_attempts = Math.max(1, Math.min(100, Number(config.max_failed_login_attempts) || 5));
-    config.lockout_duration_minutes = Math.max(1, Math.min(1440, Number(config.lockout_duration_minutes) || 30));
+    config.account_lockout_duration_minutes = Math.max(1, Math.min(1440, Number(config.account_lockout_duration_minutes) || Number(config.lockout_duration_minutes) || 15));
+    config.max_ip_failed_attempts = Math.max(1, Math.min(1000, Number(config.max_ip_failed_attempts) || 15));
+    config.ip_lockout_duration_minutes = Math.max(1, Math.min(1440, Number(config.ip_lockout_duration_minutes) || Number(config.lockout_duration_minutes) || 15));
+    config.lockout_duration_minutes = config.account_lockout_duration_minutes;
 
     this._cache = config;
     this._lastFetched = now;
