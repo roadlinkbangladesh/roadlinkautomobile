@@ -9,6 +9,7 @@ import {
     updateUser,
     deleteUser,
     resetPassword,
+    unlockUser,
     changePassword,
     getProfile,
     updateProfile
@@ -144,6 +145,7 @@ const routes = {
     [`PUT:${API.ADMIN}/users/:id`]: updateUser,
     [`DELETE:${API.ADMIN}/users/:id`]: deleteUser,
     [`POST:${API.ADMIN}/users/:id/reset-password`]: resetPassword,
+    [`POST:${API.ADMIN}/users/:id/unlock`]: unlockUser,
     [`PUT:${API.ADMIN}/users/change-password`]: changePassword,
     [`PUT:${API.ADMIN}/change-password`]: changePassword,
 
