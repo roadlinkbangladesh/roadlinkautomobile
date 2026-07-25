@@ -1,12 +1,11 @@
 import { HTTP_STATUS } from "../config/constants.js";
 
-const CORS_HEADERS = {
+export const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://roadlink-api.roadlinkbangladesh.workers.dev; object-src 'none'; base-uri 'self'; form-action 'self';",
+  "Content-Security-Policy": "default-src 'self' 'unsafe-inline' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src * 'self' data: blob:; object-src 'none'; base-uri 'self';",
   "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "SAMEORIGIN",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
   "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
@@ -128,6 +127,18 @@ export function conflict(message = "Conflict.") {
 export function validationError(message = "Validation failed.") {
     return json(
         HTTP_STATUS.UNPROCESSABLE_ENTITY,
+        false,
+        null,
+        message
+    );
+}
+
+/**
+ * 429 Too Many Requests
+ */
+export function tooManyRequests(message = "Too many requests. Please try again later.") {
+    return json(
+        HTTP_STATUS.TOO_MANY_REQUESTS || 429,
         false,
         null,
         message

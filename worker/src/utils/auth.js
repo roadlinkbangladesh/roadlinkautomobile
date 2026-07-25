@@ -1,4 +1,4 @@
-import { unauthorized, forbidden } from "./response.js";
+import { unauthorized, forbidden, CORS_HEADERS } from "./response.js";
 import { verifyToken } from "./jwt.js";
 import { logAudit, getRequestMeta } from "./audit.js";
 
@@ -105,11 +105,7 @@ export async function authenticate(request, env, requiredPermission = null, isCh
                 message: "You must change your password before performing any other operations."
             }, {
                 status: 403,
-                headers: {
-                    "Access-Control-Allow-Origin": "https://roadlinkautomobile.pages.dev",
-                    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-                    "Access-Control-Allow-Headers": "Content-Type, Authorization"
-                }
+                headers: CORS_HEADERS
             })
         };
     }
