@@ -37,7 +37,9 @@ export async function authenticate(request, env, requiredPermission = null, isCh
     }
 
     // Verify token version matches current database record for immediate session revocation
-    if (decoded.token_version === undefined || decoded.token_version !== user.token_version) {
+    const userTokenVersion = user.token_version ?? 1;
+    const decodedTokenVersion = decoded.token_version ?? 1;
+    if (decodedTokenVersion !== userTokenVersion) {
         await logAudit(env, {
             actingUserId: user.id,
             actingUsername: user.username,

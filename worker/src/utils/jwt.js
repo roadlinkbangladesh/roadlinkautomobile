@@ -108,41 +108,43 @@ async function verify(data, signature, secret) {
 }
 
 export async function verifyToken(token, secret) {
+    try {
+        if (!token) {
+            return null;
+        }
 
-    if (!token) {
+        const parts = token.split(".");
+
+        if (parts.length !== 3) {
+            return null;
+        }
+
+        const [header, payload, signature] = parts;
+
+        const valid = await verify(
+            `${header}.${payload}`,
+            signature,
+            secret
+        );
+
+        if (!valid) {
+            return null;
+        }
+
+        const data = JSON.parse(
+            new TextDecoder().decode(
+                base64UrlDecode(payload)
+            )
+        );
+
+        const now = Math.floor(Date.now() / 1000);
+
+        if (data.exp < now) {
+            return null;
+        }
+
+        return data;
+    } catch {
         return null;
     }
-
-    const parts = token.split(".");
-
-    if (parts.length !== 3) {
-        return null;
-    }
-
-    const [header, payload, signature] = parts;
-
-    const valid = await verify(
-        `${header}.${payload}`,
-        signature,
-        secret
-    );
-
-    if (!valid) {
-        return null;
-    }
-
-    const data = JSON.parse(
-        new TextDecoder().decode(
-            base64UrlDecode(payload)
-        )
-    );
-
-    const now = Math.floor(Date.now() / 1000);
-
-    if (data.exp < now) {
-        return null;
-    }
-
-    return data;
-
 }
