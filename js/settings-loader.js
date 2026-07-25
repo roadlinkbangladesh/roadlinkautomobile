@@ -20,11 +20,16 @@ export const DEFAULT_SETTINGS = {
   youtubeUrl: "https://www.youtube.com/@roadlinkautomobiles9168",
   seoTitleSuffix: "Roadlink Automobiles",
   seoDefaultKeywords: "Japanese cars, reconditioned cars, Dhaka car importer, Toyota Axio, Honda Vezel, Nissan X-Trail, Roadlink Automobiles Bangladesh",
-  seoDefaultDescription: "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock."
+  seoDefaultDescription: "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock.",
+  showSoldVehicles: true
 };
 
 let cachedSettings = { ...DEFAULT_SETTINGS };
 let cachedLocations = [];
+
+export function getPublicSettings() {
+  return cachedSettings;
+}
 
 /**
  * Fetches settings from backend public API.
@@ -55,7 +60,9 @@ export async function fetchPublicSettings() {
           seoDefaultDescription: data.seo_default_description || data.seoDefaultDescription || DEFAULT_SETTINGS.seoDefaultDescription,
           stockBannerUrl: data.stock_banner_url || data.stockBannerUrl || null,
           companyLogoUrl: data.company_logo_url || data.companyLogoUrl || null,
-          faviconUrl: data.favicon_url || data.faviconUrl || null
+          faviconUrl: data.favicon_url || data.faviconUrl || null,
+          showSoldVehicles: (data.show_sold_vehicles ?? data.showSoldVehicles ?? 1) == 1,
+          show_sold_vehicles: (data.show_sold_vehicles ?? data.showSoldVehicles ?? 1) == 1
         };
         hydratePageContacts();
         await fetchPublicLocations();
