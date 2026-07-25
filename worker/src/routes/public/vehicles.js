@@ -30,16 +30,11 @@ export async function listPublicVehicles(request, env) {
     let sqlWhere = [`is_published = 1 AND archived_at IS NULL AND LOWER(status) != 'draft'`];
     let params = [];
 
-    // Include sold vehicles if either:
-    // - Website setting allows it
-    // - Client explicitly requests them
-    // Otherwise exclude them.
-    if (
-        !includeSold &&
-        !showSoldVehicles &&
-        (!status || status.toLowerCase() !== "sold")
-    ) {
-        sqlWhere.push(`LOWER(status) != 'sold'`);
+    // Include sold vehicles ONLY if global website setting allows it AND client requested them (or filtered by status=sold)
+    if (!showSoldVehicles) {
+      sqlWhere.push(`LOWER(status) != 'sold'`);
+    } else if (!includeSold && (!status || status.toLowerCase() !== "sold")) {
+      sqlWhere.push(`LOWER(status) != 'sold'`);
     }
     if (search) {
       sqlWhere.push(`(
