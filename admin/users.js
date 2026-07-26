@@ -186,14 +186,20 @@ function renderUsersTable() {
       mfaBadge = `
         <span class="badge" title="MFA Protection Active" style="padding: 4px 8px; border-radius: var(--radius-full); font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; margin-left: 4px; background-color: rgba(30, 144, 255, 0.12); color: #1e90ff; border: 1px solid rgba(30, 144, 255, 0.3);">
           <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 9.7a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 .76-.97l8-2a1 1 0 0 1 .48 0l8 2a1 1 0 0 1 .76.97z"/><path d="m9 12 2 2 4-4"/></svg>
-          MFA
+          MFA Active
+        </span>
+      `;
+    } else if (u.mfa_required || u.mfa_enforced) {
+      mfaBadge = `
+        <span class="badge" title="MFA Required by Role Security Policy" style="padding: 4px 8px; border-radius: var(--radius-full); font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; margin-left: 4px; background-color: rgba(230, 162, 44, 0.12); color: #e6a23c; border: 1px solid rgba(230, 162, 44, 0.3);">
+          Required (Role)
         </span>
       `;
     }
 
-    let resetMfaButton = "";
+    let mfaActionButton = "";
     if (u.mfa_enabled) {
-      resetMfaButton = `
+      mfaActionButton = `
         <button class="btn-action-reset-mfa btn-user-reset-mfa" data-id="${u.id}" style="padding: 6px 12px; font-size: 0.8rem; border-radius: var(--radius-sm); border-color: rgba(153, 51, 204, 0.3); color: #9933cc; background: rgba(153, 51, 204, 0.08);" title="Reset user MFA protection">
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
           Reset MFA
@@ -216,7 +222,7 @@ function renderUsersTable() {
       <td>
         <div class="action-buttons" style="justify-content: flex-end; gap: 6px;">
           ${unlockButton}
-          ${resetMfaButton}
+          ${mfaActionButton}
           <button class="btn-action-edit btn-user-edit" data-id="${u.id}" style="padding: 6px 12px; font-size: 0.8rem; border-radius: var(--radius-sm);">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
             Edit
@@ -466,6 +472,17 @@ function bindUsersEvents() {
         if (user) {
           if (confirm(`Are you sure you want to reset Multi-Factor Authentication (MFA) for ${user.display_name} (@${user.username})?`)) {
             await executeMfaReset(user, resetMfaBtn);
+          }
+        }
+      }
+
+      const enforceMfaBtn = target.closest(".btn-user-enforce-mfa");
+      if (enforceMfaBtn) {
+        const id = parseInt(enforceMfaBtn.getAttribute("data-id"));
+        const user = usersList.find(u => u.id === id);
+        if (user) {
+          if (confirm(`Enforce Multi-Factor Authentication (MFA) requirement for ${user.display_name} (@${user.username})?`)) {
+            await executeMfaEnforce(user, enforceMfaBtn);
           }
         }
       }
@@ -725,6 +742,40 @@ async function executeMfaReset(user, btn) {
   } catch (err) {
     console.error("MFA reset failure:", err);
     alert("Network error occurred during MFA reset.");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  }
+}
+
+/**
+ * Initiates administrative enforcement of MFA requirement for a user.
+ */
+async function executeMfaEnforce(user, btn) {
+  if (!user) return;
+  const originalText = btn ? btn.innerHTML : "Enforce MFA";
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Enforcing...";
+  }
+
+  try {
+    const response = await apiFetch(`/api/v1/admin/users/${user.id}/enforce-mfa`, {
+      method: "POST"
+    });
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      alert(`Multi-Factor Authentication (MFA) requirement has been enforced for ${user.display_name} (@${user.username}).`);
+      await fetchUsers();
+    } else {
+      alert(result.message || "Failed to enforce MFA for user.");
+    }
+  } catch (err) {
+    console.error("MFA enforce failure:", err);
+    alert("Network error occurred during MFA enforcement.");
   } finally {
     if (btn) {
       btn.disabled = false;
