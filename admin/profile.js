@@ -596,7 +596,7 @@ function bindMfaEvents() {
           : { password, code };
 
         const res = await apiFetch("/api/v1/auth/mfa/disable", {
-          method: "DELETE",
+          method: "POST",
           body: JSON.stringify(payload)
         });
 
