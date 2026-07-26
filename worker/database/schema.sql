@@ -38,12 +38,28 @@ CREATE TABLE IF NOT EXISTS users (
     token_version INTEGER NOT NULL DEFAULT 1,
     failed_login_attempts INTEGER NOT NULL DEFAULT 0,
     last_failed_login_at TEXT,
-    locked_until TEXT
+    locked_until TEXT,
+    mfa_enabled INTEGER NOT NULL DEFAULT 0 CHECK(mfa_enabled IN (0,1)),
+    mfa_secret_encrypted TEXT DEFAULT NULL,
+    mfa_enrolled_at TEXT DEFAULT NULL,
+    mfa_last_used_at TEXT DEFAULT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_role_id ON users(role_id);
 CREATE INDEX IF NOT EXISTS idx_users_locked ON users(locked_until);
+
+CREATE TABLE IF NOT EXISTS mfa_recovery_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    code_hash TEXT NOT NULL,
+    is_used INTEGER NOT NULL DEFAULT 0 CHECK(is_used IN (0,1)),
+    used_at TEXT DEFAULT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_mfa_recovery_user ON mfa_recovery_codes(user_id);
+CREATE INDEX IF NOT EXISTS idx_mfa_recovery_unused ON mfa_recovery_codes(user_id, is_used);
 
 CREATE TABLE IF NOT EXISTS login_security (
     ip_address TEXT PRIMARY KEY,
