@@ -9,8 +9,8 @@ import { $, apiFetch } from "./utils.js";
 import { initLocationsView } from "./locations.js";
 import { initCarouselView } from "./carousel.js";
 import { initTestimonialsView } from "./testimonials.js";
-import { uploadFileAsync } from "../js/inventory.js";
-import { getPublicFileUrl } from "../js/shared/api.js";
+import { uploadFileAsync } from "./js/inventory.js";
+import { getPublicFileUrl } from "./js/shared/api.js";
 
 let settingsEventsBound = false;
 let activeSubtab = "general";
