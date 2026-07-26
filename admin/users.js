@@ -247,10 +247,6 @@ function renderUsersTable() {
           </button>
           ${unlockButton}
           ${mfaActionButton}
-          <button class="btn-action-edit btn-user-edit" data-id="${u.id}" style="padding: 6px 12px; font-size: 0.8rem; border-radius: var(--radius-sm);">
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-            Edit
-          </button>
           <button class="btn-action-reset btn-user-reset" data-id="${u.id}" ${resetDisabled} style="padding: 6px 12px; font-size: 0.8rem; border-radius: var(--radius-sm); border-color: rgba(230, 162, 44, 0.3); color: #e6a23c; background: rgba(230, 162, 44, 0.05);">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5"/></svg>
             Reset Pwd
@@ -734,13 +730,21 @@ async function executeAccountUnlock(user, btn) {
   }
 }
 
+let currentDetailsUser = null;
+
 /**
  * Opens the User Details & Security modal
  */
-function showUserDetailsModal(user) {
+async function showUserDetailsModal(user) {
   if (!user) return;
+  currentDetailsUser = user;
+
   const modal = $("user-details-modal");
   if (!modal) return;
+
+  const viewFields = $("ud-view-fields");
+  const editFields = $("ud-edit-fields");
+  const alertMsg = $("ud-alert-message");
 
   const displayNameEl = $("ud-display-name");
   const usernameEl = $("ud-username");
@@ -750,12 +754,26 @@ function showUserDetailsModal(user) {
   const mfaStatusBadgeEl = $("ud-mfa-status-badge");
   const btnResetMfa = $("btn-ud-reset-mfa");
 
+  const btnEdit = $("btn-ud-edit");
+  const btnCancelEdit = $("btn-ud-cancel-edit");
+  const btnSave = $("btn-ud-save");
+
+  // Reset modal state to View mode
+  if (viewFields) viewFields.style.display = "grid";
+  if (editFields) editFields.style.display = "none";
+  if (alertMsg) alertMsg.style.display = "none";
+
+  if (btnEdit) btnEdit.style.display = "inline-flex";
+  if (btnCancelEdit) btnCancelEdit.style.display = "none";
+  if (btnSave) btnSave.style.display = "none";
+
+  // Populate view fields
   if (displayNameEl) displayNameEl.textContent = user.display_name || user.username;
   if (usernameEl) usernameEl.textContent = `@${user.username}`;
-  if (roleEl) roleEl.textContent = user.role_name || (user.role_id === 1 ? "Super Administrator" : "User");
+  if (roleEl) roleEl.textContent = user.role_name || (user.role_id === 1 ? "Super Administrator" : (user.role_id === 2 ? "Manager" : "User"));
 
   if (statusBadgeEl) {
-    const isActive = user.status === "active";
+    const isActive = user.status === "active" || user.status === 1 || user.is_active === true || user.is_active === 1;
     statusBadgeEl.className = "badge";
     statusBadgeEl.textContent = isActive ? "Active" : "Locked / Inactive";
     statusBadgeEl.style.cssText = isActive
@@ -791,6 +809,29 @@ function showUserDetailsModal(user) {
     };
   }
 
+  // Pre-fill edit input fields
+  const editDisplayNameInput = $("ud-edit-display-name");
+  const editUsernameInput = $("ud-edit-username");
+  const editRoleSelect = $("ud-edit-role");
+  const editStatusSelect = $("ud-edit-status");
+
+  if (editDisplayNameInput) editDisplayNameInput.value = user.display_name || user.username || "";
+  if (editUsernameInput) editUsernameInput.value = user.username || "";
+  if (editStatusSelect) editStatusSelect.value = (user.status === "active" || user.is_active === true || user.is_active === 1 || user.status === 1) ? "1" : "0";
+
+  // Load roles list for edit dropdown
+  try {
+    const rResponse = await apiFetch("/api/v1/admin/roles");
+    const rResult = await rResponse.json();
+    if (rResponse.ok && rResult.success && Array.isArray(rResult.data) && editRoleSelect) {
+      editRoleSelect.innerHTML = rResult.data.map(r => `
+        <option value="${r.id}" ${r.id === user.role_id ? 'selected' : ''}>${r.name}</option>
+      `).join('');
+    }
+  } catch (err) {
+    console.error("Failed to load roles for details edit form:", err);
+  }
+
   modal.style.display = "flex";
 }
 
@@ -815,7 +856,7 @@ function openMfaResetModal(user) {
   modal.style.display = "flex";
 }
 
-// Close handlers for User Details & MFA Reset modals
+// Close & Edit handlers for User Details & MFA Reset modals
 document.addEventListener("DOMContentLoaded", () => {
   const btnCloseUd = $("btn-close-user-details-modal");
   const btnCloseUdBottom = $("btn-close-user-details");
@@ -823,6 +864,143 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (btnCloseUd && udModal) btnCloseUd.addEventListener("click", () => { udModal.style.display = "none"; });
   if (btnCloseUdBottom && udModal) btnCloseUdBottom.addEventListener("click", () => { udModal.style.display = "none"; });
+
+  const btnUdEdit = $("btn-ud-edit");
+  const btnUdCancelEdit = $("btn-ud-cancel-edit");
+  const btnUdSave = $("btn-ud-save");
+
+  if (btnUdEdit) {
+    btnUdEdit.addEventListener("click", () => {
+      const viewFields = $("ud-view-fields");
+      const editFields = $("ud-edit-fields");
+      const alertMsg = $("ud-alert-message");
+
+      if (viewFields) viewFields.style.display = "none";
+      if (editFields) editFields.style.display = "block";
+      if (alertMsg) alertMsg.style.display = "none";
+
+      if (btnUdEdit) btnUdEdit.style.display = "none";
+      if (btnUdCancelEdit) btnUdCancelEdit.style.display = "inline-block";
+      if (btnUdSave) btnUdSave.style.display = "inline-block";
+    });
+  }
+
+  if (btnUdCancelEdit) {
+    btnUdCancelEdit.addEventListener("click", () => {
+      const viewFields = $("ud-view-fields");
+      const editFields = $("ud-edit-fields");
+      const alertMsg = $("ud-alert-message");
+
+      if (viewFields) viewFields.style.display = "grid";
+      if (editFields) editFields.style.display = "none";
+      if (alertMsg) alertMsg.style.display = "none";
+
+      if (btnUdEdit) btnUdEdit.style.display = "inline-flex";
+      if (btnUdCancelEdit) btnUdCancelEdit.style.display = "none";
+      if (btnUdSave) btnUdSave.style.display = "none";
+    });
+  }
+
+  if (btnUdSave) {
+    btnUdSave.addEventListener("click", async () => {
+      if (!currentDetailsUser) return;
+
+      const displayNameVal = $("ud-edit-display-name")?.value.trim();
+      const usernameVal = $("ud-edit-username")?.value.trim();
+      const roleIdVal = parseInt($("ud-edit-role")?.value, 10);
+      const statusVal = parseInt($("ud-edit-status")?.value, 10);
+      const alertMsg = $("ud-alert-message");
+
+      if (alertMsg) alertMsg.style.display = "none";
+
+      if (!displayNameVal) {
+        if (alertMsg) {
+          alertMsg.style.display = "block";
+          alertMsg.style.backgroundColor = "rgba(227, 27, 35, 0.08)";
+          alertMsg.style.color = "var(--primary-red)";
+          alertMsg.style.border = "1px solid rgba(227, 27, 35, 0.3)";
+          alertMsg.textContent = "Full Name is required.";
+        }
+        return;
+      }
+
+      if (!usernameVal) {
+        if (alertMsg) {
+          alertMsg.style.display = "block";
+          alertMsg.style.backgroundColor = "rgba(227, 27, 35, 0.08)";
+          alertMsg.style.color = "var(--primary-red)";
+          alertMsg.style.border = "1px solid rgba(227, 27, 35, 0.3)";
+          alertMsg.textContent = "Username is required.";
+        }
+        return;
+      }
+
+      btnUdSave.disabled = true;
+      btnUdSave.textContent = "Saving...";
+
+      try {
+        const response = await apiFetch(`/api/v1/admin/users/${currentDetailsUser.id}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            display_name: displayNameVal,
+            username: usernameVal,
+            role_id: roleIdVal,
+            is_active: statusVal === 1
+          })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          // Update current details user object
+          currentDetailsUser.display_name = displayNameVal;
+          currentDetailsUser.username = usernameVal;
+          currentDetailsUser.role_id = roleIdVal;
+          currentDetailsUser.status = statusVal === 1 ? "active" : "inactive";
+          currentDetailsUser.is_active = statusVal === 1;
+
+          const roleSelect = $("ud-edit-role");
+          if (roleSelect && roleSelect.selectedOptions.length > 0) {
+            currentDetailsUser.role_name = roleSelect.selectedOptions[0].text;
+          }
+
+          // Refresh users table in background
+          await fetchUsers();
+
+          // Refresh view mode in details modal
+          await showUserDetailsModal(currentDetailsUser);
+
+          if (alertMsg) {
+            alertMsg.style.display = "block";
+            alertMsg.style.backgroundColor = "rgba(37, 211, 102, 0.12)";
+            alertMsg.style.color = "#15803d";
+            alertMsg.style.border = "1px solid rgba(37, 211, 102, 0.3)";
+            alertMsg.textContent = "User details updated successfully!";
+          }
+        } else {
+          if (alertMsg) {
+            alertMsg.style.display = "block";
+            alertMsg.style.backgroundColor = "rgba(227, 27, 35, 0.08)";
+            alertMsg.style.color = "var(--primary-red)";
+            alertMsg.style.border = "1px solid rgba(227, 27, 35, 0.3)";
+            alertMsg.textContent = result.message || "Failed to update user details.";
+          }
+        }
+      } catch (err) {
+        console.error("Error saving user details:", err);
+        if (alertMsg) {
+          alertMsg.style.display = "block";
+          alertMsg.style.backgroundColor = "rgba(227, 27, 35, 0.08)";
+          alertMsg.style.color = "var(--primary-red)";
+          alertMsg.style.border = "1px solid rgba(227, 27, 35, 0.3)";
+          alertMsg.textContent = "Network error while saving user details.";
+        }
+      } finally {
+        btnUdSave.disabled = false;
+        btnUdSave.textContent = "Save Changes";
+      }
+    });
+  }
 
   const btnCloseResetMfa = $("btn-close-reset-mfa-modal");
   const btnCancelResetMfa = $("btn-cancel-reset-mfa");

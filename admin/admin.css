@@ -1899,6 +1899,97 @@ button:disabled {
     grid-template-columns: 1fr;
     gap: 12px;
   }
+
+  /* Responsive Mobile Card View for Settings Tables (Carousel, Testimonials, Locations, etc.) */
+  #settings-locations-tab-content .data-table,
+  #settings-carousel-tab-content .data-table,
+  #settings-testimonials-tab-content .data-table,
+  .settings-view-container .data-table {
+    display: block;
+    width: 100%;
+    border: none !important;
+  }
+
+  #settings-locations-tab-content .data-table thead,
+  #settings-carousel-tab-content .data-table thead,
+  #settings-testimonials-tab-content .data-table thead,
+  .settings-view-container .data-table thead {
+    display: none;
+  }
+
+  #settings-locations-tab-content .data-table tbody,
+  #settings-carousel-tab-content .data-table tbody,
+  #settings-testimonials-tab-content .data-table tbody,
+  .settings-view-container .data-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 8px 0;
+  }
+
+  #settings-locations-tab-content .data-table tr,
+  #settings-carousel-tab-content .data-table tr,
+  #settings-testimonials-tab-content .data-table tr,
+  .settings-view-container .data-table tr {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-white);
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-md);
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+    gap: 10px;
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  #settings-locations-tab-content .data-table td,
+  #settings-carousel-tab-content .data-table td,
+  #settings-testimonials-tab-content .data-table td,
+  .settings-view-container .data-table td {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0 !important;
+    border-bottom: 1px dashed var(--border-color) !important;
+    text-align: right !important;
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  #settings-locations-tab-content .data-table td::before,
+  #settings-carousel-tab-content .data-table td::before,
+  #settings-testimonials-tab-content .data-table td::before,
+  .settings-view-container .data-table td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: left;
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+
+  #settings-locations-tab-content .data-table td:last-child,
+  #settings-carousel-tab-content .data-table td:last-child,
+  #settings-testimonials-tab-content .data-table td:last-child,
+  .settings-view-container .data-table td:last-child {
+    border-bottom: none !important;
+    border-top: 1px solid var(--border-color) !important;
+    padding-top: 12px !important;
+    margin-top: 4px;
+    justify-content: flex-end;
+  }
+
+  #settings-locations-tab-content .data-table td:last-child::before,
+  #settings-carousel-tab-content .data-table td:last-child::before,
+  #settings-testimonials-tab-content .data-table td:last-child::before,
+  .settings-view-container .data-table td:last-child::before {
+    display: none;
+  }
 }
 .settings-section-title {
   font-family: var(--font-display);

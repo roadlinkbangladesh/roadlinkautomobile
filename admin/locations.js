@@ -156,7 +156,7 @@ function renderLocationsTable(locations) {
 
     return `
       <tr style="border-bottom: 1px solid var(--border-color); font-size: 0.9rem;">
-        <td style="padding: 14px 16px; vertical-align: middle;">
+        <td data-label="Order" style="padding: 14px 16px; vertical-align: middle;">
           <div style="display: flex; align-items: center; gap: 4px;">
             <span style="font-weight: 700; width: 18px; text-align: center;">${loc.displayOrder || (idx + 1)}</span>
             ${canManage ? `
@@ -171,7 +171,7 @@ function renderLocationsTable(locations) {
             ` : ''}
           </div>
         </td>
-        <td style="padding: 14px 16px; vertical-align: middle;">
+        <td data-label="Location" style="padding: 14px 16px; vertical-align: middle;">
           <div style="font-weight: 700; color: var(--text-dark); font-size: 0.95rem;">${sanitizeHTML(loc.title)}</div>
           <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">slug: ${sanitizeHTML(loc.slug)}</div>
           ${loc.isDefault ? `
@@ -180,7 +180,7 @@ function renderLocationsTable(locations) {
             </span>
           ` : ''}
         </td>
-        <td style="padding: 14px 16px; vertical-align: middle; max-width: 250px;">
+        <td data-label="Address" style="padding: 14px 16px; vertical-align: middle; max-width: 250px;">
           <div style="line-height: 1.4; color: var(--text-dark);">${sanitizeHTML(loc.address)}</div>
           ${loc.mapUrl ? `
             <a href="${sanitizeHTML(loc.mapUrl)}" target="_blank" rel="noopener" style="font-size: 0.75rem; color: var(--primary-blue); text-decoration: underline; display: inline-flex; align-items: center; gap: 3px; margin-top: 4px;">
@@ -189,10 +189,10 @@ function renderLocationsTable(locations) {
             </a>
           ` : ''}
         </td>
-        <td style="padding: 14px 16px; vertical-align: middle;">
+        <td data-label="Contact Numbers" style="padding: 14px 16px; vertical-align: middle;">
           <div style="display: flex; flex-direction: column; gap: 4px;">${phonesList}</div>
         </td>
-        <td style="padding: 14px 16px; vertical-align: middle; text-align: center;">
+        <td data-label="Status" style="padding: 14px 16px; vertical-align: middle; text-align: center;">
           ${loc.isVisible ? `
             <span style="padding: 4px 10px; background: rgba(34, 197, 94, 0.1); color: #16a34a; font-size: 0.75rem; font-weight: 600; border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.2);">
               Visible
@@ -203,7 +203,7 @@ function renderLocationsTable(locations) {
             </span>
           `}
         </td>
-        <td style="padding: 14px 16px; vertical-align: middle; text-align: right;">
+        <td data-label="Actions" style="padding: 14px 16px; vertical-align: middle; text-align: right;">
           <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px;">
             ${!loc.isDefault && canManage ? `
               <button type="button" class="btn-make-default btn btn-secondary" data-id="${loc.id}" title="Make default location" style="padding: 5px 10px; font-size: 0.75rem; height: auto;">

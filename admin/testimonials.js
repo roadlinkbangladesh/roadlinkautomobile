@@ -99,30 +99,30 @@ function renderTestimonialsTable(items) {
 
     return `
       <tr style="border-bottom: 1px solid var(--border-color); font-size: 0.9rem;">
-        <td style="padding: 12px 16px; font-weight: 700; color: var(--primary-blue);">
+        <td data-label="Order" style="padding: 12px 16px; font-weight: 700; color: var(--primary-blue);">
           <div style="display: flex; align-items: center; gap: 4px;">
             <button onclick="window.reorderTestimonial('${test.id}', 'up')" ${isFirst ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : 'style="cursor:pointer;"'} class="btn-icon-sm" title="Move Up">▲</button>
             <button onclick="window.reorderTestimonial('${test.id}', 'down')" ${isLast ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : 'style="cursor:pointer;"'} class="btn-icon-sm" title="Move Down">▼</button>
             <span style="margin-left: 4px;">${displayOrder}</span>
           </div>
         </td>
-        <td style="padding: 12px 16px;">
+        <td data-label="Customer" style="padding: 12px 16px;">
           <strong style="color: var(--text-heading); display: block;">${sanitizeHTML(customerName)}</strong>
         </td>
-        <td style="padding: 12px 16px; color: #f59e0b; font-size: 1rem; letter-spacing: 1px;">
+        <td data-label="Rating" style="padding: 12px 16px; color: #f59e0b; font-size: 1rem; letter-spacing: 1px;">
           ${stars}
         </td>
-        <td style="padding: 12px 16px;">
+        <td data-label="Testimonial" style="padding: 12px 16px;">
           <div style="font-size: 0.85rem; color: var(--text-body); max-width: 320px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">
             "${sanitizeHTML(testimonialText)}"
           </div>
         </td>
-        <td style="padding: 12px 16px; text-align: center;">
+        <td data-label="Status" style="padding: 12px 16px; text-align: center;">
           <span style="padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 0.75rem; ${isVisible ? 'background: rgba(37,211,102,0.1); color: var(--whatsapp-green-hover);' : 'background: rgba(239,68,68,0.1); color: var(--primary-red);'}">
             ${isVisible ? 'Visible' : 'Hidden'}
           </span>
         </td>
-        <td style="padding: 12px 16px; text-align: right;">
+        <td data-label="Actions" style="padding: 12px 16px; text-align: right;">
           <div style="display: flex; justify-content: flex-end; gap: 8px;">
             <button onclick="window.editTestimonial('${test.id}')" class="btn btn-view-site" style="padding: 6px 12px; font-size: 0.8rem; margin: 0; width: auto;">Edit</button>
             <button onclick="window.deleteTestimonial('${test.id}')" class="btn btn-view-site" style="padding: 6px 12px; font-size: 0.8rem; margin: 0; width: auto; color: var(--primary-red); border-color: rgba(239, 68, 68, 0.3);">Delete</button>
