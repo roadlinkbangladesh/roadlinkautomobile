@@ -1,0 +1,15 @@
+{
+  "name": "roadlink-automobiles",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "test": "node tests/mfa.test.js",
+    "build": "echo 'No build step needed for static files'"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
