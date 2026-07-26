@@ -161,6 +161,7 @@ const routes = {
     [`DELETE:${API.ADMIN}/users/:id`]: deleteUser,
     [`POST:${API.ADMIN}/users/:id/reset-password`]: resetPassword,
     [`POST:${API.ADMIN}/users/:id/reset-mfa`]: resetUserMfa,
+    [`POST:${API.ADMIN}/users/:id/mfa/reset`]: resetUserMfa,
     [`POST:${API.ADMIN}/users/:id/enforce-mfa`]: enforceUserMfa,
     [`POST:${API.ADMIN}/users/:id/unlock`]: unlockUser,
     [`PUT:${API.ADMIN}/users/change-password`]: changePassword,
