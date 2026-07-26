@@ -275,6 +275,41 @@ export async function login(request, env) {
             // Non-blocking cleanup
         }
 
+        // Check if Multi-Factor Authentication is enabled for user
+        if (user.mfa_enabled === 1) {
+            const mfaToken = await createToken(
+                {
+                    id: user.id,
+                    username: user.username,
+                    scope: "mfa_pending",
+                    rememberMe
+                },
+                env.JWT_SECRET,
+                300 // 5 minutes pre-auth validity
+            );
+
+            await logAudit(env, {
+                actingUserId: user.id,
+                actingUsername: user.username,
+                action: "auth.mfa.pending",
+                resourceType: "auth",
+                status: "SUCCESS",
+                ipAddress: clientIp,
+                userAgent,
+                details: { message: "Primary credentials verified; awaiting second factor" }
+            });
+
+            return success({
+                mfa_required: true,
+                mfa_token: mfaToken,
+                user: {
+                    id: user.id,
+                    username: user.username,
+                    display_name: user.display_name
+                }
+            });
+        }
+
         // Determine token lifetime based on Remember Me selection
         const expiresIn = rememberMe
             ? JWT.REMEMBER_ME_EXPIRES_IN
