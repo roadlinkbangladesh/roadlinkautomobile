@@ -175,9 +175,69 @@ export function bindLoginEvents(onLoginSuccess) {
       const res = await login(username, password, rememberMe);
       if (res.success && res.data) {
         if (res.data.mfa_required) {
-          // MFA challenge step required
           loginForm.style.display = "none";
+
+          if (res.data.mfa_setup_required) {
+            // Mandatory MFA enrollment flow
+            const mfaSetupForm = $("mfa-mandatory-setup-form");
+            const mfaChallenge = $("mfa-challenge-form");
+            if (mfaChallenge) mfaChallenge.style.display = "none";
+
+            if (mfaSetupForm) {
+              mfaSetupForm.style.display = "block";
+              mfaSetupForm.dataset.mfaToken = res.data.mfa_token;
+              mfaSetupForm.dataset.rememberMe = String(rememberMe);
+
+              const accountNameEl = $("mfa-mandatory-account-name");
+              if (accountNameEl) accountNameEl.textContent = username;
+
+              // Initiate setup request to get secret & QR code
+              try {
+                const setupRes = await apiFetch("/api/v1/auth/mfa/setup", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${res.data.mfa_token}`
+                  }
+                });
+                const setupJson = await setupRes.json();
+                if (setupRes.ok && setupJson.success && setupJson.data) {
+                  const { secret, otpauth_url, qr_code_url, account_name } = setupJson.data;
+
+                  if (accountNameEl && account_name) {
+                    accountNameEl.textContent = account_name;
+                  }
+
+                  const secretDisplay = $("mfa-mandatory-secret-display");
+                  if (secretDisplay) secretDisplay.value = secret;
+
+                  const qrCanvas = $("mfa-mandatory-qr-canvas");
+                  if (qrCanvas && window.QRious) {
+                    new window.QRious({
+                      element: qrCanvas,
+                      value: otpauth_url || qr_code_url,
+                      size: 160,
+                      level: "M"
+                    });
+                  }
+                }
+              } catch (setupErr) {
+                console.error("Failed to fetch mandatory MFA setup data:", setupErr);
+              }
+
+              const codeInput = $("mfa-mandatory-code-input");
+              if (codeInput) {
+                codeInput.value = "";
+                codeInput.focus();
+              }
+            }
+            return;
+          }
+
+          // MFA challenge step for users with configured MFA
           const mfaChallenge = $("mfa-challenge-form");
+          const mfaSetupForm = $("mfa-mandatory-setup-form");
+          if (mfaSetupForm) mfaSetupForm.style.display = "none";
+
           if (mfaChallenge) {
             mfaChallenge.style.display = "block";
             mfaChallenge.dataset.mfaToken = res.data.mfa_token;
@@ -305,6 +365,116 @@ export function bindLoginEvents(onLoginSuccess) {
       if (mfaErrorMessage) mfaErrorMessage.textContent = message;
       if (mfaErrorAlert) mfaErrorAlert.style.display = "flex";
       const codeInput = $("mfa-code-input");
+      if (codeInput) {
+        codeInput.select();
+        codeInput.focus();
+      }
+    }
+  }
+
+  // 4. Mandatory MFA Enrollment Form Handler
+  const mfaMandatoryForm = $("mfa-mandatory-setup-form");
+  const btnMfaMandatoryBack = $("btn-mfa-mandatory-back");
+  const btnCopyMandatorySecret = $("btn-mfa-mandatory-copy-secret");
+
+  if (btnCopyMandatorySecret) {
+    btnCopyMandatorySecret.addEventListener("click", () => {
+      const secretInput = $("mfa-mandatory-secret-display");
+      if (secretInput && secretInput.value) {
+        navigator.clipboard.writeText(secretInput.value).then(() => {
+          const origText = btnCopyMandatorySecret.textContent;
+          btnCopyMandatorySecret.textContent = "Copied!";
+          setTimeout(() => { btnCopyMandatorySecret.textContent = origText; }, 2000);
+        }).catch(() => {
+          secretInput.select();
+        });
+      }
+    });
+  }
+
+  if (btnMfaMandatoryBack) {
+    btnMfaMandatoryBack.addEventListener("click", () => {
+      if (mfaMandatoryForm) mfaMandatoryForm.style.display = "none";
+      if (loginForm) loginForm.style.display = "block";
+      const errAlert = $("mfa-mandatory-error-alert");
+      if (errAlert) errAlert.style.display = "none";
+    });
+  }
+
+  if (mfaMandatoryForm) {
+    mfaMandatoryForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const errAlert = $("mfa-mandatory-error-alert");
+      const errMsg = $("mfa-mandatory-error-message");
+      if (errAlert) errAlert.style.display = "none";
+
+      const codeInput = $("mfa-mandatory-code-input");
+      const code = codeInput ? codeInput.value.trim() : "";
+      const mfaToken = mfaMandatoryForm.dataset.mfaToken;
+      const rememberMe = mfaMandatoryForm.dataset.rememberMe === "true";
+
+      if (!code) {
+        showMandatoryMfaError("Please enter the 6-digit code from your authenticator app.");
+        return;
+      }
+
+      const submitBtn = mfaMandatoryForm.querySelector("button[type='submit']");
+      const originalText = submitBtn ? submitBtn.textContent : "Activate & Continue";
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Activating...";
+      }
+
+      try {
+        const response = await apiFetch("/api/v1/auth/mfa/enable", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${mfaToken}`
+          },
+          body: JSON.stringify({ code })
+        });
+
+        const res = await response.json();
+
+        if (response.ok && res.success && res.data) {
+          if (res.data.token) {
+            localStorage.setItem("rememberMe", rememberMe);
+            saveToken(res.data.token, rememberMe);
+          }
+
+          if (res.data.user) {
+            sessionStorage.setItem("currentUser", JSON.stringify(res.data.user));
+          }
+
+          sessionStorage.removeItem("active_admin_module");
+
+          if (Array.isArray(res.data.recovery_codes) && res.data.recovery_codes.length > 0) {
+            if (typeof window.displayRecoveryCodesModal === "function") {
+              window.displayRecoveryCodesModal(res.data.recovery_codes, () => {
+                if (onLoginSuccess) onLoginSuccess();
+              });
+              return;
+            }
+          }
+
+          if (onLoginSuccess) onLoginSuccess();
+        } else {
+          showMandatoryMfaError(res.message || "Invalid verification code. Please check your app and try again.");
+        }
+      } catch (err) {
+        showMandatoryMfaError("Failed to enable MFA. Please try again.");
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        }
+      }
+    });
+
+    function showMandatoryMfaError(message) {
+      if (errMsg) errMsg.textContent = message;
+      if (errAlert) errAlert.style.display = "flex";
+      const codeInput = $("mfa-mandatory-code-input");
       if (codeInput) {
         codeInput.select();
         codeInput.focus();

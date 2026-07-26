@@ -181,18 +181,32 @@ function renderUsersTable() {
       `;
     }
 
-    let mfaBadge = "";
-    if (u.mfa_enabled) {
-      mfaBadge = `
-        <span class="badge" title="MFA Protection Active" style="padding: 4px 8px; border-radius: var(--radius-full); font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; margin-left: 4px; background-color: rgba(30, 144, 255, 0.12); color: #1e90ff; border: 1px solid rgba(30, 144, 255, 0.3);">
-          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 9.7a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 .76-.97l8-2a1 1 0 0 1 .48 0l8 2a1 1 0 0 1 .76.97z"/><path d="m9 12 2 2 4-4"/></svg>
-          MFA Active
+    let policyBadge = "";
+    if (u.mfa_required || u.mfa_enforced || u.role_mfa_required) {
+      policyBadge = `
+        <span class="badge" title="MFA Required by Role Security Policy" style="padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; background-color: rgba(230, 162, 44, 0.12); color: #d97706; border: 1px solid rgba(230, 162, 44, 0.3);">
+          🔒 Required
         </span>
       `;
-    } else if (u.mfa_required || u.mfa_enforced) {
-      mfaBadge = `
-        <span class="badge" title="MFA Required by Role Security Policy" style="padding: 4px 8px; border-radius: var(--radius-full); font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; margin-left: 4px; background-color: rgba(230, 162, 44, 0.12); color: #e6a23c; border: 1px solid rgba(230, 162, 44, 0.3);">
-          Required (Role)
+    } else {
+      policyBadge = `
+        <span class="badge" title="MFA Policy Optional" style="padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.72rem; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; background-color: var(--bg-neutral); color: var(--text-muted); border: 1px solid var(--border-color);">
+          Optional
+        </span>
+      `;
+    }
+
+    let statusBadge = "";
+    if (u.mfa_enabled) {
+      statusBadge = `
+        <span class="badge" title="MFA Active & Configured" style="padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; background-color: rgba(37, 211, 102, 0.12); color: #15803d; border: 1px solid rgba(37, 211, 102, 0.3);">
+          🟢 Enabled
+        </span>
+      `;
+    } else {
+      statusBadge = `
+        <span class="badge" title="MFA Not Configured" style="padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.72rem; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; background-color: var(--bg-neutral); color: var(--text-muted); border: 1px solid var(--border-color);">
+          ⚪ Not Configured
         </span>
       `;
     }
@@ -212,15 +226,25 @@ function renderUsersTable() {
       <td style="font-weight: 700; font-family: var(--font-mono); font-size: 0.85rem; color: var(--primary-blue);">${u.username}</td>
       <td style="font-weight: 500; text-transform: capitalize;">${u.role_name || (u.role_id === 1 ? "Super Administrator" : (u.role_id === 2 ? "Manager" : "User"))}</td>
       <td>
-        <span class="badge" style="padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; ${statusStyle}">
-          ${statusText}
-        </span>
-        ${lockBadge}
-        ${mfaBadge}
+        <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Policy:</span>
+            ${policyBadge}
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Status:</span>
+            ${statusBadge}
+          </div>
+          ${lockBadge}
+        </div>
       </td>
       <td style="font-size: 0.85rem; color: var(--text-muted); font-family: var(--font-mono);">${lastLogin}</td>
       <td>
         <div class="action-buttons" style="justify-content: flex-end; gap: 6px;">
+          <button class="btn-action-view btn-user-details" data-id="${u.id}" style="padding: 6px 12px; font-size: 0.8rem; border-radius: var(--radius-sm); border-color: rgba(30, 144, 255, 0.3); color: var(--primary-blue); background: rgba(30, 144, 255, 0.08);" title="View User Details & Security">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            Details
+          </button>
           ${unlockButton}
           ${mfaActionButton}
           <button class="btn-action-edit btn-user-edit" data-id="${u.id}" style="padding: 6px 12px; font-size: 0.8rem; border-radius: var(--radius-sm);">
@@ -425,14 +449,21 @@ function bindUsersEvents() {
     });
   }
 
-  // Edit / Delete / Reset / Unlock delegation
+  // Edit / Delete / Reset / Unlock / Details delegation
   if (tableBody) {
     tableBody.addEventListener("click", async (e) => {
+      const detailsBtn = e.target.closest(".btn-user-details");
       const editBtn = e.target.closest(".btn-user-edit");
       const deleteBtn = e.target.closest(".btn-user-delete");
       const resetBtn = e.target.closest(".btn-user-reset");
       const unlockBtn = e.target.closest(".btn-user-unlock");
       const resetMfaBtn = e.target.closest(".btn-user-reset-mfa");
+
+      if (detailsBtn) {
+        const id = parseInt(detailsBtn.getAttribute("data-id"));
+        const user = usersList.find(u => u.id === id);
+        if (user) showUserDetailsModal(user);
+      }
 
       if (editBtn) {
         const id = editBtn.getAttribute("data-id");
@@ -470,20 +501,7 @@ function bindUsersEvents() {
         const id = parseInt(resetMfaBtn.getAttribute("data-id"));
         const user = usersList.find(u => u.id === id);
         if (user) {
-          if (confirm(`Are you sure you want to reset Multi-Factor Authentication (MFA) for ${user.display_name} (@${user.username})?`)) {
-            await executeMfaReset(user, resetMfaBtn);
-          }
-        }
-      }
-
-      const enforceMfaBtn = target.closest(".btn-user-enforce-mfa");
-      if (enforceMfaBtn) {
-        const id = parseInt(enforceMfaBtn.getAttribute("data-id"));
-        const user = usersList.find(u => u.id === id);
-        if (user) {
-          if (confirm(`Enforce Multi-Factor Authentication (MFA) requirement for ${user.display_name} (@${user.username})?`)) {
-            await executeMfaEnforce(user, enforceMfaBtn);
-          }
+          openMfaResetModal(user);
         }
       }
     });
@@ -717,6 +735,115 @@ async function executeAccountUnlock(user, btn) {
 }
 
 /**
+ * Opens the User Details & Security modal
+ */
+function showUserDetailsModal(user) {
+  if (!user) return;
+  const modal = $("user-details-modal");
+  if (!modal) return;
+
+  const displayNameEl = $("ud-display-name");
+  const usernameEl = $("ud-username");
+  const roleEl = $("ud-role");
+  const statusBadgeEl = $("ud-status-badge");
+  const policyBadgeEl = $("ud-mfa-policy-badge");
+  const mfaStatusBadgeEl = $("ud-mfa-status-badge");
+  const btnResetMfa = $("btn-ud-reset-mfa");
+
+  if (displayNameEl) displayNameEl.textContent = user.display_name || user.username;
+  if (usernameEl) usernameEl.textContent = `@${user.username}`;
+  if (roleEl) roleEl.textContent = user.role_name || (user.role_id === 1 ? "Super Administrator" : "User");
+
+  if (statusBadgeEl) {
+    const isActive = user.status === "active";
+    statusBadgeEl.className = "badge";
+    statusBadgeEl.textContent = isActive ? "Active" : "Locked / Inactive";
+    statusBadgeEl.style.cssText = isActive
+      ? "padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; background-color: rgba(37, 211, 102, 0.12); color: #15803d; border: 1px solid rgba(37, 211, 102, 0.3);"
+      : "padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; background-color: rgba(227, 27, 35, 0.12); color: #dc2626; border: 1px solid rgba(227, 27, 35, 0.3);";
+  }
+
+  const isMfaRequired = user.mfa_required || user.mfa_enforced || user.role_mfa_required;
+  if (policyBadgeEl) {
+    if (isMfaRequired) {
+      policyBadgeEl.textContent = "🔒 Required";
+      policyBadgeEl.style.cssText = "padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; background-color: rgba(230, 162, 44, 0.12); color: #d97706; border: 1px solid rgba(230, 162, 44, 0.3);";
+    } else {
+      policyBadgeEl.textContent = "Optional";
+      policyBadgeEl.style.cssText = "padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 600; background-color: var(--bg-neutral); color: var(--text-muted); border: 1px solid var(--border-color);";
+    }
+  }
+
+  if (mfaStatusBadgeEl) {
+    if (user.mfa_enabled) {
+      mfaStatusBadgeEl.textContent = "🟢 Enabled";
+      mfaStatusBadgeEl.style.cssText = "padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; background-color: rgba(37, 211, 102, 0.12); color: #15803d; border: 1px solid rgba(37, 211, 102, 0.3);";
+    } else {
+      mfaStatusBadgeEl.textContent = "⚪ Not Configured";
+      mfaStatusBadgeEl.style.cssText = "padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 600; background-color: var(--bg-neutral); color: var(--text-muted); border: 1px solid var(--border-color);";
+    }
+  }
+
+  if (btnResetMfa) {
+    btnResetMfa.onclick = () => {
+      modal.style.display = "none";
+      openMfaResetModal(user);
+    };
+  }
+
+  modal.style.display = "flex";
+}
+
+let pendingMfaResetUser = null;
+
+/**
+ * Opens the MFA Reset Confirmation Modal
+ */
+function openMfaResetModal(user) {
+  if (!user) return;
+  pendingMfaResetUser = user;
+
+  const modal = $("mfa-reset-confirm-modal");
+  if (!modal) return;
+
+  const targetNameEl = $("mfa-reset-target-name");
+  const targetUsernameEl = $("mfa-reset-target-username");
+
+  if (targetNameEl) targetNameEl.textContent = user.display_name || user.username;
+  if (targetUsernameEl) targetUsernameEl.textContent = `@${user.username}`;
+
+  modal.style.display = "flex";
+}
+
+// Close handlers for User Details & MFA Reset modals
+document.addEventListener("DOMContentLoaded", () => {
+  const btnCloseUd = $("btn-close-user-details-modal");
+  const btnCloseUdBottom = $("btn-close-user-details");
+  const udModal = $("user-details-modal");
+
+  if (btnCloseUd && udModal) btnCloseUd.addEventListener("click", () => { udModal.style.display = "none"; });
+  if (btnCloseUdBottom && udModal) btnCloseUdBottom.addEventListener("click", () => { udModal.style.display = "none"; });
+
+  const btnCloseResetMfa = $("btn-close-reset-mfa-modal");
+  const btnCancelResetMfa = $("btn-cancel-reset-mfa");
+  const btnConfirmResetMfa = $("btn-confirm-reset-mfa");
+  const resetMfaModal = $("mfa-reset-confirm-modal");
+
+  if (btnCloseResetMfa && resetMfaModal) btnCloseResetMfa.addEventListener("click", () => { resetMfaModal.style.display = "none"; });
+  if (btnCancelResetMfa && resetMfaModal) btnCancelResetMfa.addEventListener("click", () => { resetMfaModal.style.display = "none"; });
+
+  if (btnConfirmResetMfa) {
+    btnConfirmResetMfa.addEventListener("click", async () => {
+      if (!pendingMfaResetUser) return;
+      const targetUser = pendingMfaResetUser;
+      if (resetMfaModal) resetMfaModal.style.display = "none";
+      await executeMfaReset(targetUser, btnConfirmResetMfa);
+      pendingMfaResetUser = null;
+    });
+  }
+});
+
+/**
  * Initiates administrative reset of a user's MFA protection.
  */
 async function executeMfaReset(user, btn) {
@@ -783,3 +910,4 @@ async function executeMfaEnforce(user, btn) {
     }
   }
 }
+

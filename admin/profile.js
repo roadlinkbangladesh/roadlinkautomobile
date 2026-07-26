@@ -365,7 +365,8 @@ let mfaRecoveryCodes = [];
  * Checks MFA enrollment status from backend
  */
 async function checkMfaStatus() {
-  const badge = $("mfa-status-badge");
+  const statusBadge = $("mfa-status-badge");
+  const policyBadge = $("mfa-policy-badge");
   const disabledBox = $("mfa-disabled-box");
   const enabledBox = $("mfa-enabled-box");
   const setupPanel = $("mfa-setup-panel");
@@ -376,20 +377,33 @@ async function checkMfaStatus() {
     const json = await res.json();
 
     if (res.ok && json.success && json.data) {
-      const { mfa_enabled, enrolled_at } = json.data;
+      const { mfa_enabled, mfa_required, mfa_enrolled_at, enrolled_at } = json.data;
+      const enrolledDate = mfa_enrolled_at || enrolled_at;
 
+      // Render Policy Badge
+      if (policyBadge) {
+        if (mfa_required) {
+          policyBadge.textContent = "🔒 Required";
+          policyBadge.style.cssText = "padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; background-color: rgba(230, 162, 44, 0.12); color: #d97706; border: 1px solid rgba(230, 162, 44, 0.3);";
+        } else {
+          policyBadge.textContent = "Optional";
+          policyBadge.style.cssText = "padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 600; background-color: var(--bg-neutral); color: var(--text-muted); border: 1px solid var(--border-color);";
+        }
+      }
+
+      // Render Status Badge
       if (mfa_enabled) {
-        if (badge) {
-          badge.textContent = "Protected";
-          badge.style.cssText = "padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; background-color: rgba(37, 211, 102, 0.12); color: #25d366; border: 1px solid rgba(37, 211, 102, 0.3);";
+        if (statusBadge) {
+          statusBadge.textContent = "🟢 Enabled";
+          statusBadge.style.cssText = "padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; background-color: rgba(37, 211, 102, 0.12); color: #15803d; border: 1px solid rgba(37, 211, 102, 0.3);";
         }
         if (enabledBox) enabledBox.style.display = "block";
         if (disabledBox) disabledBox.style.display = "none";
         if (setupPanel) setupPanel.style.display = "none";
 
-        if (enrolledDateEl && enrolled_at) {
+        if (enrolledDateEl && enrolledDate) {
           try {
-            enrolledDateEl.textContent = new Date(enrolled_at).toLocaleDateString("en-BD", {
+            enrolledDateEl.textContent = new Date(enrolledDate).toLocaleDateString("en-BD", {
               year: "numeric",
               month: "short",
               day: "numeric",
@@ -397,13 +411,13 @@ async function checkMfaStatus() {
               minute: "2-digit"
             });
           } catch (e) {
-            enrolledDateEl.textContent = enrolled_at;
+            enrolledDateEl.textContent = enrolledDate;
           }
         }
       } else {
-        if (badge) {
-          badge.textContent = "Disabled";
-          badge.style.cssText = "padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; background-color: rgba(148, 163, 184, 0.12); color: #64748b; border: 1px solid rgba(148, 163, 184, 0.3);";
+        if (statusBadge) {
+          statusBadge.textContent = "⚪ Not Configured";
+          statusBadge.style.cssText = "padding: 3px 8px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 600; background-color: var(--bg-neutral); color: var(--text-muted); border: 1px solid var(--border-color);";
         }
         if (disabledBox) disabledBox.style.display = "block";
         if (enabledBox) enabledBox.style.display = "none";
