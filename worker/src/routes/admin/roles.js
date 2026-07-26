@@ -13,6 +13,7 @@ export const SYSTEM_PERMISSIONS = [
     { key: "settings.edit", group: "Settings", description: "Modify system settings" },
     { key: "locations.manage", group: "Locations", description: "Manage business locations and contact numbers" },
     { key: "users.manage", group: "Users", description: "Manage administrative users" },
+    { key: "mfa.manage", group: "Users", description: "Manage user Multi-Factor Authentication (reset and enforce MFA)" },
     { key: "roles.manage", group: "Roles", description: "Manage roles and permissions" },
     { key: "reports.accounting.view", group: "Reports", description: "View future accounting reports" },
     { key: "audit.view", group: "Audit Logs", description: "View security audit logs" }
