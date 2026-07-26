@@ -2118,6 +2118,95 @@ button:disabled {
   .profile-grid .btn-login-submit {
     width: 100% !important;
   }
+
+  /* Settings subtabs horizontal scroll row */
+  .settings-subtabs {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 8px !important;
+    padding-bottom: 8px !important;
+    margin-bottom: 16px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .settings-subtabs button,
+  .btn-settings-subtab {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  /* Grid layout overrides on mobile */
+  .settings-grid,
+  .profile-grid,
+  .mfa-setup-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* Prevent grid-column span 2 forcing width beyond screen */
+  .settings-section-card,
+  .settings-card-full,
+  div[style*="grid-column: span 2"] {
+    grid-column: span 1 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Horizontal scrolling wrappers for data tables */
+  .table-responsive,
+  div[style*="overflow-x: auto"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    display: block !important;
+  }
+
+  .data-table,
+  .inventory-table,
+  .user-inventory-table {
+    min-width: 650px !important;
+  }
+
+  /* Module headers and controls on mobile */
+  .view-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .view-header button,
+  .view-header-right button {
+    width: 100% !important;
+  }
+
+  /* Responsive action row buttons */
+  .modal-footer-row,
+  #settings-form-actions-row {
+    flex-direction: column !important;
+    gap: 10px !important;
+    align-items: stretch !important;
+  }
+  .modal-footer-row button,
+  #settings-form-actions-row button {
+    width: 100% !important;
+  }
+
+  /* Responsive action button container */
+  .action-buttons {
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+  }
+
+  /* Text overflow safety inside cards */
+  .settings-section-card p,
+  .settings-section-card h3,
+  .settings-section-card h4,
+  .settings-section-card h5 {
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+  }
 }
 
 
