@@ -3,8 +3,8 @@
  */
 
 import { $, apiFetch, sanitizeHTML } from "./utils.js";
-import { uploadFileAsync } from "../js/inventory.js";
-import { getPublicFileUrl } from "../js/shared/api.js";
+import { uploadFileAsync } from "./js/inventory.js";
+import { getPublicFileUrl } from "./js/shared/api.js";
 
 let carouselData = [];
 let isSubmitting = false;
