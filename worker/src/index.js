@@ -107,6 +107,7 @@ const routes = {
     [`POST:${API.AUTH}/mfa/setup`]: setupMfa,
     [`POST:${API.AUTH}/mfa/enable`]: enableMfa,
     [`POST:${API.AUTH}/mfa/disable`]: disableMfa,
+    [`DELETE:${API.AUTH}/mfa/disable`]: disableMfa,
 
     // Settings
     [`GET:${API.ADMIN}/settings`]: getSettings,
