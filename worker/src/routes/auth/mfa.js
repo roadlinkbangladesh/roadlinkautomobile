@@ -203,12 +203,20 @@ export async function getMfaStatus(request, env) {
 
     try {
         const user = await env.DB
-            .prepare(`SELECT mfa_enabled, mfa_enrolled_at, mfa_last_used_at FROM users WHERE id = ? LIMIT 1`)
+            .prepare(`
+                SELECT u.mfa_enabled, u.mfa_enrolled_at, u.mfa_last_used_at, u.role_id,
+                       r.mfa_required as role_mfa_required
+                FROM users u
+                LEFT JOIN roles r ON u.role_id = r.id
+                WHERE u.id = ?
+                LIMIT 1
+            `)
             .bind(auth.user.id)
             .first();
 
         return success({
             mfa_enabled: user?.mfa_enabled === 1,
+            mfa_required: user?.role_mfa_required === 1,
             mfa_enrolled_at: user?.mfa_enrolled_at || null,
             mfa_last_used_at: user?.mfa_last_used_at || null
         });
@@ -255,6 +263,7 @@ export async function setupMfa(request, env) {
         return success({
             secret: plainSecret,
             otpauth_url: otpauthUrl,
+            qr_code_url: otpauthUrl,
             issuer: "Roadlink Automobiles",
             account_name: auth.user.username
         });
