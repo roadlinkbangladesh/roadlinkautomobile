@@ -355,6 +355,83 @@ export async function enableMfa(request, env) {
             userAgent
         });
 
+        // Check if token scope was mfa_setup_pending (Mandatory Setup Flow during Login)
+        const authHeader = request.headers.get("Authorization");
+        let isMandatorySetup = false;
+        let rememberMe = false;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+            const rawToken = authHeader.substring(7).trim();
+            const decoded = await verifyToken(rawToken, env.JWT_SECRET);
+            if (decoded?.scope === "mfa_setup_pending") {
+                isMandatorySetup = true;
+                rememberMe = decoded.rememberMe === true;
+            }
+        }
+
+        if (isMandatorySetup) {
+            await logAudit(env, {
+                actingUserId: auth.user.id,
+                actingUsername: auth.user.username,
+                action: "mfa.mandatory_enrollment_completed",
+                resourceType: "user",
+                resourceId: String(auth.user.id),
+                status: "SUCCESS",
+                ipAddress,
+                userAgent
+            });
+
+            const userWithRole = await env.DB
+                .prepare(`
+                    SELECT u.id, u.username, u.display_name, u.role_id, u.token_version, u.must_change_password,
+                           r.name as role_name, r.is_system_role, r.system_role_key
+                    FROM users u
+                    LEFT JOIN roles r ON u.role_id = r.id
+                    WHERE u.id = ?
+                    LIMIT 1
+                `)
+                .bind(auth.user.id)
+                .first();
+
+            const permissionsQuery = await env.DB
+                .prepare(`SELECT permission_key FROM role_permissions WHERE role_id = ?`)
+                .bind(auth.user.role_id)
+                .all();
+            const permissions = (permissionsQuery.results || []).map(p => p.permission_key);
+
+            const expiresIn = rememberMe
+                ? JWT.REMEMBER_ME_EXPIRES_IN
+                : JWT.SESSION_EXPIRES_IN;
+
+            const token = await createToken(
+                {
+                    id: auth.user.id,
+                    username: auth.user.username,
+                    role_id: auth.user.role_id,
+                    token_version: userWithRole?.token_version ?? 1
+                },
+                env.JWT_SECRET,
+                expiresIn
+            );
+
+            return success({
+                token,
+                mustChangePassword: userWithRole?.must_change_password === 1 || userWithRole?.must_change_password === true,
+                recovery_codes: plainRecoveryCodes,
+                user: {
+                    id: auth.user.id,
+                    username: auth.user.username,
+                    role_id: auth.user.role_id,
+                    role_name: userWithRole?.role_name,
+                    is_system_role: userWithRole?.is_system_role === 1,
+                    system_role_key: userWithRole?.system_role_key,
+                    display_name: auth.user.display_name,
+                    mfa_enabled: true,
+                    permissions
+                },
+                message: "Mandatory Multi-Factor Authentication enrollment completed successfully."
+            });
+        }
+
         return success({
             recovery_codes: plainRecoveryCodes,
             message: "Multi-Factor Authentication has been successfully enabled."
@@ -463,7 +540,7 @@ export async function disableMfa(request, env) {
         await logAudit(env, {
             actingUserId: auth.user.id,
             actingUsername: auth.user.username,
-            action: "auth.mfa.disabled",
+            action: "mfa.disabled",
             resourceType: "user",
             resourceId: String(auth.user.id),
             status: "SUCCESS",
@@ -484,7 +561,7 @@ export async function disableMfa(request, env) {
  * Administrative MFA Reset for a targeted user
  */
 export async function resetUserMfa(request, env, ctx, params) {
-    const auth = await authenticate(request, env, "users.manage");
+    const auth = await authenticate(request, env, ["users.manage", "mfa.manage"]);
     if (auth.errorResponse) return auth.errorResponse;
 
     const { ipAddress, userAgent } = getRequestMeta(request);
@@ -523,18 +600,34 @@ export async function resetUserMfa(request, env, ctx, params) {
         }
 
         const nowIso = new Date().toISOString();
-        await env.DB
-            .prepare(`
-                UPDATE users
-                SET mfa_enabled = 0,
-                    mfa_secret_encrypted = NULL,
-                    mfa_enrolled_at = NULL,
-                    token_version = token_version + 1,
-                    updated_at = ?
-                WHERE id = ?
-            `)
-            .bind(nowIso, targetId)
-            .run();
+        try {
+            await env.DB
+                .prepare(`
+                    UPDATE users
+                    SET mfa_enabled = 0,
+                        mfa_enforced = 0,
+                        mfa_secret_encrypted = NULL,
+                        mfa_enrolled_at = NULL,
+                        token_version = token_version + 1,
+                        updated_at = ?
+                    WHERE id = ?
+                `)
+                .bind(nowIso, targetId)
+                .run();
+        } catch (err) {
+            await env.DB
+                .prepare(`
+                    UPDATE users
+                    SET mfa_enabled = 0,
+                        mfa_secret_encrypted = NULL,
+                        mfa_enrolled_at = NULL,
+                        token_version = token_version + 1,
+                        updated_at = ?
+                    WHERE id = ?
+                `)
+                .bind(nowIso, targetId)
+                .run();
+        }
 
         await env.DB
             .prepare(`DELETE FROM mfa_recovery_codes WHERE user_id = ?`)
@@ -545,7 +638,7 @@ export async function resetUserMfa(request, env, ctx, params) {
             actingUserId: auth.user.id,
             actingUsername: auth.user.username,
             targetUserId: targetId,
-            action: "users.mfa_reset",
+            action: "mfa.reset",
             resourceType: "user",
             resourceId: String(targetId),
             status: "SUCCESS",
@@ -559,5 +652,81 @@ export async function resetUserMfa(request, env, ctx, params) {
     } catch (error) {
         console.error("Reset user MFA error:", error);
         return serverError("Failed to reset user MFA.");
+    }
+}
+
+/**
+ * POST /api/v1/admin/users/:id/enforce-mfa
+ * Administrative MFA Enforcement for a targeted user
+ */
+export async function enforceUserMfa(request, env, ctx, params) {
+    const auth = await authenticate(request, env, ["users.manage", "mfa.manage"]);
+    if (auth.errorResponse) return auth.errorResponse;
+
+    const { ipAddress, userAgent } = getRequestMeta(request);
+
+    const targetId = parseInt(params.id);
+    if (isNaN(targetId)) {
+        return badRequest("Invalid user ID.");
+    }
+
+    try {
+        const targetUser = await env.DB
+            .prepare(`SELECT id, username, role_id, mfa_enabled FROM users WHERE id = ? LIMIT 1`)
+            .bind(targetId)
+            .first();
+
+        if (!targetUser) {
+            return notFound("User not found.");
+        }
+
+        if (!auth.user.is_super_admin) {
+            if (targetId !== auth.user.id && !(await isStrictlyLessPrivileged(env, targetUser.role_id, auth.user.role_id))) {
+                await logAudit(env, {
+                    actingUserId: auth.user.id,
+                    actingUsername: auth.user.username,
+                    targetUserId: targetId,
+                    action: "security.privilege_escalation_attempt",
+                    resourceType: "user",
+                    status: "FAILURE",
+                    reason: "Attempted administrative MFA enforcement on equal or higher privileged user",
+                    ipAddress,
+                    userAgent
+                });
+                return forbidden("Access denied. You cannot modify a user with equal or higher privileges.");
+            }
+        }
+
+        const nowIso = new Date().toISOString();
+
+        try {
+            await env.DB.prepare(`UPDATE users SET mfa_enforced = 1, updated_at = ? WHERE id = ?`).bind(nowIso, targetId).run();
+        } catch (e) {
+            try {
+                await env.DB.prepare(`ALTER TABLE users ADD COLUMN mfa_enforced INTEGER DEFAULT 0`).run();
+                await env.DB.prepare(`UPDATE users SET mfa_enforced = 1, updated_at = ? WHERE id = ?`).bind(nowIso, targetId).run();
+            } catch (err) {
+                console.error("Failed to enforce MFA column:", err);
+            }
+        }
+
+        await logAudit(env, {
+            actingUserId: auth.user.id,
+            actingUsername: auth.user.username,
+            targetUserId: targetId,
+            action: "admin.user.mfa_enforced",
+            resourceType: "user",
+            resourceId: String(targetId),
+            status: "SUCCESS",
+            ipAddress,
+            userAgent,
+            details: { targetUsername: targetUser.username }
+        });
+
+        return success({ id: targetId, username: targetUser.username }, `MFA requirement enforced for user @${targetUser.username}.`);
+
+    } catch (error) {
+        console.error("Enforce user MFA error:", error);
+        return serverError("Failed to enforce MFA for user.");
     }
 }
