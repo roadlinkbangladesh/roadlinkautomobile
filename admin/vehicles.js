@@ -3,8 +3,8 @@
  * Handles Phase 1 of vehicle list display, in-memory searches, adding/editing, and deleting vehicles.
  */
 
-import { getAllVehicles, loadVehiclesAsync, loadAdminVehiclesAsync, addVehicleAsync, updateVehicleAsync, deleteVehicleAsync, updateVehicleStatusAsync, uploadFileAsync } from "../js/inventory.js";
-import { getPublicFileUrl } from "../js/shared/api.js";
+import { getAllVehicles, loadVehiclesAsync, loadAdminVehiclesAsync, addVehicleAsync, updateVehicleAsync, deleteVehicleAsync, updateVehicleStatusAsync, uploadFileAsync } from "./js/inventory.js";
+import { getPublicFileUrl } from "./js/shared/api.js";
 import { $ } from "./utils.js";
 import { hasPermission } from "./auth.js";
 import { initDashboard } from "./dashboard.js";
