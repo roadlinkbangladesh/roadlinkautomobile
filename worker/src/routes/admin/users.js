@@ -18,23 +18,34 @@ import { logAudit, getRequestMeta } from "../../utils/audit.js";
  * GET /api/v1/admin/users
  */
 export async function listUsers(request, env) {
-    const auth = await authenticate(request, env, "users.manage");
+    const auth = await authenticate(request, env, ["users.manage", "mfa.manage"]);
     if (auth.errorResponse) return auth.errorResponse;
 
     try {
-        const users = await env.DB
-            .prepare(`
-                SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, r.is_system_role, r.system_role_key, u.is_active, u.last_login_at, u.created_at, u.updated_at, u.must_change_password, u.failed_login_attempts, u.last_failed_login_at, u.locked_until
-                FROM users u
-                LEFT JOIN roles r ON u.role_id = r.id
-                ORDER BY u.id ASC
-            `)
-            .all();
+        let users;
+        try {
+            users = await env.DB
+                .prepare(`
+                    SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, r.is_system_role, r.system_role_key, r.mfa_required as role_mfa_required, u.is_active, u.last_login_at, u.created_at, u.updated_at, u.must_change_password, u.failed_login_attempts, u.last_failed_login_at, u.locked_until, u.mfa_enabled, u.mfa_enrolled_at, u.mfa_last_used_at, u.mfa_enforced
+                    FROM users u
+                    LEFT JOIN roles r ON u.role_id = r.id
+                    ORDER BY u.id ASC
+                `)
+                .all();
+        } catch (e) {
+            users = await env.DB
+                .prepare(`
+                    SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, r.is_system_role, r.system_role_key, r.mfa_required as role_mfa_required, u.is_active, u.last_login_at, u.created_at, u.updated_at, u.must_change_password, u.failed_login_attempts, u.last_failed_login_at, u.locked_until, u.mfa_enabled, u.mfa_enrolled_at
+                    FROM users u
+                    LEFT JOIN roles r ON u.role_id = r.id
+                    ORDER BY u.id ASC
+                `)
+                .all();
+        }
 
         const results = users.results || [];
         const nowMs = Date.now();
 
-        // If not Super Administrator, filter list to only show users strictly less privileged than caller's role (plus self)
         let viewableUsers = results;
         if (!auth.user.is_super_admin) {
             const filtered = [];
@@ -48,6 +59,7 @@ export async function listUsers(request, env) {
 
         const list = viewableUsers.map(u => {
             const isLocked = u.locked_until ? (new Date(u.locked_until).getTime() > nowMs) : false;
+            const mfaRequired = u.role_mfa_required === 1 || u.mfa_enforced === 1;
             return {
                 ...u,
                 is_active: u.is_active === 1,
@@ -55,7 +67,10 @@ export async function listUsers(request, env) {
                 failed_login_attempts: u.failed_login_attempts || 0,
                 last_failed_login_at: u.last_failed_login_at || null,
                 locked_until: u.locked_until || null,
-                is_locked: isLocked
+                is_locked: isLocked,
+                mfa_enabled: u.mfa_enabled === 1,
+                mfa_required: mfaRequired,
+                mfa_enforced: mfaRequired
             };
         });
 
@@ -79,16 +94,30 @@ export async function getUser(request, env, ctx, params) {
     }
 
     try {
-        const user = await env.DB
-            .prepare(`
-                SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, r.is_system_role, r.system_role_key, u.is_active, u.last_login_at, u.created_at, u.updated_at, u.must_change_password, u.failed_login_attempts, u.last_failed_login_at, u.locked_until
-                FROM users u
-                LEFT JOIN roles r ON u.role_id = r.id
-                WHERE u.id = ?
-                LIMIT 1
-            `)
-            .bind(id)
-            .first();
+        let user;
+        try {
+            user = await env.DB
+                .prepare(`
+                    SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, r.is_system_role, r.system_role_key, r.mfa_required as role_mfa_required, u.is_active, u.last_login_at, u.created_at, u.updated_at, u.must_change_password, u.failed_login_attempts, u.last_failed_login_at, u.locked_until, u.mfa_enabled, u.mfa_enrolled_at, u.mfa_last_used_at, u.mfa_enforced
+                    FROM users u
+                    LEFT JOIN roles r ON u.role_id = r.id
+                    WHERE u.id = ?
+                    LIMIT 1
+                `)
+                .bind(id)
+                .first();
+        } catch (e) {
+            user = await env.DB
+                .prepare(`
+                    SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name, r.is_system_role, r.system_role_key, r.mfa_required as role_mfa_required, u.is_active, u.last_login_at, u.created_at, u.updated_at, u.must_change_password, u.failed_login_attempts, u.last_failed_login_at, u.locked_until, u.mfa_enabled, u.mfa_enrolled_at
+                    FROM users u
+                    LEFT JOIN roles r ON u.role_id = r.id
+                    WHERE u.id = ?
+                    LIMIT 1
+                `)
+                .bind(id)
+                .first();
+        }
 
         if (!user) {
             return notFound("User not found.");
@@ -101,8 +130,14 @@ export async function getUser(request, env, ctx, params) {
             }
         }
 
+        const recoveryCount = await env.DB
+            .prepare(`SELECT count(*) as count FROM mfa_recovery_codes WHERE user_id = ? AND is_used = 0`)
+            .bind(id)
+            .first();
+
         const nowMs = Date.now();
         const isLocked = user.locked_until ? (new Date(user.locked_until).getTime() > nowMs) : false;
+        const mfaRequired = user.role_mfa_required === 1 || user.mfa_enforced === 1;
 
         return success({
             ...user,
@@ -111,7 +146,12 @@ export async function getUser(request, env, ctx, params) {
             failed_login_attempts: user.failed_login_attempts || 0,
             last_failed_login_at: user.last_failed_login_at || null,
             locked_until: user.locked_until || null,
-            is_locked: isLocked
+            is_locked: isLocked,
+            mfa_enabled: user.mfa_enabled === 1,
+            mfa_required: mfaRequired,
+            mfa_enrolled_at: user.mfa_enrolled_at || null,
+            mfa_last_used_at: user.mfa_last_used_at || null,
+            recovery_codes_remaining: recoveryCount?.count || 0
         });
     } catch (error) {
         console.error("Get user error:", error);
