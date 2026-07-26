@@ -7,7 +7,8 @@ import {
     setupMfa,
     enableMfa,
     disableMfa,
-    resetUserMfa
+    resetUserMfa,
+    enforceUserMfa
 } from "./routes/auth/mfa.js";
 import { getSettings, updateSettings } from "./routes/admin/settings.js";
 import {
@@ -160,6 +161,7 @@ const routes = {
     [`DELETE:${API.ADMIN}/users/:id`]: deleteUser,
     [`POST:${API.ADMIN}/users/:id/reset-password`]: resetPassword,
     [`POST:${API.ADMIN}/users/:id/reset-mfa`]: resetUserMfa,
+    [`POST:${API.ADMIN}/users/:id/enforce-mfa`]: enforceUserMfa,
     [`POST:${API.ADMIN}/users/:id/unlock`]: unlockUser,
     [`PUT:${API.ADMIN}/users/change-password`]: changePassword,
     [`PUT:${API.ADMIN}/change-password`]: changePassword,
