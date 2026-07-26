@@ -181,6 +181,26 @@ function renderUsersTable() {
       `;
     }
 
+    let mfaBadge = "";
+    if (u.mfa_enabled) {
+      mfaBadge = `
+        <span class="badge" title="MFA Protection Active" style="padding: 4px 8px; border-radius: var(--radius-full); font-size: 0.7rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; margin-left: 4px; background-color: rgba(30, 144, 255, 0.12); color: #1e90ff; border: 1px solid rgba(30, 144, 255, 0.3);">
+          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 9.7a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 .76-.97l8-2a1 1 0 0 1 .48 0l8 2a1 1 0 0 1 .76.97z"/><path d="m9 12 2 2 4-4"/></svg>
+          MFA
+        </span>
+      `;
+    }
+
+    let resetMfaButton = "";
+    if (u.mfa_enabled) {
+      resetMfaButton = `
+        <button class="btn-action-reset-mfa btn-user-reset-mfa" data-id="${u.id}" style="padding: 6px 12px; font-size: 0.8rem; border-radius: var(--radius-sm); border-color: rgba(153, 51, 204, 0.3); color: #9933cc; background: rgba(153, 51, 204, 0.08);" title="Reset user MFA protection">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+          Reset MFA
+        </button>
+      `;
+    }
+
     row.innerHTML = `
       <td style="font-weight: 600; font-family: var(--font-display);">${u.display_name}</td>
       <td style="font-weight: 700; font-family: var(--font-mono); font-size: 0.85rem; color: var(--primary-blue);">${u.username}</td>
@@ -190,11 +210,13 @@ function renderUsersTable() {
           ${statusText}
         </span>
         ${lockBadge}
+        ${mfaBadge}
       </td>
       <td style="font-size: 0.85rem; color: var(--text-muted); font-family: var(--font-mono);">${lastLogin}</td>
       <td>
         <div class="action-buttons" style="justify-content: flex-end; gap: 6px;">
           ${unlockButton}
+          ${resetMfaButton}
           <button class="btn-action-edit btn-user-edit" data-id="${u.id}" style="padding: 6px 12px; font-size: 0.8rem; border-radius: var(--radius-sm);">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
             Edit
@@ -404,6 +426,7 @@ function bindUsersEvents() {
       const deleteBtn = e.target.closest(".btn-user-delete");
       const resetBtn = e.target.closest(".btn-user-reset");
       const unlockBtn = e.target.closest(".btn-user-unlock");
+      const resetMfaBtn = e.target.closest(".btn-user-reset-mfa");
 
       if (editBtn) {
         const id = editBtn.getAttribute("data-id");
@@ -434,6 +457,16 @@ function bindUsersEvents() {
         const user = usersList.find(u => u.id === id);
         if (user) {
           await executeAccountUnlock(user, unlockBtn);
+        }
+      }
+
+      if (resetMfaBtn) {
+        const id = parseInt(resetMfaBtn.getAttribute("data-id"));
+        const user = usersList.find(u => u.id === id);
+        if (user) {
+          if (confirm(`Are you sure you want to reset Multi-Factor Authentication (MFA) for ${user.display_name} (@${user.username})?`)) {
+            await executeMfaReset(user, resetMfaBtn);
+          }
         }
       }
     });
@@ -658,6 +691,40 @@ async function executeAccountUnlock(user, btn) {
   } catch (err) {
     console.error("Account unlock failure:", err);
     alert("Network error occurred during account unlock.");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  }
+}
+
+/**
+ * Initiates administrative reset of a user's MFA protection.
+ */
+async function executeMfaReset(user, btn) {
+  if (!user) return;
+  const originalText = btn ? btn.innerHTML : "Reset MFA";
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Resetting...";
+  }
+
+  try {
+    const response = await apiFetch(`/api/v1/admin/users/${user.id}/reset-mfa`, {
+      method: "POST"
+    });
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      alert(`Multi-Factor Authentication (MFA) has been successfully reset for ${user.display_name} (@${user.username}).`);
+      await fetchUsers();
+    } else {
+      alert(result.message || "Failed to reset MFA for user.");
+    }
+  } catch (err) {
+    console.error("MFA reset failure:", err);
+    alert("Network error occurred during MFA reset.");
   } finally {
     if (btn) {
       btn.disabled = false;

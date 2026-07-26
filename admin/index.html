@@ -65,6 +65,38 @@
             Sign In
           </button>
         </form>
+
+        <!-- MFA Two-Factor Challenge Form -->
+        <form id="mfa-challenge-form" novalidate style="display: none;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <div style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background: rgba(30, 144, 255, 0.1); color: var(--primary-blue); margin-bottom: 12px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-dark); margin-bottom: 6px;">Two-Factor Verification</h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4;">Enter the 6-digit verification code from your authenticator app or an unused 8-character recovery code.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="mfa-code-input">Verification Code or Recovery Code</label>
+            <div class="input-wrapper">
+              <input type="text" id="mfa-code-input" name="mfa_code" placeholder="123456 or XXXX-XXXX" autocomplete="one-time-code" maxlength="12" style="font-family: var(--font-mono); font-size: 1.1rem; letter-spacing: 2px; text-align: center; text-transform: uppercase;" required>
+            </div>
+          </div>
+
+          <!-- MFA Error Alert Panel -->
+          <div id="mfa-error-alert" class="login-error-alert" role="alert" style="display: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+            <span id="mfa-error-message">Invalid verification code</span>
+          </div>
+
+          <button type="submit" class="btn btn-login-submit" style="margin-bottom: 10px;">
+            Verify & Sign In
+          </button>
+
+          <button type="button" id="btn-mfa-back" class="btn" style="width: 100%; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); padding: 10px; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer;">
+            ← Back to Sign In
+          </button>
+        </form>
       </div>
     </div>
 
@@ -900,6 +932,74 @@
                       <button type="submit" class="btn btn-login-submit" style="width: auto; margin-top: 0; padding: 10px 20px;">Save Password</button>
                     </div>
                   </form>
+                </div>
+
+                <!-- Card 3: Multi-Factor Authentication (TOTP / MFA) -->
+                <div class="settings-section-card" style="background: var(--bg-white); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 28px; grid-column: span 2;">
+                  <h3 style="font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+                    <span style="display: flex; align-items: center; gap: 8px;">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      Multi-Factor Authentication (TOTP)
+                    </span>
+                    <span id="mfa-status-badge" class="badge" style="padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">Checking...</span>
+                  </h3>
+
+                  <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px;">
+                    Protect your administrative account with Time-based One-Time Passwords (RFC 6238). Supported authenticator apps include Google Authenticator, Microsoft Authenticator, Authy, 1Password, and Bitwarden.
+                  </p>
+
+                  <!-- State A: MFA Disabled View -->
+                  <div id="mfa-disabled-box" style="display: none; background: var(--bg-neutral); padding: 20px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                      <div>
+                        <h4 style="margin: 0 0 4px 0; font-size: 0.95rem; font-weight: 700; color: var(--text-dark);">MFA is not enabled</h4>
+                        <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">Enable 2FA to require a code from your mobile device upon signing in.</p>
+                      </div>
+                      <button type="button" id="btn-mfa-start-setup" class="btn btn-login-submit" style="width: auto; padding: 10px 20px; margin: 0; background-color: var(--primary-blue);">
+                        Enable MFA
+                      </button>
+                    </div>
+
+                    <!-- Inline Setup Area -->
+                    <div id="mfa-setup-panel" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px dashed var(--border-color);">
+                      <div style="display: grid; grid-template-columns: minmax(180px, 220px) 1fr; gap: 24px; align-items: start;">
+                        <!-- QR Code Canvas & Container -->
+                        <div style="background: white; padding: 16px; border-radius: var(--radius-md); border: 1.5px solid var(--border-color); text-align: center;">
+                          <canvas id="mfa-qr-canvas" width="180" height="180" style="width: 180px; height: 180px; display: block; margin: 0 auto;"></canvas>
+                          <small style="display: block; margin-top: 8px; font-size: 0.75rem; color: var(--text-muted);">Scan with Authenticator App</small>
+                        </div>
+
+                        <!-- Manual Secret & Verification Form -->
+                        <div>
+                          <h5 style="margin: 0 0 6px 0; font-size: 0.9rem; font-weight: 700;">1. Scan QR Code or Enter Secret Key</h5>
+                          <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 16px;">
+                            <input type="text" id="mfa-secret-display" readonly style="flex: 1; padding: 8px 12px; font-family: var(--font-mono); font-size: 0.9rem; font-weight: 700; background: var(--bg-light); border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); letter-spacing: 1px;">
+                            <button type="button" id="btn-mfa-copy-secret" class="btn btn-view-site" style="margin: 0; padding: 8px 14px; font-size: 0.8rem;">Copy Key</button>
+                          </div>
+
+                          <h5 style="margin: 0 0 6px 0; font-size: 0.9rem; font-weight: 700;">2. Enter 6-Digit Verification Code</h5>
+                          <div style="display: flex; gap: 10px; align-items: flex-start; max-width: 380px;">
+                            <input type="text" id="mfa-confirm-code" placeholder="123456" maxlength="6" style="flex: 1; padding: 10px; font-family: var(--font-mono); font-size: 1.1rem; text-align: center; letter-spacing: 2px; border: 1.5px solid var(--border-color); border-radius: var(--radius-sm);">
+                            <button type="button" id="btn-mfa-confirm-enable" class="btn btn-login-submit" style="width: auto; padding: 10px 20px; margin: 0; white-space: nowrap;">Activate MFA</button>
+                          </div>
+                          <span id="mfa-setup-error" style="display: none; color: var(--primary-red); font-size: 0.825rem; margin-top: 6px; font-weight: 600;"></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- State B: MFA Enabled View -->
+                  <div id="mfa-enabled-box" style="display: none; background: rgba(37, 211, 102, 0.05); padding: 20px; border-radius: var(--radius-md); border: 1px solid rgba(37, 211, 102, 0.25);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                      <div>
+                        <h4 style="margin: 0 0 4px 0; font-size: 0.95rem; font-weight: 700; color: #15803d;">MFA Protection Active</h4>
+                        <p style="margin: 0; font-size: 0.85rem; color: var(--text-dark);">Enrolled on <span id="mfa-enrolled-date" style="font-weight: 600; font-family: var(--font-mono);"></span></p>
+                      </div>
+                      <button type="button" id="btn-mfa-open-disable" class="btn" style="width: auto; padding: 8px 16px; margin: 0; background: transparent; border: 1.5px solid rgba(227, 27, 35, 0.4); color: var(--primary-red); font-size: 0.85rem; font-weight: 600; cursor: pointer; border-radius: var(--radius-sm);">
+                        Disable MFA
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1887,6 +1987,76 @@
       </form>
     </div>
   </div>
+
+  <!-- MFA RECOVERY CODES DISPLAY MODAL -->
+  <div class="modal-overlay" id="mfa-recovery-codes-modal" style="display: none;">
+    <div class="modal-card" style="max-width: 580px; padding: 28px; border-radius: var(--radius-md); text-align: left; background: var(--bg-white);">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <div style="display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50%; background: rgba(37, 211, 102, 0.1); color: #25d366; margin-bottom: 12px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 11 11 13 15 9"/></svg>
+        </div>
+        <h3 style="margin: 0 0 6px 0; font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; color: var(--text-dark);">MFA Activated Successfully!</h3>
+        <p style="margin: 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.5;">Save these backup recovery codes in a safe place. If you lose access to your authenticator app, each code can be used once to sign in.</p>
+      </div>
+
+      <div id="mfa-recovery-codes-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: var(--bg-neutral); padding: 16px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-family: var(--font-mono); font-size: 1rem; font-weight: 700; text-align: center; letter-spacing: 1.5px; margin-bottom: 20px;">
+        <!-- Dynamic recovery codes populated here -->
+      </div>
+
+      <div style="display: flex; gap: 10px; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <button type="button" id="btn-copy-mfa-recovery" class="btn btn-view-site" style="margin: 0; padding: 8px 16px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          <span>Copy All Codes</span>
+        </button>
+        <button type="button" id="btn-download-mfa-recovery" class="btn btn-view-site" style="margin: 0; padding: 8px 16px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          <span>Download (.TXT)</span>
+        </button>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; padding-top: 16px; border-top: 1px solid var(--border-color);">
+        <button type="button" id="btn-close-mfa-recovery-modal" class="btn btn-login-submit" style="width: auto; margin: 0; padding: 10px 24px;">I Have Saved These Codes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DISABLE MFA CONFIRMATION MODAL -->
+  <div class="modal-overlay" id="mfa-disable-modal" style="display: none;">
+    <div class="modal-card" style="max-width: 480px; padding: 24px; border-radius: var(--radius-md); text-align: left; background: var(--bg-white);">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px;">
+        <h3 style="margin: 0; font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; color: var(--primary-red);">Disable Multi-Factor Authentication</h3>
+        <button class="btn-modal-close" id="btn-close-disable-mfa-modal" aria-label="Close dialog" type="button" style="position: static;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+        </button>
+      </div>
+
+      <form id="mfa-disable-form" novalidate>
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.4;">
+          Disabling MFA reduces account security. Enter your current password and a 6-digit TOTP code (or recovery code) to confirm.
+        </p>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label for="mfa-disable-password" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Current Password *</label>
+          <input type="password" id="mfa-disable-password" required style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label for="mfa-disable-code" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px;">Verification Code or Recovery Code *</label>
+          <input type="text" id="mfa-disable-code" placeholder="123456 or XXXX-XXXX" maxlength="12" required style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); font-family: var(--font-mono); text-align: center; letter-spacing: 1px;">
+        </div>
+
+        <span id="mfa-disable-error" style="display: none; color: var(--primary-red); font-size: 0.825rem; margin-bottom: 16px; font-weight: 600;"></span>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+          <button type="button" id="btn-cancel-disable-mfa" class="btn btn-view-site" style="margin: 0;">Cancel</button>
+          <button type="submit" id="btn-confirm-disable-mfa" class="btn" style="width: auto; padding: 10px 20px; margin: 0; background-color: var(--primary-red); color: white; font-weight: 600; border: none; border-radius: var(--radius-sm); cursor: pointer;">Disable MFA</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- QR Code Generator Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 
   <!-- Core JavaScript Module -->
   <script type="module" src="./admin.js"></script>

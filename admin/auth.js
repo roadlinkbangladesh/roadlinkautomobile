@@ -173,24 +173,43 @@ export function bindLoginEvents(onLoginSuccess) {
 
     try {
       const res = await login(username, password, rememberMe);
-      if (res.success && res.data && res.data.token) {
-        localStorage.setItem("rememberMe", rememberMe);
-        saveToken(res.data.token, rememberMe);
-        
-        if (res.data.mustChangePassword) {
-          sessionStorage.setItem("mustChangePassword", "true");
-        } else {
-          sessionStorage.removeItem("mustChangePassword");
+      if (res.success && res.data) {
+        if (res.data.mfa_required) {
+          // MFA challenge step required
+          loginForm.style.display = "none";
+          const mfaChallenge = $("mfa-challenge-form");
+          if (mfaChallenge) {
+            mfaChallenge.style.display = "block";
+            mfaChallenge.dataset.mfaToken = res.data.mfa_token;
+            mfaChallenge.dataset.rememberMe = String(rememberMe);
+            const mfaInput = $("mfa-code-input");
+            if (mfaInput) {
+              mfaInput.value = "";
+              mfaInput.focus();
+            }
+          }
+          return;
         }
 
-        if (res.data.user) {
-          sessionStorage.setItem("currentUser", JSON.stringify(res.data.user));
-        } else {
-          sessionStorage.removeItem("currentUser");
-        }
+        if (res.data.token) {
+          localStorage.setItem("rememberMe", rememberMe);
+          saveToken(res.data.token, rememberMe);
+          
+          if (res.data.mustChangePassword) {
+            sessionStorage.setItem("mustChangePassword", "true");
+          } else {
+            sessionStorage.removeItem("mustChangePassword");
+          }
 
-        sessionStorage.removeItem("active_admin_module");
-        if (onLoginSuccess) onLoginSuccess();
+          if (res.data.user) {
+            sessionStorage.setItem("currentUser", JSON.stringify(res.data.user));
+          } else {
+            sessionStorage.removeItem("currentUser");
+          }
+
+          sessionStorage.removeItem("active_admin_module");
+          if (onLoginSuccess) onLoginSuccess();
+        }
       } else {
         showError(res.message || "Invalid username or password");
       }
@@ -203,6 +222,95 @@ export function bindLoginEvents(onLoginSuccess) {
       }
     }
   });
+
+  // 3. MFA Two-Factor Verification Challenge Submission Handler
+  const mfaChallengeForm = $("mfa-challenge-form");
+  const btnMfaBack = $("btn-mfa-back");
+
+  if (btnMfaBack) {
+    btnMfaBack.addEventListener("click", () => {
+      if (mfaChallengeForm) mfaChallengeForm.style.display = "none";
+      if (loginForm) loginForm.style.display = "block";
+      const mfaErr = $("mfa-error-alert");
+      if (mfaErr) mfaErr.style.display = "none";
+    });
+  }
+
+  if (mfaChallengeForm) {
+    mfaChallengeForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const mfaErrorAlert = $("mfa-error-alert");
+      const mfaErrorMessage = $("mfa-error-message");
+      if (mfaErrorAlert) mfaErrorAlert.style.display = "none";
+
+      const codeInput = $("mfa-code-input");
+      const code = codeInput ? codeInput.value.trim() : "";
+      const mfaToken = mfaChallengeForm.dataset.mfaToken;
+      const rememberMe = mfaChallengeForm.dataset.rememberMe === "true";
+
+      if (!code) {
+        showMfaError("Please enter your 6-digit verification code or recovery code.");
+        return;
+      }
+
+      const submitBtn = mfaChallengeForm.querySelector("button[type='submit']");
+      const originalText = submitBtn ? submitBtn.textContent : "Verify & Sign In";
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Verifying...";
+      }
+
+      try {
+        const payload = code.includes("-")
+          ? { mfa_token: mfaToken, recovery_code: code }
+          : { mfa_token: mfaToken, code: code };
+
+        const response = await apiFetch("/api/v1/auth/mfa/verify", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+
+        const res = await response.json();
+
+        if (response.ok && res.success && res.data && res.data.token) {
+          localStorage.setItem("rememberMe", rememberMe);
+          saveToken(res.data.token, rememberMe);
+
+          if (res.data.mustChangePassword) {
+            sessionStorage.setItem("mustChangePassword", "true");
+          } else {
+            sessionStorage.removeItem("mustChangePassword");
+          }
+
+          if (res.data.user) {
+            sessionStorage.setItem("currentUser", JSON.stringify(res.data.user));
+          }
+
+          sessionStorage.removeItem("active_admin_module");
+          if (onLoginSuccess) onLoginSuccess();
+        } else {
+          showMfaError(res.message || "Invalid verification code or recovery code.");
+        }
+      } catch (err) {
+        showMfaError("MFA verification failed. Please try again.");
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        }
+      }
+    });
+
+    function showMfaError(message) {
+      if (mfaErrorMessage) mfaErrorMessage.textContent = message;
+      if (mfaErrorAlert) mfaErrorAlert.style.display = "flex";
+      const codeInput = $("mfa-code-input");
+      if (codeInput) {
+        codeInput.select();
+        codeInput.focus();
+      }
+    }
+  }
 
   function showError(message) {
     if (errorMessageText) errorMessageText.textContent = message;

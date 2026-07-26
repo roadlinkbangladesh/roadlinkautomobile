@@ -17,8 +17,10 @@ export function initProfileView() {
   updateForcedPasswordPromptState();
   loadProfileData();
   resetProfileForms();
+  checkMfaStatus();
   if (!profileEventsBound) {
     bindProfileEvents();
+    bindMfaEvents();
     profileEventsBound = true;
   }
 }
@@ -355,4 +357,324 @@ function showFieldError(id, message) {
     errSpan.textContent = message;
     errSpan.style.display = "block";
   }
+}
+
+let mfaRecoveryCodes = [];
+
+/**
+ * Checks MFA enrollment status from backend
+ */
+async function checkMfaStatus() {
+  const badge = $("mfa-status-badge");
+  const disabledBox = $("mfa-disabled-box");
+  const enabledBox = $("mfa-enabled-box");
+  const setupPanel = $("mfa-setup-panel");
+  const enrolledDateEl = $("mfa-enrolled-date");
+
+  try {
+    const res = await apiFetch("/api/v1/auth/mfa/status");
+    const json = await res.json();
+
+    if (res.ok && json.success && json.data) {
+      const { mfa_enabled, enrolled_at } = json.data;
+
+      if (mfa_enabled) {
+        if (badge) {
+          badge.textContent = "Protected";
+          badge.style.cssText = "padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; background-color: rgba(37, 211, 102, 0.12); color: #25d366; border: 1px solid rgba(37, 211, 102, 0.3);";
+        }
+        if (enabledBox) enabledBox.style.display = "block";
+        if (disabledBox) disabledBox.style.display = "none";
+        if (setupPanel) setupPanel.style.display = "none";
+
+        if (enrolledDateEl && enrolled_at) {
+          try {
+            enrolledDateEl.textContent = new Date(enrolled_at).toLocaleDateString("en-BD", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit"
+            });
+          } catch (e) {
+            enrolledDateEl.textContent = enrolled_at;
+          }
+        }
+      } else {
+        if (badge) {
+          badge.textContent = "Disabled";
+          badge.style.cssText = "padding: 4px 12px; border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; background-color: rgba(148, 163, 184, 0.12); color: #64748b; border: 1px solid rgba(148, 163, 184, 0.3);";
+        }
+        if (disabledBox) disabledBox.style.display = "block";
+        if (enabledBox) enabledBox.style.display = "none";
+        if (setupPanel) setupPanel.style.display = "none";
+      }
+    }
+  } catch (err) {
+    console.error("Failed to check MFA status:", err);
+  }
+}
+
+/**
+ * Binds event handlers for MFA setup, confirmation, and disabling
+ */
+function bindMfaEvents() {
+  const btnStartSetup = $("btn-mfa-start-setup");
+  const btnCopySecret = $("btn-mfa-copy-secret");
+  const btnConfirmEnable = $("btn-mfa-confirm-enable");
+  const btnOpenDisable = $("btn-mfa-open-disable");
+  const btnCloseDisableModal = $("btn-close-disable-mfa-modal");
+  const btnCancelDisableMfa = $("btn-cancel-disable-mfa");
+  const mfaDisableForm = $("mfa-disable-form");
+
+  const btnCloseRecoveryModal = $("btn-close-mfa-recovery-modal");
+  const btnCopyRecovery = $("btn-copy-mfa-recovery");
+  const btnDownloadRecovery = $("btn-download-mfa-recovery");
+
+  if (btnStartSetup) {
+    btnStartSetup.addEventListener("click", async () => {
+      const setupPanel = $("mfa-setup-panel");
+      const secretDisplay = $("mfa-secret-display");
+      const canvas = $("mfa-qr-canvas");
+      const errSpan = $("mfa-setup-error");
+      if (errSpan) errSpan.style.display = "none";
+
+      btnStartSetup.disabled = true;
+      btnStartSetup.textContent = "Initiating...";
+
+      try {
+        const res = await apiFetch("/api/v1/auth/mfa/setup", { method: "POST" });
+        const json = await res.json();
+
+        if (res.ok && json.success && json.data) {
+          const { secret, qr_code_url } = json.data;
+          if (secretDisplay) secretDisplay.value = secret;
+
+          if (canvas) {
+            if (window.QRious) {
+              new window.QRious({
+                element: canvas,
+                value: qr_code_url,
+                size: 180,
+                level: "H"
+              });
+            } else {
+              // Fallback canvas drawing if library delayed
+              const ctx = canvas.getContext("2d");
+              ctx.fillStyle = "#ffffff";
+              ctx.fillRect(0, 0, 180, 180);
+              ctx.fillStyle = "#000000";
+              ctx.font = "12px sans-serif";
+              ctx.textAlign = "center";
+              ctx.fillText("QR Code Ready", 90, 90);
+            }
+          }
+
+          if (setupPanel) setupPanel.style.display = "block";
+        } else {
+          alert(json.message || "Failed to initiate MFA setup.");
+        }
+      } catch (err) {
+        alert("Error connecting to server for MFA setup.");
+      } finally {
+        btnStartSetup.disabled = false;
+        btnStartSetup.textContent = "Enable MFA";
+      }
+    });
+  }
+
+  if (btnCopySecret) {
+    btnCopySecret.addEventListener("click", () => {
+      const secretDisplay = $("mfa-secret-display");
+      if (secretDisplay && secretDisplay.value) {
+        navigator.clipboard.writeText(secretDisplay.value);
+        const orig = btnCopySecret.textContent;
+        btnCopySecret.textContent = "Copied!";
+        setTimeout(() => {
+          btnCopySecret.textContent = orig;
+        }, 2000);
+      }
+    });
+  }
+
+  if (btnConfirmEnable) {
+    btnConfirmEnable.addEventListener("click", async () => {
+      const confirmCodeInput = $("mfa-confirm-code");
+      const errSpan = $("mfa-setup-error");
+      if (errSpan) errSpan.style.display = "none";
+
+      const code = confirmCodeInput ? confirmCodeInput.value.trim() : "";
+      if (!code || code.length !== 6) {
+        if (errSpan) {
+          errSpan.textContent = "Please enter a valid 6-digit verification code.";
+          errSpan.style.display = "block";
+        }
+        return;
+      }
+
+      btnConfirmEnable.disabled = true;
+      btnConfirmEnable.textContent = "Activating...";
+
+      try {
+        const res = await apiFetch("/api/v1/auth/mfa/enable", {
+          method: "POST",
+          body: JSON.stringify({ code })
+        });
+
+        const json = await res.json();
+
+        if (res.ok && json.success && json.data) {
+          mfaRecoveryCodes = json.data.recovery_codes || [];
+          displayRecoveryCodesModal(mfaRecoveryCodes);
+          if (confirmCodeInput) confirmCodeInput.value = "";
+          await checkMfaStatus();
+        } else {
+          if (errSpan) {
+            errSpan.textContent = json.message || "Invalid verification code.";
+            errSpan.style.display = "block";
+          }
+        }
+      } catch (err) {
+        if (errSpan) {
+          errSpan.textContent = "Network error activating MFA.";
+          errSpan.style.display = "block";
+        }
+      } finally {
+        btnConfirmEnable.disabled = false;
+        btnConfirmEnable.textContent = "Activate MFA";
+      }
+    });
+  }
+
+  if (btnOpenDisable) {
+    btnOpenDisable.addEventListener("click", () => {
+      const modal = $("mfa-disable-modal");
+      const form = $("mfa-disable-form");
+      const errSpan = $("mfa-disable-error");
+      if (form) form.reset();
+      if (errSpan) errSpan.style.display = "none";
+      if (modal) modal.style.display = "flex";
+    });
+  }
+
+  const closeDisableFunc = () => {
+    const modal = $("mfa-disable-modal");
+    if (modal) modal.style.display = "none";
+  };
+
+  if (btnCloseDisableModal) btnCloseDisableModal.addEventListener("click", closeDisableFunc);
+  if (btnCancelDisableMfa) btnCancelDisableMfa.addEventListener("click", closeDisableFunc);
+
+  if (mfaDisableForm) {
+    mfaDisableForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const passInput = $("mfa-disable-password");
+      const codeInput = $("mfa-disable-code");
+      const errSpan = $("mfa-disable-error");
+      if (errSpan) errSpan.style.display = "none";
+
+      const password = passInput ? passInput.value : "";
+      const code = codeInput ? codeInput.value.trim() : "";
+
+      if (!password || !code) {
+        if (errSpan) {
+          errSpan.textContent = "Password and verification code are required.";
+          errSpan.style.display = "block";
+        }
+        return;
+      }
+
+      const submitBtn = $("btn-confirm-disable-mfa");
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Disabling...";
+      }
+
+      try {
+        const payload = code.includes("-")
+          ? { password, recovery_code: code }
+          : { password, code };
+
+        const res = await apiFetch("/api/v1/auth/mfa/disable", {
+          method: "DELETE",
+          body: JSON.stringify(payload)
+        });
+
+        const json = await res.json();
+
+        if (res.ok && json.success) {
+          closeDisableFunc();
+          await checkMfaStatus();
+        } else {
+          if (errSpan) {
+            errSpan.textContent = json.message || "Failed to disable MFA.";
+            errSpan.style.display = "block";
+          }
+        }
+      } catch (err) {
+        if (errSpan) {
+          errSpan.textContent = "Network error disabling MFA.";
+          errSpan.style.display = "block";
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Disable MFA";
+        }
+      }
+    });
+  }
+
+  if (btnCloseRecoveryModal) {
+    btnCloseRecoveryModal.addEventListener("click", () => {
+      const modal = $("mfa-recovery-codes-modal");
+      if (modal) modal.style.display = "none";
+    });
+  }
+
+  if (btnCopyRecovery) {
+    btnCopyRecovery.addEventListener("click", () => {
+      if (mfaRecoveryCodes.length > 0) {
+        navigator.clipboard.writeText(mfaRecoveryCodes.join("\n"));
+        alert("Recovery codes copied to clipboard!");
+      }
+    });
+  }
+
+  if (btnDownloadRecovery) {
+    btnDownloadRecovery.addEventListener("click", () => {
+      if (mfaRecoveryCodes.length > 0) {
+        const content = "ROADLINK AUTOMOBILES - MFA RECOVERY CODES\n" +
+          "Generated: " + new Date().toISOString() + "\n" +
+          "Store these codes securely. Each code can be used once.\n\n" +
+          mfaRecoveryCodes.join("\n");
+        const blob = new Blob([content], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "roadlink-mfa-recovery-codes.txt";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    });
+  }
+}
+
+/**
+ * Displays the modal containing newly generated recovery codes
+ */
+function displayRecoveryCodesModal(codes) {
+  const modal = $("mfa-recovery-codes-modal");
+  const grid = $("mfa-recovery-codes-grid");
+  if (!modal || !grid) return;
+
+  grid.innerHTML = "";
+  codes.forEach(code => {
+    const div = document.createElement("div");
+    div.style.cssText = "background: white; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); color: var(--primary-blue);";
+    div.textContent = code;
+    grid.appendChild(div);
+  });
+
+  modal.style.display = "flex";
 }
