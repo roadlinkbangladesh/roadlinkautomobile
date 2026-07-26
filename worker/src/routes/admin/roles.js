@@ -24,6 +24,14 @@ export async function listPermissions(request, env) {
     return success(SYSTEM_PERMISSIONS);
 }
 
+export async function ensureRolesMfaColumn(env) {
+    try {
+        await env.DB.prepare(`ALTER TABLE roles ADD COLUMN mfa_required INTEGER DEFAULT 0`).run();
+    } catch (e) {
+        // Column already exists or schema updated
+    }
+}
+
 export async function listRoles(request, env) {
     const auth = await authenticate(request, env);
     if (auth.errorResponse) return auth.errorResponse;
@@ -33,6 +41,7 @@ export async function listRoles(request, env) {
     }
 
     try {
+        await ensureRolesMfaColumn(env);
         const roles = await env.DB
             .prepare(`SELECT * FROM roles ORDER BY id ASC`)
             .all();
@@ -65,6 +74,7 @@ export async function listRoles(request, env) {
             enriched.push({
                 ...role,
                 is_system_role: role.is_system_role === 1,
+                mfa_required: role.mfa_required === 1,
                 permissions_count: permsQuery?.count || 0,
                 users_count: usersQuery?.count || 0
             });
@@ -96,6 +106,7 @@ export async function getRole(request, env, ctx, params) {
     }
 
     try {
+        await ensureRolesMfaColumn(env);
         const role = await env.DB
             .prepare(`SELECT * FROM roles WHERE id = ? LIMIT 1`)
             .bind(id)
@@ -115,6 +126,7 @@ export async function getRole(request, env, ctx, params) {
         return success({
             ...role,
             is_system_role: role.is_system_role === 1,
+            mfa_required: role.mfa_required === 1,
             permissions
         });
     } catch (error) {
@@ -134,6 +146,7 @@ export async function createRole(request, env) {
         const name = body.name?.trim();
         const description = body.description?.trim();
         const permissions = body.permissions || [];
+        const mfa_required = body.mfa_required === true || body.mfa_required === 1 || body.mfa_required === "1" ? 1 : 0;
 
         if (!name) {
             return badRequest("Role name is required.");
@@ -168,19 +181,20 @@ export async function createRole(request, env) {
         }
 
         const now = new Date().toISOString();
+        await ensureRolesMfaColumn(env);
 
         // Insert role
         await env.DB
             .prepare(`
-                INSERT INTO roles (name, description, is_system_role, created_at, updated_at)
-                VALUES (?, ?, 0, ?, ?)
+                INSERT INTO roles (name, description, is_system_role, mfa_required, created_at, updated_at)
+                VALUES (?, ?, 0, ?, ?, ?)
             `)
-            .bind(name, description, now, now)
+            .bind(name, description, mfa_required, now, now)
             .run();
 
         const role = await env.DB
             .prepare(`
-                SELECT id, name, description, is_system_role, created_at, updated_at
+                SELECT id, name, description, is_system_role, mfa_required, created_at, updated_at
                 FROM roles
                 WHERE LOWER(name) = LOWER(?)
                 LIMIT 1
@@ -209,12 +223,28 @@ export async function createRole(request, env) {
             status: "SUCCESS",
             ipAddress,
             userAgent,
-            details: { name, permissions }
+            details: { name, permissions, mfa_required: mfa_required === 1 }
         });
+
+        if (mfa_required === 1) {
+            await logAudit(env, {
+                actingUserId: auth.user.id,
+                actingUsername: auth.user.username,
+                targetRoleId: role.id,
+                action: "role.mfa_policy_enabled",
+                resourceType: "role",
+                resourceId: role.id,
+                status: "SUCCESS",
+                ipAddress,
+                userAgent,
+                details: { roleName: name }
+            });
+        }
 
         return success({
             ...role,
             is_system_role: false,
+            mfa_required: mfa_required === 1,
             permissions
         }, "Role created successfully.");
     } catch (error) {
@@ -251,6 +281,7 @@ export async function updateRole(request, env, ctx, params) {
     }
 
     try {
+        await ensureRolesMfaColumn(env);
         const role = await env.DB
             .prepare(`SELECT * FROM roles WHERE id = ? LIMIT 1`)
             .bind(id)
@@ -266,6 +297,12 @@ export async function updateRole(request, env, ctx, params) {
         const name = body.name?.trim();
         const description = body.description?.trim();
         const permissions = body.permissions;
+        const oldMfaRequired = role.mfa_required === 1;
+        let newMfaRequired = oldMfaRequired;
+
+        if (body.mfa_required !== undefined) {
+            newMfaRequired = body.mfa_required === true || body.mfa_required === 1 || body.mfa_required === "1" ? 1 : 0;
+        }
 
         if (!name) {
             return badRequest("Role name is required.");
@@ -306,21 +343,44 @@ export async function updateRole(request, env, ctx, params) {
         await env.DB
             .prepare(`
                 UPDATE roles
-                SET name = ?, description = ?, updated_at = ?
+                SET name = ?, description = ?, mfa_required = ?, updated_at = ?
                 WHERE id = ?
             `)
-            .bind(name, description, now, id)
+            .bind(name, description, newMfaRequired, now, id)
             .run();
 
         const updated = await env.DB
             .prepare(`
-                SELECT id, name, description, is_system_role, system_role_key, created_at, updated_at
+                SELECT id, name, description, is_system_role, system_role_key, mfa_required, created_at, updated_at
                 FROM roles
                 WHERE id = ?
                 LIMIT 1
             `)
             .bind(id)
             .first();
+
+        // Audit log if MFA requirement changed
+        if (oldMfaRequired !== (newMfaRequired === 1)) {
+            const policyAction = newMfaRequired === 1 ? "role.mfa_policy_enabled" : "role.mfa_policy_disabled";
+            await logAudit(env, {
+                actingUserId: auth.user.id,
+                actingUsername: auth.user.username,
+                targetRoleId: id,
+                action: policyAction,
+                resourceType: "role",
+                resourceId: id,
+                status: "SUCCESS",
+                ipAddress,
+                userAgent,
+                details: { roleName: name, mfa_required: newMfaRequired === 1 }
+            });
+
+            // Invalidate active sessions for users in this role so policy change is immediately enforced
+            await env.DB
+                .prepare(`UPDATE users SET token_version = token_version + 1 WHERE role_id = ?`)
+                .bind(id)
+                .run();
+        }
 
         // Sync permissions if provided
         if (permissions !== undefined) {
