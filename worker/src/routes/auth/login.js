@@ -59,7 +59,7 @@ export async function login(request, env) {
         // 3. Fetch user by username (case-insensitive lookup)
         const user = await env.DB
             .prepare(`
-                SELECT u.*, r.name as role_name, r.is_system_role, r.system_role_key
+                SELECT u.*, r.name as role_name, r.is_system_role, r.system_role_key, r.mfa_required as role_mfa_required
                 FROM users u
                 LEFT JOIN roles r ON u.role_id = r.id
                 WHERE LOWER(u.username) = LOWER(?)
@@ -275,8 +275,22 @@ export async function login(request, env) {
             // Non-blocking cleanup
         }
 
-        // Check if Multi-Factor Authentication is enabled for user
-        if (user.mfa_enabled === 1) {
+        // Fetch user permissions
+        const permissionsQuery = await env.DB
+            .prepare(`
+                SELECT permission_key
+                FROM role_permissions
+                WHERE role_id = ?
+            `)
+            .bind(user.role_id)
+            .all();
+        const permissions = (permissionsQuery.results || []).map(p => p.permission_key);
+
+        const roleRequiresMfa = user.role_mfa_required === 1;
+        const userMfaEnabled = user.mfa_enabled === 1;
+
+        // Case 2 & 3: User HAS already enrolled (whether voluntary or required by role)
+        if (userMfaEnabled) {
             const mfaToken = await createToken(
                 {
                     id: user.id,
@@ -301,6 +315,7 @@ export async function login(request, env) {
 
             return success({
                 mfa_required: true,
+                mfa_setup_required: false,
                 mfa_token: mfaToken,
                 user: {
                     id: user.id,
@@ -310,21 +325,48 @@ export async function login(request, env) {
             });
         }
 
+        // Case 4: Role REQUIRES MFA, but User HAS NOT enrolled yet -> Redirect to mandatory setup
+        if (roleRequiresMfa && !userMfaEnabled) {
+            const mfaSetupToken = await createToken(
+                {
+                    id: user.id,
+                    username: user.username,
+                    scope: "mfa_setup_pending",
+                    rememberMe
+                },
+                env.JWT_SECRET,
+                600 // 10 minutes setup validity
+            );
+
+            await logAudit(env, {
+                actingUserId: user.id,
+                actingUsername: user.username,
+                action: "auth.mfa.mandatory_setup_pending",
+                resourceType: "auth",
+                status: "SUCCESS",
+                ipAddress: clientIp,
+                userAgent,
+                details: { message: "Role requires MFA; mandatory setup required" }
+            });
+
+            return success({
+                mfa_required: true,
+                mfa_setup_required: true,
+                mfa_token: mfaSetupToken,
+                user: {
+                    id: user.id,
+                    username: user.username,
+                    display_name: user.display_name,
+                    role_name: user.role_name
+                }
+            });
+        }
+
+        // Case 1: Role does NOT require MFA AND User has NOT enabled MFA -> Normal Login
         // Determine token lifetime based on Remember Me selection
         const expiresIn = rememberMe
             ? JWT.REMEMBER_ME_EXPIRES_IN
             : JWT.SESSION_EXPIRES_IN;
-        
-        // Fetch user permissions
-        const permissionsQuery = await env.DB
-            .prepare(`
-                SELECT permission_key
-                FROM role_permissions
-                WHERE role_id = ?
-            `)
-            .bind(user.role_id)
-            .all();
-        const permissions = (permissionsQuery.results || []).map(p => p.permission_key);
 
         // Generate JWT with session token_version
         const token = await createToken(
