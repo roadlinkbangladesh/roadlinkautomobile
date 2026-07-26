@@ -3,8 +3,8 @@
  * Handles rendering, filtering, sorting, and pagination of the vehicle inventory table.
  */
 
-import { getAllVehicles } from "../js/inventory.js";
-import { getPublicFileUrl } from "../js/shared/api.js";
+import { getAllVehicles } from "./js/inventory.js";
+import { getPublicFileUrl } from "./js/shared/api.js";
 import { hasPermission } from "./auth.js";
 
 const STORAGE_KEYS = {
