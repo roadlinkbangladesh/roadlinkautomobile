@@ -5,7 +5,7 @@
 
 let unauthorizedHandler = null;
 
-import { apiRequest } from "../js/shared/api.js";
+import { apiRequest } from "./js/shared/api.js";
 
 /**
  * Shorthand for document.getElementById
