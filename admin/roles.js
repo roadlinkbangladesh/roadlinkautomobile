@@ -109,6 +109,10 @@ export async function loadRolesList() {
         // Count permissions
         const permCount = role.permissions_count !== undefined ? role.permissions_count : (Array.isArray(role.permissions) ? role.permissions.length : 0);
         const userCount = role.users_count !== undefined ? role.users_count : 0;
+        const isMfaRequired = role.mfa_required === 1 || role.mfa_required === true;
+        const mfaPolicyBadge = isMfaRequired
+          ? `<span class="table-badge" style="padding: 2px 8px; font-weight: 600; background: rgba(37, 99, 235, 0.08); color: var(--primary-blue); border: 1px solid rgba(37, 99, 235, 0.2);">Required</span>`
+          : `<span class="table-badge" style="background: var(--bg-light); border: 1px solid var(--border-color); color: var(--text-muted); padding: 2px 8px; font-weight: 500;">Optional</span>`;
         
         const isSystemSuperAdmin = role.id === 1;
         const deleteButtonHtml = isSystemSuperAdmin 
@@ -130,6 +134,7 @@ export async function loadRolesList() {
           <td style="color: var(--text-muted); font-size: 0.9rem;">${role.description || "<em>No description</em>"}</td>
           <td style="text-align: center;"><span class="table-badge status-available" style="padding: 2px 8px; font-weight: 600;">${permCount}</span></td>
           <td style="text-align: center;"><span class="table-badge" style="background: var(--bg-light); border: 1px solid var(--border-color); color: var(--text-dark); padding: 2px 8px; font-weight: 600;">${userCount}</span></td>
+          <td style="text-align: center;">${mfaPolicyBadge}</td>
           <td class="text-right" style="text-align: right; padding-right: 24px;">
             <div style="display: flex; gap: 8px; justify-content: flex-end;">
               ${actionButtons}
@@ -203,6 +208,11 @@ async function openRoleModal(roleId = null, viewOnly = false) {
 
   if (nameField) nameField.disabled = viewOnly;
   if (descField) descField.disabled = viewOnly;
+  const mfaChk = $("r-mfa-required");
+  if (mfaChk) {
+    mfaChk.checked = false;
+    mfaChk.disabled = viewOnly;
+  }
   if (saveBtn) saveBtn.style.display = viewOnly ? "none" : "block";
 
   const toggleBtns = $("role-permissions-toggle-btns");
@@ -219,6 +229,7 @@ async function openRoleModal(roleId = null, viewOnly = false) {
         if (idField) idField.value = role.id;
         if (nameField) nameField.value = role.name;
         if (descField) descField.value = role.description || "";
+        if (mfaChk) mfaChk.checked = role.mfa_required === 1 || role.mfa_required === true;
         
         // Select associated checkboxes
         if (Array.isArray(role.permissions)) {
@@ -412,12 +423,16 @@ function bindRolesEvents() {
         const method = roleId ? "PUT" : "POST";
         const url = roleId ? `/api/v1/admin/roles/${roleId}` : "/api/v1/admin/roles";
 
+        const mfaChk = $("r-mfa-required");
+        const mfaRequired = mfaChk ? mfaChk.checked : false;
+
         const response = await apiFetch(url, {
           method,
           body: JSON.stringify({
             name,
             description,
-            permissions: checkedPerms
+            permissions: checkedPerms,
+            mfa_required: mfaRequired
           })
         });
 
