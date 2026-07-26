@@ -1,6 +1,14 @@
 import { preflight, notFound, serverError } from "./utils/response.js";
 import { API } from "./config/constants.js";
 import { login } from "./routes/auth/login.js";
+import {
+    verifyMfaLogin,
+    getMfaStatus,
+    setupMfa,
+    enableMfa,
+    disableMfa,
+    resetUserMfa
+} from "./routes/auth/mfa.js";
 import { getSettings, updateSettings } from "./routes/admin/settings.js";
 import {
     listUsers,
@@ -92,8 +100,13 @@ const routes = {
     [`GET:${API.PUBLIC}/carousel`]: getPublicCarousel,
     [`GET:${API.PUBLIC}/testimonials`]: getPublicTestimonials,
 
-    // Authentication
+    // Authentication & Multi-Factor Authentication
     [`POST:${API.AUTH}/login`]: login,
+    [`POST:${API.AUTH}/mfa/verify`]: verifyMfaLogin,
+    [`GET:${API.AUTH}/mfa/status`]: getMfaStatus,
+    [`POST:${API.AUTH}/mfa/setup`]: setupMfa,
+    [`POST:${API.AUTH}/mfa/enable`]: enableMfa,
+    [`POST:${API.AUTH}/mfa/disable`]: disableMfa,
 
     // Settings
     [`GET:${API.ADMIN}/settings`]: getSettings,
@@ -145,6 +158,7 @@ const routes = {
     [`PUT:${API.ADMIN}/users/:id`]: updateUser,
     [`DELETE:${API.ADMIN}/users/:id`]: deleteUser,
     [`POST:${API.ADMIN}/users/:id/reset-password`]: resetPassword,
+    [`POST:${API.ADMIN}/users/:id/reset-mfa`]: resetUserMfa,
     [`POST:${API.ADMIN}/users/:id/unlock`]: unlockUser,
     [`PUT:${API.ADMIN}/users/change-password`]: changePassword,
     [`PUT:${API.ADMIN}/change-password`]: changePassword,
