@@ -3,7 +3,7 @@
  * Standard ES Modules bootstrap file for orchestrating the admin workspace.
  */
 
-import { getAllVehicles } from "../js/inventory.js";
+import { getAllVehicles } from "./js/inventory.js";
 import { $, setUnauthorizedHandler, apiFetch } from "./utils.js";
 import { isAuthenticated, bindLoginEvents, bindLogoutEvents, validateSession, clearToken, hasPermission, getCurrentUser } from "./auth.js";
 import { initDashboard } from "./dashboard.js";
