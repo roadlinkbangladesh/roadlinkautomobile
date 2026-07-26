@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS roles (
     description TEXT,
     is_system_role INTEGER NOT NULL DEFAULT 0 CHECK(is_system_role IN (0,1)),
     system_role_key TEXT UNIQUE,
+    mfa_required INTEGER DEFAULT 0 CHECK(mfa_required IN (0,1)),
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
