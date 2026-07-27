@@ -1,5 +1,10 @@
 /* ROADLINK AUTOMOBILES ADMIN PORTAL STYLES */
 
+/* Typography */
+--font-brand: 'Arial Narrow', 'Archivo Narrow', 'Arial Narrow OS', 'Helvetica Neue Condensed', 'Arial Condensed', 'Liberation Sans Narrow', sans-serif-condensed, sans-serif;
+--font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+--font-display: 'Space Grotesk', var(--font-sans);
+
 .admin-portal-body {
   font-family: var(--font-sans);
   color: var(--text-dark);
