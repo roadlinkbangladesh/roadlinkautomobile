@@ -30,7 +30,7 @@ export async function apiFetch(endpoint, options = {}) {
     ...(options.headers || {})
   };
 
-  if (token) {
+  if (token && !headers["Authorization"] && !headers["authorization"]) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
