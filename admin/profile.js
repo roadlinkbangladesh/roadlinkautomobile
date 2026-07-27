@@ -3,10 +3,11 @@
  * Handles loading dynamic profile details, updating Display Name, and changing credentials.
  */
 
-import { $ , apiFetch } from "./utils.js";
-import { getCurrentUser } from "./auth.js";
+import { $, apiFetch } from "./utils.js";
+import { getCurrentUser, clearToken } from "./auth.js";
 import { navigationController } from "./navigation.js";
 import { validatePasswordComplexity } from "./password-validator.js";
+import { showLoginView } from "./ui.js";
 
 let profileEventsBound = false;
 
@@ -320,17 +321,26 @@ function bindProfileEvents() {
         if (successAlert) successAlert.style.display = "flex";
         passwordForm.reset();
 
+        const wasForcedChange = sessionStorage.getItem("mustChangePassword") === "true";
+
         // Clear mustChangePassword restriction on success
         sessionStorage.removeItem("mustChangePassword");
         updateForcedPasswordPromptState(false);
-        if (typeof window.applyUIPermissions === "function") {
-          window.applyUIPermissions();
-        }
 
-        // Stagger navigation so user sees success alert
-        setTimeout(() => {
-          navigationController.navigateTo("dashboard");
-        }, 1500);
+        if (wasForcedChange || result.data?.requires_login || result.requires_login) {
+          setTimeout(() => {
+            clearToken();
+            sessionStorage.clear();
+            showLoginView("Password changed successfully! Please sign in with your new password.");
+          }, 1200);
+        } else {
+          if (typeof window.applyUIPermissions === "function") {
+            window.applyUIPermissions();
+          }
+          setTimeout(() => {
+            navigationController.navigateTo("dashboard");
+          }, 1500);
+        }
 
       } catch (err) {
         console.error(err);
