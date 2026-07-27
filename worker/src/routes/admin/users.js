@@ -772,7 +772,7 @@ export async function changePassword(request, env) {
             userAgent
         });
 
-        return success(null, "Password changed successfully.");
+        return success({ requires_login: true }, "Password changed successfully. Please sign in again with your new password.");
     } catch (error) {
         console.error("Change password error:", error);
         return serverError("Failed to update password.");
