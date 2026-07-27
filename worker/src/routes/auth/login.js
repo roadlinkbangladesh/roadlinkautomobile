@@ -288,6 +288,7 @@ export async function login(request, env) {
 
         const roleRequiresMfa = user.role_mfa_required === 1;
         const userMfaEnabled = user.mfa_enabled === 1;
+        const mustChangePassword = user.must_change_password === 1 || user.must_change_password === true;
 
         // Case 2 & 3: User HAS already enrolled (whether voluntary or required by role)
         if (userMfaEnabled) {
@@ -296,6 +297,7 @@ export async function login(request, env) {
                     id: user.id,
                     username: user.username,
                     scope: "mfa_pending",
+                    token_version: user.token_version ?? 1,
                     rememberMe
                 },
                 env.JWT_SECRET,
@@ -332,6 +334,7 @@ export async function login(request, env) {
                     id: user.id,
                     username: user.username,
                     scope: "mfa_setup_pending",
+                    token_version: user.token_version ?? 1,
                     rememberMe
                 },
                 env.JWT_SECRET,
@@ -362,20 +365,26 @@ export async function login(request, env) {
             });
         }
 
-        // Case 1: Role does NOT require MFA AND User has NOT enabled MFA -> Normal Login
+        // Case 1: Role does NOT require MFA AND User has NOT enabled MFA -> Normal or Password Change Pending Login
         // Determine token lifetime based on Remember Me selection
         const expiresIn = rememberMe
             ? JWT.REMEMBER_ME_EXPIRES_IN
             : JWT.SESSION_EXPIRES_IN;
 
+        const tokenPayload = {
+            id: user.id,
+            username: user.username,
+            role_id: user.role_id,
+            token_version: user.token_version ?? 1
+        };
+
+        if (mustChangePassword) {
+            tokenPayload.scope = "password_change_pending";
+        }
+
         // Generate JWT with session token_version
         const token = await createToken(
-            {
-                id: user.id,
-                username: user.username,
-                role_id: user.role_id,
-                token_version: user.token_version ?? 1
-            },
+            tokenPayload,
             env.JWT_SECRET,
             expiresIn
         );
@@ -389,12 +398,12 @@ export async function login(request, env) {
             status: "SUCCESS",
             ipAddress: clientIp,
             userAgent,
-            details: { rememberMe }
+            details: { rememberMe, mustChangePassword }
         });
 
         return success({
             token,
-            mustChangePassword: user.must_change_password === 1 || user.must_change_password === true,
+            mustChangePassword,
             user: {
                 id: user.id,
                 username: user.username,

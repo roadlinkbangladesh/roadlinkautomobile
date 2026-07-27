@@ -76,6 +76,13 @@ export async function verifyMfaLogin(request, env) {
             return unauthorized("User account is inactive or disabled.");
         }
 
+        // Check token version
+        const userTokenVersion = user.token_version ?? 1;
+        const tokenVersion = tokenPayload.token_version ?? 1;
+        if (tokenVersion !== userTokenVersion) {
+            return unauthorized("Session token has been invalidated. Please log in again.");
+        }
+
         // Check locked until
         if (user.locked_until && new Date(user.locked_until).getTime() > Date.now()) {
             return forbidden("Account is temporarily locked. Please try again later.");
@@ -228,10 +235,10 @@ export async function getMfaStatus(request, env) {
 
 /**
  * POST /api/v1/auth/mfa/setup
- * Initiate TOTP MFA provisioning (returns Base32 secret and OTPAuth URI)
+ * Initiate TOTP MFA provisioning (returns Base32 secret, setup token, and OTPAuth URI)
  */
 export async function setupMfa(request, env) {
-    const auth = await authenticate(request, env);
+    const auth = await authenticate(request, env, null, false, true, false);
     if (auth.errorResponse) return auth.errorResponse;
 
     const { ipAddress, userAgent } = getRequestMeta(request);
@@ -241,11 +248,19 @@ export async function setupMfa(request, env) {
         const plainSecret = generateMfaSecret();
         const encryptedSecret = await encryptMfaSecret(plainSecret, env.JWT_SECRET);
 
-        // Save secret temporarily on user record without enabling MFA yet
-        await env.DB
-            .prepare(`UPDATE users SET mfa_secret_encrypted = ?, updated_at = ? WHERE id = ?`)
-            .bind(encryptedSecret, new Date().toISOString(), auth.user.id)
-            .run();
+        // Issue a temporary setup context token containing the encrypted secret
+        // Do NOT permanently store in DB until verification!
+        const setupToken = await createToken(
+            {
+                id: auth.user.id,
+                username: auth.user.username,
+                encrypted_secret: encryptedSecret,
+                scope: "mfa_setup_pending",
+                token_version: auth.user.token_version ?? 1
+            },
+            env.JWT_SECRET,
+            600 // 10 minutes setup validity
+        );
 
         const otpauthUrl = buildOtpAuthUrl(auth.user.username, plainSecret);
 
@@ -264,6 +279,7 @@ export async function setupMfa(request, env) {
             secret: plainSecret,
             otpauth_url: otpauthUrl,
             qr_code_url: otpauthUrl,
+            setup_token: setupToken,
             issuer: "Roadlink Automobiles",
             account_name: auth.user.username
         });
@@ -279,7 +295,7 @@ export async function setupMfa(request, env) {
  * Confirm TOTP code and enable MFA for account
  */
 export async function enableMfa(request, env) {
-    const auth = await authenticate(request, env);
+    const auth = await authenticate(request, env, null, false, true, false);
     if (auth.errorResponse) return auth.errorResponse;
 
     const { ipAddress, userAgent } = getRequestMeta(request);
@@ -292,16 +308,41 @@ export async function enableMfa(request, env) {
             return badRequest("6-digit verification code is required.");
         }
 
-        const user = await env.DB
-            .prepare(`SELECT mfa_secret_encrypted FROM users WHERE id = ? LIMIT 1`)
-            .bind(auth.user.id)
-            .first();
-
-        if (!user || !user.mfa_secret_encrypted) {
-            return badRequest("MFA setup has not been initiated. Call /api/v1/auth/mfa/setup first.");
+        // Retrieve encrypted secret from temporary setup token or user record
+        let encryptedSecret = null;
+        
+        // 1. Try reading setup token from request header or body
+        const authHeader = request.headers.get("Authorization");
+        let decodedToken = null;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+            const rawToken = authHeader.substring(7).trim();
+            decodedToken = await verifyToken(rawToken, env.JWT_SECRET);
+            if (decodedToken?.encrypted_secret) {
+                encryptedSecret = decodedToken.encrypted_secret;
+            }
         }
 
-        const plainSecret = await decryptMfaSecret(user.mfa_secret_encrypted, env.JWT_SECRET);
+        if (!encryptedSecret && body.setup_token) {
+            const decodedBodyToken = await verifyToken(body.setup_token, env.JWT_SECRET);
+            if (decodedBodyToken?.encrypted_secret) {
+                encryptedSecret = decodedBodyToken.encrypted_secret;
+            }
+        }
+
+        // 2. Fallback to existing user record (if voluntary setup already initiated)
+        if (!encryptedSecret) {
+            const userRec = await env.DB
+                .prepare(`SELECT mfa_secret_encrypted FROM users WHERE id = ? LIMIT 1`)
+                .bind(auth.user.id)
+                .first();
+            encryptedSecret = userRec?.mfa_secret_encrypted;
+        }
+
+        if (!encryptedSecret) {
+            return badRequest("MFA setup session has expired or has not been initiated. Please start MFA setup again.");
+        }
+
+        const plainSecret = await decryptMfaSecret(encryptedSecret, env.JWT_SECRET);
         if (!plainSecret) {
             return serverError("Failed to decrypt MFA setup secret.");
         }
@@ -343,14 +384,14 @@ export async function enableMfa(request, env) {
                 .run();
         }
 
-        // Update user state to mfa_enabled = 1
+        // Update user state: NOW permanently store secret and enable MFA!
         await env.DB
             .prepare(`
                 UPDATE users
-                SET mfa_enabled = 1, mfa_enrolled_at = ?, mfa_last_used_at = ?, updated_at = ?
+                SET mfa_secret_encrypted = ?, mfa_enabled = 1, mfa_enrolled_at = ?, mfa_last_used_at = ?, updated_at = ?
                 WHERE id = ?
             `)
-            .bind(nowIso, nowIso, nowIso, auth.user.id)
+            .bind(encryptedSecret, nowIso, nowIso, nowIso, auth.user.id)
             .run();
 
         await logAudit(env, {
@@ -365,17 +406,7 @@ export async function enableMfa(request, env) {
         });
 
         // Check if token scope was mfa_setup_pending (Mandatory Setup Flow during Login)
-        const authHeader = request.headers.get("Authorization");
-        let isMandatorySetup = false;
-        let rememberMe = false;
-        if (authHeader && authHeader.startsWith("Bearer ")) {
-            const rawToken = authHeader.substring(7).trim();
-            const decoded = await verifyToken(rawToken, env.JWT_SECRET);
-            if (decoded?.scope === "mfa_setup_pending") {
-                isMandatorySetup = true;
-                rememberMe = decoded.rememberMe === true;
-            }
-        }
+        const isMandatorySetup = decodedToken?.scope === "mfa_setup_pending";
 
         if (isMandatorySetup) {
             await logAudit(env, {
@@ -389,59 +420,17 @@ export async function enableMfa(request, env) {
                 userAgent
             });
 
-            const userWithRole = await env.DB
-                .prepare(`
-                    SELECT u.id, u.username, u.display_name, u.role_id, u.token_version, u.must_change_password,
-                           r.name as role_name, r.is_system_role, r.system_role_key
-                    FROM users u
-                    LEFT JOIN roles r ON u.role_id = r.id
-                    WHERE u.id = ?
-                    LIMIT 1
-                `)
-                .bind(auth.user.id)
-                .first();
-
-            const permissionsQuery = await env.DB
-                .prepare(`SELECT permission_key FROM role_permissions WHERE role_id = ?`)
-                .bind(auth.user.role_id)
-                .all();
-            const permissions = (permissionsQuery.results || []).map(p => p.permission_key);
-
-            const expiresIn = rememberMe
-                ? JWT.REMEMBER_ME_EXPIRES_IN
-                : JWT.SESSION_EXPIRES_IN;
-
-            const token = await createToken(
-                {
-                    id: auth.user.id,
-                    username: auth.user.username,
-                    role_id: auth.user.role_id,
-                    token_version: userWithRole?.token_version ?? 1
-                },
-                env.JWT_SECRET,
-                expiresIn
-            );
-
+            // Immediately terminate temporary authentication session - do NOT issue full session token!
             return success({
-                token,
-                mustChangePassword: userWithRole?.must_change_password === 1 || userWithRole?.must_change_password === true,
+                requires_login: true,
+                mfa_enrolled: true,
                 recovery_codes: plainRecoveryCodes,
-                user: {
-                    id: auth.user.id,
-                    username: auth.user.username,
-                    role_id: auth.user.role_id,
-                    role_name: userWithRole?.role_name,
-                    is_system_role: userWithRole?.is_system_role === 1,
-                    system_role_key: userWithRole?.system_role_key,
-                    display_name: auth.user.display_name,
-                    mfa_enabled: true,
-                    permissions
-                },
-                message: "Mandatory Multi-Factor Authentication enrollment completed successfully."
+                message: "Mandatory Multi-Factor Authentication enrollment completed successfully. Please sign in again."
             });
         }
 
         return success({
+            mfa_enrolled: true,
             recovery_codes: plainRecoveryCodes,
             message: "Multi-Factor Authentication has been successfully enabled."
         });
