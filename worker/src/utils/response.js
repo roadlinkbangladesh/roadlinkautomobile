@@ -2,6 +2,7 @@ import { HTTP_STATUS } from "../config/constants.js";
 
 const ALLOWED_ORIGINS = new Set([
   "https://roadlinkautomobiles.com",
+  "https://www.roadlinkautomobiles.com",
   "https://admin.roadlinkautomobiles.com",
 ]);
 
