@@ -201,7 +201,11 @@ export function bindLoginEvents(onLoginSuccess) {
                 });
                 const setupJson = await setupRes.json();
                 if (setupRes.ok && setupJson.success && setupJson.data) {
-                  const { secret, otpauth_url, qr_code_url, account_name } = setupJson.data;
+                  const { secret, otpauth_url, qr_code_url, setup_token, account_name } = setupJson.data;
+
+                  if (setup_token) {
+                    mfaSetupForm.dataset.setupToken = setup_token;
+                  }
 
                   if (accountNameEl && account_name) {
                     accountNameEl.textContent = account_name;
@@ -411,7 +415,7 @@ export function bindLoginEvents(onLoginSuccess) {
       const codeInput = $("mfa-mandatory-code-input");
       const code = codeInput ? codeInput.value.trim() : "";
       const mfaToken = mfaMandatoryForm.dataset.mfaToken;
-      const rememberMe = mfaMandatoryForm.dataset.rememberMe === "true";
+      const setupToken = mfaMandatoryForm.dataset.setupToken || mfaToken;
 
       if (!code) {
         showMandatoryMfaError("Please enter the 6-digit code from your authenticator app.");
@@ -429,35 +433,45 @@ export function bindLoginEvents(onLoginSuccess) {
         const response = await apiFetch("/api/v1/auth/mfa/enable", {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${mfaToken}`
+            Authorization: `Bearer ${setupToken}`
           },
-          body: JSON.stringify({ code })
+          body: JSON.stringify({ code, setup_token: setupToken })
         });
 
         const res = await response.json();
 
-        if (response.ok && res.success && res.data) {
-          if (res.data.token) {
-            localStorage.setItem("rememberMe", rememberMe);
-            saveToken(res.data.token, rememberMe);
-          }
+        if (response.ok && res.success) {
+          // Immediately terminate temporary authentication session
+          clearToken();
+          sessionStorage.clear();
 
-          if (res.data.user) {
-            sessionStorage.setItem("currentUser", JSON.stringify(res.data.user));
-          }
+          const handleMandatoryComplete = () => {
+            if (mfaMandatoryForm) mfaMandatoryForm.style.display = "none";
+            const loginFormEl = $("login-form");
+            if (loginFormEl) loginFormEl.style.display = "block";
 
-          sessionStorage.removeItem("active_admin_module");
+            // Show informative message on login screen
+            const loginErrorPanel = $("login-error");
+            const errorMessageText = $("error-message");
+            if (loginErrorPanel && errorMessageText) {
+              errorMessageText.textContent = "MFA enrollment complete! Please sign in with your credentials.";
+              loginErrorPanel.style.display = "flex";
+              loginErrorPanel.style.backgroundColor = "rgba(16, 185, 129, 0.1)";
+              loginErrorPanel.style.borderColor = "#10b981";
+              loginErrorPanel.style.color = "#047857";
+            }
+          };
 
-          if (Array.isArray(res.data.recovery_codes) && res.data.recovery_codes.length > 0) {
+          if (Array.isArray(res.data?.recovery_codes) && res.data.recovery_codes.length > 0) {
             if (typeof window.displayRecoveryCodesModal === "function") {
               window.displayRecoveryCodesModal(res.data.recovery_codes, () => {
-                if (onLoginSuccess) onLoginSuccess();
+                handleMandatoryComplete();
               });
               return;
             }
           }
 
-          if (onLoginSuccess) onLoginSuccess();
+          handleMandatoryComplete();
         } else {
           showMandatoryMfaError(res.message || "Invalid verification code. Please check your app and try again.");
         }

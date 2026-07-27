@@ -461,8 +461,9 @@ function bindMfaEvents() {
         const json = await res.json();
 
         if (res.ok && json.success && json.data) {
-          const { secret, qr_code_url } = json.data;
+          const { secret, qr_code_url, setup_token } = json.data;
           if (secretDisplay) secretDisplay.value = secret;
+          if (setupPanel && setup_token) setupPanel.dataset.setupToken = setup_token;
 
           if (canvas) {
             if (window.QRious) {
@@ -530,9 +531,12 @@ function bindMfaEvents() {
       btnConfirmEnable.textContent = "Activating...";
 
       try {
+        const setupPanel = $("mfa-setup-panel");
+        const setupToken = setupPanel ? setupPanel.dataset.setupToken : null;
+
         const res = await apiFetch("/api/v1/auth/mfa/enable", {
           method: "POST",
-          body: JSON.stringify({ code })
+          body: JSON.stringify({ code, setup_token: setupToken })
         });
 
         const json = await res.json();
