@@ -98,8 +98,8 @@ export async function authenticate(request, env, requiredPermission = null, isCh
     const permissions = (permissionsQuery.results || []).map(p => p.permission_key);
 
     // Protected endpoints must reject requests from users whose must_change_password flag is true,
-    // except for change password or logout operations.
-    if ((user.must_change_password === 1 || user.must_change_password === true) && !isChangePasswordRoute) {
+    // except for change password, logout, or MFA setup/verify operations.
+    if ((user.must_change_password === 1 || user.must_change_password === true) && !isChangePasswordRoute && !isMfaSetupRoute && !isMfaVerifyRoute) {
         await logAudit(env, {
             actingUserId: user.id,
             actingUsername: user.username,
