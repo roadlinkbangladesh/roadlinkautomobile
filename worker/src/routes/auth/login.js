@@ -290,7 +290,52 @@ export async function login(request, env) {
         const userMfaEnabled = user.mfa_enabled === 1;
         const mustChangePassword = user.must_change_password === 1 || user.must_change_password === true;
 
-        // Case 2 & 3: User HAS already enrolled (whether voluntary or required by role)
+        // Step 1: Handle Must Change Password FIRST, without evaluating MFA flags
+        if (mustChangePassword) {
+            const expiresIn = rememberMe
+                ? JWT.REMEMBER_ME_EXPIRES_IN
+                : JWT.SESSION_EXPIRES_IN;
+
+            const token = await createToken(
+                {
+                    id: user.id,
+                    username: user.username,
+                    role_id: user.role_id,
+                    scope: "password_change_pending",
+                    token_version: user.token_version ?? 1
+                },
+                env.JWT_SECRET,
+                expiresIn
+            );
+
+            await logAudit(env, {
+                actingUserId: user.id,
+                actingUsername: user.username,
+                action: "login.success",
+                resourceType: "auth",
+                status: "SUCCESS",
+                ipAddress: clientIp,
+                userAgent,
+                details: { rememberMe, mustChangePassword: true }
+            });
+
+            return success({
+                token,
+                mustChangePassword: true,
+                user: {
+                    id: user.id,
+                    username: user.username,
+                    role_id: user.role_id,
+                    role_name: user.role_name,
+                    is_system_role: user.is_system_role === 1,
+                    system_role_key: user.system_role_key,
+                    display_name: user.display_name,
+                    permissions: permissions
+                }
+            });
+        }
+
+        // Step 2: Handle MFA if user has already enrolled TOTP
         if (userMfaEnabled) {
             const mfaToken = await createToken(
                 {
@@ -327,7 +372,7 @@ export async function login(request, env) {
             });
         }
 
-        // Case 4: Role REQUIRES MFA, but User HAS NOT enrolled yet -> Redirect to mandatory setup
+        // Step 3: Handle Mandatory MFA Enrollment if role requires MFA and user is not enrolled yet
         if (roleRequiresMfa && !userMfaEnabled) {
             const mfaSetupToken = await createToken(
                 {
@@ -365,8 +410,7 @@ export async function login(request, env) {
             });
         }
 
-        // Case 1: Role does NOT require MFA AND User has NOT enabled MFA -> Normal or Password Change Pending Login
-        // Determine token lifetime based on Remember Me selection
+        // Step 4: Standard authenticated session creation (No password change pending, No MFA required)
         const expiresIn = rememberMe
             ? JWT.REMEMBER_ME_EXPIRES_IN
             : JWT.SESSION_EXPIRES_IN;
@@ -378,18 +422,12 @@ export async function login(request, env) {
             token_version: user.token_version ?? 1
         };
 
-        if (mustChangePassword) {
-            tokenPayload.scope = "password_change_pending";
-        }
-
-        // Generate JWT with session token_version
         const token = await createToken(
             tokenPayload,
             env.JWT_SECRET,
             expiresIn
         );
         
-        // Log successful login audit record
         await logAudit(env, {
             actingUserId: user.id,
             actingUsername: user.username,
@@ -398,12 +436,12 @@ export async function login(request, env) {
             status: "SUCCESS",
             ipAddress: clientIp,
             userAgent,
-            details: { rememberMe, mustChangePassword }
+            details: { rememberMe, mustChangePassword: false }
         });
 
         return success({
             token,
-            mustChangePassword,
+            mustChangePassword: false,
             user: {
                 id: user.id,
                 username: user.username,
