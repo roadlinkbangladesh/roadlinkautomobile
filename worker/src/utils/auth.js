@@ -5,7 +5,7 @@ import { logAudit, getRequestMeta } from "./audit.js";
 /**
  * Common Authentication & Authorization Middleware for Workers
  */
-export async function authenticate(request, env, requiredPermission = null, isChangePasswordRoute = false) {
+export async function authenticate(request, env, requiredPermission = null, isChangePasswordRoute = false, isMfaSetupRoute = false, isMfaVerifyRoute = false) {
     const authHeader = request.headers.get("Authorization");
     const { ipAddress, userAgent } = getRequestMeta(request);
 
@@ -18,6 +18,18 @@ export async function authenticate(request, env, requiredPermission = null, isCh
     const decoded = await verifyToken(token, env.JWT_SECRET);
     if (!decoded) {
         return { errorResponse: unauthorized("Invalid or expired token.") };
+    }
+
+    // Check token scope restrictions
+    const tokenScope = decoded.scope;
+    if (tokenScope === "mfa_setup_pending" && !isMfaSetupRoute) {
+        return { errorResponse: forbidden("MFA enrollment is required before accessing other resources.") };
+    }
+    if (tokenScope === "mfa_pending" && !isMfaVerifyRoute) {
+        return { errorResponse: forbidden("MFA verification is required before accessing other resources.") };
+    }
+    if (tokenScope === "password_change_pending" && !isChangePasswordRoute) {
+        return { errorResponse: forbidden("Password change is required before accessing other resources.") };
     }
 
     // Retrieve active record directly from DB to verify constraints and system role attributes
