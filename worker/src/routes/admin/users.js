@@ -783,7 +783,7 @@ export async function changePassword(request, env) {
  * GET /api/v1/admin/profile
  */
 export async function getProfile(request, env) {
-    const auth = await authenticate(request, env);
+    const auth = await authenticate(request, env, null, true, true, false);
     if (auth.errorResponse) return auth.errorResponse;
 
     try {
