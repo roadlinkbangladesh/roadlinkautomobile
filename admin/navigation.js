@@ -135,7 +135,8 @@ class NavigationController {
     this.bindPopState();
 
     const mustChange = sessionStorage.getItem("mustChangePassword") === "true";
-    if (mustChange) {
+    const mustEnroll = sessionStorage.getItem("mustEnrollMfa") === "true";
+    if (mustChange || mustEnroll) {
       this.navigateTo("profile", { replaceState: true });
       return;
     }
@@ -164,7 +165,8 @@ class NavigationController {
       const { route, query } = this.parseHash(window.location.hash);
       
       const mustChange = sessionStorage.getItem("mustChangePassword") === "true";
-      if (mustChange && route !== "profile") {
+      const mustEnroll = sessionStorage.getItem("mustEnrollMfa") === "true";
+      if ((mustChange || mustEnroll) && route !== "profile") {
         this.navigateTo("profile", { replaceState: true });
         return;
       }
@@ -210,7 +212,10 @@ class NavigationController {
     }
 
     const mustChange = sessionStorage.getItem("mustChangePassword") === "true";
-    if (mustChange) {
+    const mustEnroll = sessionStorage.getItem("mustEnrollMfa") === "true";
+    const isMandatoryLocked = mustChange || mustEnroll;
+
+    if (isMandatoryLocked) {
       name = "profile";
     } else {
       // Enforce navigation guards based on permissions
@@ -252,6 +257,16 @@ class NavigationController {
       const item = this.modules[key];
       const panel = $(item.panelId);
       const btn = $(item.btnId);
+
+      if (btn) {
+        if (isMandatoryLocked && key !== "profile") {
+          btn.style.opacity = "0.5";
+          btn.style.pointerEvents = "none";
+        } else {
+          btn.style.opacity = "1";
+          btn.style.pointerEvents = "auto";
+        }
+      }
 
       if (key === name) {
         if (panel) panel.style.display = "block";
