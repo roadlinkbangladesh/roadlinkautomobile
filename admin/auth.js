@@ -34,6 +34,15 @@ export function saveToken(token, rememberMe) {
  * Removes the token from BOTH sessionStorage and localStorage.
  */
 export function clearToken() {
+  const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+  if (token) {
+    try {
+      fetch("/api/v1/auth/logout", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` }
+      }).catch(() => {});
+    } catch (e) {}
+  }
   localStorage.removeItem("token");
   sessionStorage.clear();
   
@@ -286,6 +295,18 @@ export function bindLoginEvents(onLoginSuccess) {
           localStorage.setItem("rememberMe", rememberMe);
           saveToken(res.data.token, rememberMe);
 
+          // Clean up MFA dataset & subform state immediately
+          if (mfaChallengeForm) {
+            delete mfaChallengeForm.dataset.mfaToken;
+            delete mfaChallengeForm.dataset.rememberMe;
+            mfaChallengeForm.style.display = "none";
+          }
+          if (loginForm) {
+            loginForm.style.display = "block";
+          }
+          const mfaInput = $("mfa-code-input");
+          if (mfaInput) mfaInput.value = "";
+
           if (res.data.mustChangePassword) {
             sessionStorage.setItem("mustChangePassword", "true");
           } else {
@@ -460,7 +481,12 @@ export function bindLogoutEvents(onLogoutSuccess) {
   const btnTopbarLogout = $("btn-topbar-logout");
   const btnIdleLogout = $("btn-idle-logout");
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await apiFetch("/api/v1/auth/logout", { method: "POST" });
+    } catch (err) {
+      console.warn("Logout endpoint error:", err);
+    }
     clearToken();
     if (onLogoutSuccess) onLogoutSuccess();
   };
