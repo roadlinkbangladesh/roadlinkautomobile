@@ -382,7 +382,7 @@ export async function createAdminVehicle(request, env) {
     return created(createdVehicle, "Vehicle created successfully.");
   } catch (error) {
     console.error("Create admin vehicle error:", error);
-    return serverError("Failed to create vehicle.");
+    return serverError(error?.message || "Failed to create vehicle.");
   }
 }
 
