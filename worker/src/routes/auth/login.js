@@ -287,8 +287,8 @@ export async function login(request, env) {
             .all();
         const permissions = (permissionsQuery.results || []).map(p => p.permission_key);
 
-        const roleRequiresMfa = user.role_mfa_required === 1;
-        const userMfaEnabled = user.mfa_enabled === 1;
+        const roleRequiresMfa = Boolean(user.role_mfa_required) || Boolean(user.mfa_enforced);
+        const userMfaEnabled = Boolean(user.mfa_enabled);
 
         // Step 1: Evaluate Mandatory Security Actions in fixed priority order
         const pendingMandatoryAction = getPendingMandatoryAction(user, roleRequiresMfa);
