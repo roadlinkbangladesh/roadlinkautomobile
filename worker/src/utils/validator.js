@@ -94,6 +94,17 @@ export function validateStockNumber(stockNumber) {
 }
 
 /**
+ * Converts string into a clean URL-friendly slug
+ */
+export function slugify(text) {
+  return String(text || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
  * Validates slug format
  */
 export function validateSlug(slug) {
