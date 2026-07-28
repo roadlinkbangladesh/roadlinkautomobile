@@ -17,8 +17,7 @@ let pendingMandatoryLogout = false;
  * Initializes the Profile and resets both Personal Info and Change Password forms.
  */
 export function initProfileView() {
-  updateForcedPasswordPromptState();
-  updateForcedMfaPromptState();
+  updateMandatorySecurityActionBanners();
   loadProfileData();
   resetProfileForms();
   checkMfaStatus();
@@ -27,8 +26,25 @@ export function initProfileView() {
     bindMfaEvents();
     profileEventsBound = true;
   }
+}
 
-  if (sessionStorage.getItem("mustEnrollMfa") === "true") {
+export function updateMandatorySecurityActionBanners() {
+  const mandatoryAction = sessionStorage.getItem("mandatorySecurityAction") || 
+    (sessionStorage.getItem("mustChangePassword") === "true" ? "PASSWORD_CHANGE" : 
+    (sessionStorage.getItem("mustEnrollMfa") === "true" ? "MFA_ENROLLMENT" : null));
+
+  const pwdPrompt = $("forced-password-prompt");
+  const mfaPrompt = $("forced-mfa-prompt");
+
+  if (pwdPrompt) {
+    pwdPrompt.style.display = (mandatoryAction === "PASSWORD_CHANGE") ? "block" : "none";
+  }
+
+  if (mfaPrompt) {
+    mfaPrompt.style.display = (mandatoryAction === "MFA_ENROLLMENT") ? "block" : "none";
+  }
+
+  if (mandatoryAction === "MFA_ENROLLMENT") {
     setTimeout(() => {
       const setupPanel = $("mfa-setup-panel");
       if (setupPanel && setupPanel.style.display !== "block") {
@@ -36,36 +52,6 @@ export function initProfileView() {
         if (btnStartSetup) btnStartSetup.click();
       }
     }, 150);
-  }
-}
-
-function updateForcedPasswordPromptState(isMustChangeOverride) {
-  const promptBanner = $("forced-password-prompt");
-  if (!promptBanner) return;
-
-  const isMustChange = isMustChangeOverride !== undefined 
-    ? isMustChangeOverride 
-    : sessionStorage.getItem("mustChangePassword") === "true";
-
-  if (isMustChange) {
-    promptBanner.style.display = "block";
-  } else {
-    promptBanner.style.display = "none";
-  }
-}
-
-function updateForcedMfaPromptState(isMustEnrollOverride) {
-  const promptBanner = $("forced-mfa-prompt");
-  if (!promptBanner) return;
-
-  const isMustEnroll = isMustEnrollOverride !== undefined 
-    ? isMustEnrollOverride 
-    : sessionStorage.getItem("mustEnrollMfa") === "true";
-
-  if (isMustEnroll) {
-    promptBanner.style.display = "block";
-  } else {
-    promptBanner.style.display = "none";
   }
 }
 
@@ -351,9 +337,10 @@ function bindProfileEvents() {
 
         const wasForcedChange = sessionStorage.getItem("mustChangePassword") === "true";
 
-        // Clear mustChangePassword restriction on success
+        // Clear mandatory security action restriction on success
+        sessionStorage.removeItem("mandatorySecurityAction");
         sessionStorage.removeItem("mustChangePassword");
-        updateForcedPasswordPromptState(false);
+        updateMandatorySecurityActionBanners();
 
         if (wasForcedChange || result.data?.requires_login || result.requires_login) {
           setTimeout(() => {
@@ -585,7 +572,7 @@ function bindMfaEvents() {
           if (confirmCodeInput) confirmCodeInput.value = "";
           await checkMfaStatus();
 
-          if (json.data.requires_login || sessionStorage.getItem("mustEnrollMfa") === "true") {
+          if (json.data.requires_login || sessionStorage.getItem("mandatorySecurityAction") === "MFA_ENROLLMENT" || sessionStorage.getItem("mustEnrollMfa") === "true") {
             pendingMandatoryLogout = true;
           }
 
