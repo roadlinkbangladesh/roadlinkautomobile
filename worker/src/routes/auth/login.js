@@ -398,14 +398,20 @@ export async function login(request, env) {
             });
 
             return success({
+                token: mfaSetupToken,
+                mustEnrollMfa: true,
+                mustChangePassword: false,
                 mfa_required: true,
                 mfa_setup_required: true,
-                mfa_token: mfaSetupToken,
                 user: {
                     id: user.id,
                     username: user.username,
+                    role_id: user.role_id,
+                    role_name: user.role_name,
+                    is_system_role: user.is_system_role === 1,
+                    system_role_key: user.system_role_key,
                     display_name: user.display_name,
-                    role_name: user.role_name
+                    permissions: permissions
                 }
             });
         }
