@@ -1,6 +1,6 @@
 import { preflight, notFound, serverError } from "./utils/response.js";
 import { API } from "./config/constants.js";
-import { login } from "./routes/auth/login.js";
+import { login, logout } from "./routes/auth/login.js";
 import {
     verifyMfaLogin,
     getMfaStatus,
@@ -103,6 +103,7 @@ const routes = {
 
     // Authentication & Multi-Factor Authentication
     [`POST:${API.AUTH}/login`]: login,
+    [`POST:${API.AUTH}/logout`]: logout,
     [`POST:${API.AUTH}/mfa/verify`]: verifyMfaLogin,
     [`GET:${API.AUTH}/mfa/status`]: getMfaStatus,
     [`POST:${API.AUTH}/mfa/setup`]: setupMfa,
