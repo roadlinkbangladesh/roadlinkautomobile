@@ -205,7 +205,7 @@ export async function verifyMfaLogin(request, env) {
  * Check MFA status for authenticated user
  */
 export async function getMfaStatus(request, env) {
-    const auth = await authenticate(request, env);
+    const auth = await authenticate(request, env, null, false, true, false);
     if (auth.errorResponse) return auth.errorResponse;
 
     try {
