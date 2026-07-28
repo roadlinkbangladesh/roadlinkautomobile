@@ -1,4 +1,4 @@
-import { unauthorized, forbidden, CORS_HEADERS } from "./response.js";
+import { unauthorized, forbidden } from "./response.js";
 import { verifyToken } from "./jwt.js";
 import { logAudit, getRequestMeta } from "./audit.js";
 
@@ -111,14 +111,7 @@ export async function authenticate(request, env, requiredPermission = null, isCh
             userAgent
         });
         return {
-            errorResponse: Response.json({
-                success: false,
-                mustChangePassword: true,
-                message: "You must change your password before performing any other operations."
-            }, {
-                status: 403,
-                headers: CORS_HEADERS
-            })
+            errorResponse: forbidden("You must change your password before performing any other operations.", { mustChangePassword: true })
         };
     }
 
