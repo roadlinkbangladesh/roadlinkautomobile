@@ -227,8 +227,18 @@ function getFilteredVehicles(vehicles) {
     // 2. Status filter check
     if (statusF !== "all") {
       const vStatus = (v.status || "").toLowerCase();
+      const isUnpublished = v.published === false || v.isPublished === false || v.published === 0 || v.isPublished === 0;
+
       if (statusF === "reserved") {
         if (vStatus !== "reserved" && vStatus !== "pending") {
+          return false;
+        }
+      } else if (statusF === "draft") {
+        if (vStatus !== "draft" && !isUnpublished) {
+          return false;
+        }
+      } else if (statusF === "archived") {
+        if (vStatus !== "archived" && !v.archivedAt && !v.archived_at) {
           return false;
         }
       } else {
