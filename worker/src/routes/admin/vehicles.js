@@ -6,6 +6,7 @@ import { platformConfig } from "../../services/platform-config.js";
 import {
   validateStockNumber,
   validateSlug,
+  slugify,
   validateVehicleStateTransition,
   validateFileUpload,
   validateNumber,
@@ -267,13 +268,14 @@ export async function createAdminVehicle(request, env) {
     }
 
     // 4. Case-Insensitive Uniqueness Check for Slug
-    let slug = (data.slug || "").trim().toLowerCase();
+    let rawSlug = (data.slug || "").trim();
+    let slug = slugify(rawSlug);
     if (!slug) {
-      slug = `${data.make.toLowerCase()}-${data.model.toLowerCase()}-${data.year}-${Math.floor(1000 + Math.random() * 9000)}`;
-    } else {
-      const slugErr = validateSlug(slug);
-      if (slugErr) return validationError(slugErr);
+      slug = slugify(`${data.make} ${data.model} ${data.year} ${Math.floor(1000 + Math.random() * 9000)}`);
     }
+    const slugErr = validateSlug(slug);
+    if (slugErr) return validationError(slugErr);
+
     const existingSlug = await env.DB.prepare(`SELECT id FROM vehicles WHERE LOWER(slug) = LOWER(?)`).bind(slug).first();
     if (existingSlug) {
       slug = `${slug}-${Math.floor(100 + Math.random() * 900)}`;
