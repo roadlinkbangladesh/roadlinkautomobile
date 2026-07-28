@@ -345,7 +345,12 @@ export async function updateVehicleStatusAsync(id, statusData) {
     throw new Error(payload.message || `Failed to update vehicle status (HTTP ${response.status}).`);
   }
 
-  await loadAdminVehiclesAsync();
+  const currentStatusFilter = (typeof sessionStorage !== "undefined" && sessionStorage.getItem("roadlink_admin_status_filter")) || "all";
+  if (currentStatusFilter === "archived") {
+    await loadAdminVehiclesAsync({ status: "archived" });
+  } else {
+    await loadAdminVehiclesAsync();
+  }
   return payload.data;
 }
 
