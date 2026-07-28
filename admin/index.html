@@ -884,6 +884,21 @@
                 </div>
               </div>
 
+              <!-- Mandatory MFA Enrollment Instruction Prompt Banner -->
+              <div id="forced-mfa-prompt" style="display: none; background: #fff8e6; border: 1.5px solid #ffe082; border-left: 5px solid #f59e0b; border-radius: var(--radius-md); padding: 18px 20px; margin-bottom: 24px;">
+                <div style="display: flex; gap: 14px; align-items: flex-start;">
+                  <div style="width: 38px; height: 38px; border-radius: 50%; background: #fef3c7; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                  </div>
+                  <div style="flex: 1;">
+                    <h4 style="margin: 0 0 6px 0; font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; color: #78350f;">MFA Enrollment Required</h4>
+                    <p style="margin: 0; font-size: 0.9rem; color: #92400e; line-height: 1.5;">
+                      Multi-Factor Authentication (TOTP) is required for your assigned administrative role before accessing the system. Scan the QR code or enter the secret key into your authenticator app (Google Authenticator, Bitwarden, etc.) and submit a 6-digit code below to complete setup.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div class="profile-grid">
                 
                 <!-- Card 1: Profile Information -->
