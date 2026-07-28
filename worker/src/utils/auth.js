@@ -3,6 +3,29 @@ import { verifyToken } from "./jwt.js";
 import { logAudit, getRequestMeta } from "./audit.js";
 
 /**
+ * Mandatory Security Actions Configuration (evaluated in strict priority order)
+ */
+export const MANDATORY_SECURITY_ACTIONS = [
+    {
+        key: "PASSWORD_CHANGE",
+        isPending: (user, roleRequiresMfa) => user.must_change_password === 1 || user.must_change_password === true
+    },
+    {
+        key: "MFA_ENROLLMENT",
+        isPending: (user, roleRequiresMfa) => Boolean(roleRequiresMfa) && user.mfa_enabled !== 1
+    }
+];
+
+export function getPendingMandatoryAction(user, roleRequiresMfa) {
+    for (const action of MANDATORY_SECURITY_ACTIONS) {
+        if (action.isPending(user, roleRequiresMfa)) {
+            return action.key;
+        }
+    }
+    return null;
+}
+
+/**
  * Common Authentication & Authorization Middleware for Workers
  */
 export async function authenticate(request, env, requiredPermission = null, isChangePasswordRoute = false, isMfaSetupRoute = false, isMfaVerifyRoute = false) {
@@ -20,22 +43,21 @@ export async function authenticate(request, env, requiredPermission = null, isCh
         return { errorResponse: unauthorized("Invalid or expired token.") };
     }
 
+    const isAllowedSecurityRoute = isChangePasswordRoute || isMfaSetupRoute || isMfaVerifyRoute;
+
     // Check token scope restrictions
     const tokenScope = decoded.scope;
-    if (tokenScope === "mfa_setup_pending" && !isMfaSetupRoute) {
-        return { errorResponse: forbidden("MFA enrollment is required before accessing other resources.") };
+    if ((tokenScope === "mandatory_security_action_pending" || tokenScope === "mfa_setup_pending" || tokenScope === "password_change_pending") && !isAllowedSecurityRoute) {
+        return { errorResponse: forbidden("A mandatory security action is required before accessing other resources.", { mandatorySecurityAction: true }) };
     }
     if (tokenScope === "mfa_pending" && !isMfaVerifyRoute) {
         return { errorResponse: forbidden("MFA verification is required before accessing other resources.") };
-    }
-    if (tokenScope === "password_change_pending" && !isChangePasswordRoute) {
-        return { errorResponse: forbidden("Password change is required before accessing other resources.") };
     }
 
     // Retrieve active record directly from DB to verify constraints and system role attributes
     const user = await env.DB
         .prepare(`
-            SELECT u.*, r.name as role_name, r.is_system_role, r.system_role_key
+            SELECT u.*, r.name as role_name, r.is_system_role, r.system_role_key, r.mfa_required as role_mfa_required
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id
             WHERE u.id = ?
@@ -97,21 +119,27 @@ export async function authenticate(request, env, requiredPermission = null, isCh
     
     const permissions = (permissionsQuery.results || []).map(p => p.permission_key);
 
-    // Protected endpoints must reject requests from users whose must_change_password flag is true,
-    // except for change password, logout, or MFA setup/verify operations.
-    if ((user.must_change_password === 1 || user.must_change_password === true) && !isChangePasswordRoute && !isMfaSetupRoute && !isMfaVerifyRoute) {
+    // Protected endpoints must reject requests when a mandatory security action is pending,
+    // unless the endpoint is specifically flagged as an allowed security route.
+    const roleRequiresMfa = user.role_mfa_required === 1;
+    const pendingMandatoryAction = getPendingMandatoryAction(user, roleRequiresMfa);
+
+    if (pendingMandatoryAction && !isAllowedSecurityRoute) {
         await logAudit(env, {
             actingUserId: user.id,
             actingUsername: user.username,
-            action: "security.mandatory_password_change",
+            action: "security.mandatory_security_action_required",
             resourceType: "auth",
             status: "FAILURE",
-            reason: "Password change required before accessing requested endpoint",
+            reason: `Mandatory security action required (${pendingMandatoryAction}) before accessing requested endpoint`,
             ipAddress,
             userAgent
         });
         return {
-            errorResponse: forbidden("You must change your password before performing any other operations.", { mustChangePassword: true })
+            errorResponse: forbidden("You must complete your mandatory security action before performing any other operations.", {
+                mandatorySecurityAction: pendingMandatoryAction,
+                mustChangePassword: pendingMandatoryAction === "PASSWORD_CHANGE"
+            })
         };
     }
 
