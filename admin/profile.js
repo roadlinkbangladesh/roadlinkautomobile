@@ -11,11 +11,14 @@ import { showLoginView } from "./ui.js";
 
 let profileEventsBound = false;
 
+let pendingMandatoryLogout = false;
+
 /**
  * Initializes the Profile and resets both Personal Info and Change Password forms.
  */
 export function initProfileView() {
   updateForcedPasswordPromptState();
+  updateForcedMfaPromptState();
   loadProfileData();
   resetProfileForms();
   checkMfaStatus();
@@ -23,6 +26,16 @@ export function initProfileView() {
     bindProfileEvents();
     bindMfaEvents();
     profileEventsBound = true;
+  }
+
+  if (sessionStorage.getItem("mustEnrollMfa") === "true") {
+    setTimeout(() => {
+      const setupPanel = $("mfa-setup-panel");
+      if (setupPanel && setupPanel.style.display !== "block") {
+        const btnStartSetup = $("btn-mfa-start-setup");
+        if (btnStartSetup) btnStartSetup.click();
+      }
+    }, 150);
   }
 }
 
@@ -35,6 +48,21 @@ function updateForcedPasswordPromptState(isMustChangeOverride) {
     : sessionStorage.getItem("mustChangePassword") === "true";
 
   if (isMustChange) {
+    promptBanner.style.display = "block";
+  } else {
+    promptBanner.style.display = "none";
+  }
+}
+
+function updateForcedMfaPromptState(isMustEnrollOverride) {
+  const promptBanner = $("forced-mfa-prompt");
+  if (!promptBanner) return;
+
+  const isMustEnroll = isMustEnrollOverride !== undefined 
+    ? isMustEnrollOverride 
+    : sessionStorage.getItem("mustEnrollMfa") === "true";
+
+  if (isMustEnroll) {
     promptBanner.style.display = "block";
   } else {
     promptBanner.style.display = "none";
@@ -556,6 +584,18 @@ function bindMfaEvents() {
           displayRecoveryCodesModal(mfaRecoveryCodes);
           if (confirmCodeInput) confirmCodeInput.value = "";
           await checkMfaStatus();
+
+          if (json.data.requires_login || sessionStorage.getItem("mustEnrollMfa") === "true") {
+            pendingMandatoryLogout = true;
+          }
+
+          if (!mfaRecoveryCodes || mfaRecoveryCodes.length === 0) {
+            if (pendingMandatoryLogout) {
+              clearToken();
+              sessionStorage.clear();
+              showLoginView("MFA enrollment complete! Please sign in with your credentials.");
+            }
+          }
         } else {
           if (errSpan) {
             errSpan.textContent = json.message || "Invalid verification code.";
@@ -657,6 +697,11 @@ function bindMfaEvents() {
     btnCloseRecoveryModal.addEventListener("click", () => {
       const modal = $("mfa-recovery-codes-modal");
       if (modal) modal.style.display = "none";
+      if (pendingMandatoryLogout) {
+        clearToken();
+        sessionStorage.clear();
+        showLoginView("MFA enrollment complete! Please sign in with your credentials.");
+      }
     });
   }
 
