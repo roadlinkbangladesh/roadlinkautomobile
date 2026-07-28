@@ -13,7 +13,7 @@ export async function authenticate(request, env, requiredPermission = null, isCh
         return { errorResponse: unauthorized("Authentication required.") };
     }
 
-    const token = authHeader.substring(7);
+    const token = authHeader.substring(7).trim();
 
     const decoded = await verifyToken(token, env.JWT_SECRET);
     if (!decoded) {
