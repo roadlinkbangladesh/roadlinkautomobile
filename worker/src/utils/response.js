@@ -1,5 +1,13 @@
 import { HTTP_STATUS } from "../config/constants.js";
 
+export const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin"
+};
+
 const ALLOWED_ORIGINS = new Set([
   "https://roadlinkautomobiles.com",
   "https://www.roadlinkautomobiles.com",
@@ -104,7 +112,18 @@ export function unauthorized(message = "Unauthorized.") {
 /**
  * 403 Forbidden
  */
-export function forbidden(message = "Forbidden.") {
+export function forbidden(message = "Forbidden.", extra = null) {
+    if (extra && typeof extra === "object") {
+        const body = {
+            success: false,
+            ...extra,
+            message
+        };
+        return Response.json(body, {
+            status: HTTP_STATUS.FORBIDDEN,
+            headers: CORS_HEADERS
+        });
+    }
     return json(
         HTTP_STATUS.FORBIDDEN,
         false,
