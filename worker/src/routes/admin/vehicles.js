@@ -150,8 +150,10 @@ export async function listAdminVehicles(request, env) {
     if (status && status !== "all") {
       if (status === "archived") {
         sqlWhere.push(`archived_at IS NOT NULL`);
+      } else if (status === "draft") {
+        sqlWhere.push(`(LOWER(status) = 'draft' OR is_published = 0) AND archived_at IS NULL`);
       } else {
-        sqlWhere.push(`status = ? AND archived_at IS NULL`);
+        sqlWhere.push(`LOWER(status) = LOWER(?) AND archived_at IS NULL`);
         params.push(status);
       }
     } else {
