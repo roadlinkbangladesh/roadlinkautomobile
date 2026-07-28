@@ -8,17 +8,19 @@ import { logAudit, getRequestMeta } from "./audit.js";
 export const MANDATORY_SECURITY_ACTIONS = [
     {
         key: "PASSWORD_CHANGE",
-        isPending: (user, roleRequiresMfa) => user.must_change_password === 1 || user.must_change_password === true
+        isPending: (user) => Boolean(user?.must_change_password)
     },
     {
         key: "MFA_ENROLLMENT",
-        isPending: (user, roleRequiresMfa) => Boolean(roleRequiresMfa) && user.mfa_enabled !== 1
+        isPending: (user, roleRequiresMfa) => (Boolean(roleRequiresMfa) || Boolean(user?.mfa_enforced) || Boolean(user?.role_mfa_required)) && !Boolean(user?.mfa_enabled)
     }
 ];
 
 export function getPendingMandatoryAction(user, roleRequiresMfa) {
+    if (!user) return null;
+    const mfaReq = roleRequiresMfa !== undefined ? roleRequiresMfa : (Boolean(user.role_mfa_required) || Boolean(user.mfa_enforced));
     for (const action of MANDATORY_SECURITY_ACTIONS) {
-        if (action.isPending(user, roleRequiresMfa)) {
+        if (action.isPending(user, mfaReq)) {
             return action.key;
         }
     }
@@ -121,7 +123,7 @@ export async function authenticate(request, env, requiredPermission = null, isCh
 
     // Protected endpoints must reject requests when a mandatory security action is pending,
     // unless the endpoint is specifically flagged as an allowed security route.
-    const roleRequiresMfa = user.role_mfa_required === 1;
+    const roleRequiresMfa = Boolean(user.role_mfa_required) || Boolean(user.mfa_enforced);
     const pendingMandatoryAction = getPendingMandatoryAction(user, roleRequiresMfa);
 
     if (pendingMandatoryAction && !isAllowedSecurityRoute) {
