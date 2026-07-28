@@ -1,6 +1,6 @@
 import { badRequest, unauthorized, forbidden, tooManyRequests, serverError, success } from "../../utils/response.js";
 import { verifyPassword } from "../../utils/password.js";
-import { createToken } from "../../utils/jwt.js";
+import { createToken, verifyToken } from "../../utils/jwt.js";
 import { JWT } from "../../config/constants.js";
 import { logAudit, getRequestMeta } from "../../utils/audit.js";
 import { platformConfig } from "../../services/platform-config.js";
@@ -422,5 +422,44 @@ export async function login(request, env) {
     } catch (error) {
         console.error("Login error:", error);
         return serverError();
+    }
+}
+
+export async function logout(request, env) {
+    const { ipAddress, userAgent } = getRequestMeta(request);
+    const clientIp = ipAddress || "unknown_ip";
+
+    try {
+        const authHeader = request.headers.get("Authorization");
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return success({ message: "Logged out" });
+        }
+
+        const token = authHeader.substring(7).trim();
+        const payload = await verifyToken(token, env.JWT_SECRET);
+
+        if (payload && payload.id) {
+            const nowIso = new Date().toISOString();
+            await env.DB
+                .prepare(`UPDATE users SET token_version = token_version + 1, updated_at = ? WHERE id = ?`)
+                .bind(nowIso, payload.id)
+                .run();
+
+            await logAudit(env, {
+                actingUserId: payload.id,
+                actingUsername: payload.username || "unknown",
+                action: "auth.logout",
+                resourceType: "auth",
+                status: "SUCCESS",
+                ipAddress: clientIp,
+                userAgent,
+                details: { message: "Session and pending tokens invalidated upon logout" }
+            });
+        }
+
+        return success({ message: "Logged out successfully" });
+    } catch (err) {
+        console.error("Logout error:", err);
+        return success({ message: "Logged out" });
     }
 }
