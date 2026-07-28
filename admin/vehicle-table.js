@@ -84,6 +84,8 @@ export function initVehicleTable() {
         saveState();
         if (state.statusFilter === "archived") {
           await loadAdminVehiclesAsync({ status: "archived" });
+        } else if (state.statusFilter === "draft") {
+          await loadAdminVehiclesAsync({ status: "draft" });
         } else {
           await loadAdminVehiclesAsync();
         }

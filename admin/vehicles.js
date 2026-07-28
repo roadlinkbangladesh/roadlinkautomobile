@@ -22,6 +22,14 @@ let activeInteriorImages = [];
 
 let vehiclesEventsBound = false;
 
+function slugify(text) {
+  return String(text || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 /**
  * Initializes the Vehicles management view panel.
  * @param {Object} query - Optional route query parameters e.g. { status: "available" }
@@ -36,6 +44,8 @@ export async function initVehiclesView(query = {}) {
 
   if (tableState.statusFilter === "archived") {
     await loadAdminVehiclesAsync({ status: "archived" });
+  } else if (tableState.statusFilter === "draft") {
+    await loadAdminVehiclesAsync({ status: "draft" });
   } else {
     await loadAdminVehiclesAsync();
   }
@@ -752,11 +762,13 @@ async function handleFormSubmit(e) {
     }
   } else {
     // Add new vehicle
-    const newId = `${data.make.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${data.model.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const makeSlug = slugify(data.make);
+    const modelSlug = slugify(data.model);
+    const newId = `${makeSlug}-${modelSlug}-${Math.floor(1000 + Math.random() * 9000)}`;
     const newVehicle = {
       id: newId,
       displayOrder: (vehicles.length + 1) * 10,
-      slug: `${data.make.toLowerCase()}-${data.model.toLowerCase()}-${parsedYear}`,
+      slug: slugify(`${data.make} ${data.model} ${parsedYear}`),
       stockNumber: data.stockNumber,
       featured: !!data.featured,
       featuredPosition: data.featuredPosition ? parseInt(data.featuredPosition, 10) : 0,
