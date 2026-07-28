@@ -194,7 +194,9 @@ function applyUIPermissions() {
     el.textContent = user.role_name || (user.role_id === 1 ? "Super Administrator" : (user.role_id === 2 ? "Manager" : "User"));
   });
 
-  const mustChange = sessionStorage.getItem("mustChangePassword") === "true";
+  const mandatoryAction = sessionStorage.getItem("mandatorySecurityAction") || 
+    (sessionStorage.getItem("mustChangePassword") === "true" ? "PASSWORD_CHANGE" : 
+    (sessionStorage.getItem("mustEnrollMfa") === "true" ? "MFA_ENROLLMENT" : null));
 
   const navDashboard = $("nav-item-dashboard");
   const navVehicles = $("nav-item-vehicles");
@@ -204,8 +206,8 @@ function applyUIPermissions() {
   const navAuditLogs = $("nav-item-audit-logs");
   const navProfile = $("nav-item-profile");
 
-  if (mustChange) {
-    // If password change is mandatory, hide all other views
+  if (mandatoryAction) {
+    // If a mandatory security action is pending, hide all other views except Profile
     if (navDashboard) navDashboard.style.display = "none";
     if (navVehicles) navVehicles.style.display = "none";
     if (navSettings) navSettings.style.display = "none";
