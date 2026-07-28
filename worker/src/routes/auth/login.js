@@ -4,6 +4,7 @@ import { createToken } from "../../utils/jwt.js";
 import { JWT } from "../../config/constants.js";
 import { logAudit, getRequestMeta } from "../../utils/audit.js";
 import { platformConfig } from "../../services/platform-config.js";
+import { getPendingMandatoryAction } from "../../utils/auth.js";
 
 // Dummy PBKDF2 hash used to prevent timing side-channel attacks during username enumeration attempts
 const DUMMY_HASH = "pbkdf2$sha-256$100000$32$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
@@ -288,10 +289,11 @@ export async function login(request, env) {
 
         const roleRequiresMfa = user.role_mfa_required === 1;
         const userMfaEnabled = user.mfa_enabled === 1;
-        const mustChangePassword = user.must_change_password === 1 || user.must_change_password === true;
 
-        // Step 1: Handle Must Change Password FIRST, without evaluating MFA flags
-        if (mustChangePassword) {
+        // Step 1: Evaluate Mandatory Security Actions in fixed priority order
+        const pendingMandatoryAction = getPendingMandatoryAction(user, roleRequiresMfa);
+
+        if (pendingMandatoryAction) {
             const expiresIn = rememberMe
                 ? JWT.REMEMBER_ME_EXPIRES_IN
                 : JWT.SESSION_EXPIRES_IN;
@@ -301,7 +303,7 @@ export async function login(request, env) {
                     id: user.id,
                     username: user.username,
                     role_id: user.role_id,
-                    scope: "password_change_pending",
+                    scope: "mandatory_security_action_pending",
                     token_version: user.token_version ?? 1
                 },
                 env.JWT_SECRET,
@@ -316,12 +318,13 @@ export async function login(request, env) {
                 status: "SUCCESS",
                 ipAddress: clientIp,
                 userAgent,
-                details: { rememberMe, mustChangePassword: true }
+                details: { rememberMe, mandatorySecurityAction: pendingMandatoryAction }
             });
 
             return success({
                 token,
-                mustChangePassword: true,
+                mandatorySecurityAction: pendingMandatoryAction,
+                mustChangePassword: pendingMandatoryAction === "PASSWORD_CHANGE",
                 user: {
                     id: user.id,
                     username: user.username,
@@ -335,7 +338,7 @@ export async function login(request, env) {
             });
         }
 
-        // Step 2: Handle MFA if user has already enrolled TOTP
+        // Step 2: Handle MFA prompt if user has already enrolled TOTP
         if (userMfaEnabled) {
             const mfaToken = await createToken(
                 {
@@ -372,51 +375,7 @@ export async function login(request, env) {
             });
         }
 
-        // Step 3: Handle Mandatory MFA Enrollment if role requires MFA and user is not enrolled yet
-        if (roleRequiresMfa && !userMfaEnabled) {
-            const mfaSetupToken = await createToken(
-                {
-                    id: user.id,
-                    username: user.username,
-                    scope: "mfa_setup_pending",
-                    token_version: user.token_version ?? 1,
-                    rememberMe
-                },
-                env.JWT_SECRET,
-                600 // 10 minutes setup validity
-            );
-
-            await logAudit(env, {
-                actingUserId: user.id,
-                actingUsername: user.username,
-                action: "auth.mfa.mandatory_setup_pending",
-                resourceType: "auth",
-                status: "SUCCESS",
-                ipAddress: clientIp,
-                userAgent,
-                details: { message: "Role requires MFA; mandatory setup required" }
-            });
-
-            return success({
-                token: mfaSetupToken,
-                mustEnrollMfa: true,
-                mustChangePassword: false,
-                mfa_required: true,
-                mfa_setup_required: true,
-                user: {
-                    id: user.id,
-                    username: user.username,
-                    role_id: user.role_id,
-                    role_name: user.role_name,
-                    is_system_role: user.is_system_role === 1,
-                    system_role_key: user.system_role_key,
-                    display_name: user.display_name,
-                    permissions: permissions
-                }
-            });
-        }
-
-        // Step 4: Standard authenticated session creation (No password change pending, No MFA required)
+        // Step 3: Standard authenticated session creation (No mandatory actions, No MFA prompt)
         const expiresIn = rememberMe
             ? JWT.REMEMBER_ME_EXPIRES_IN
             : JWT.SESSION_EXPIRES_IN;
