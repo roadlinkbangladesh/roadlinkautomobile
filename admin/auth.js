@@ -191,12 +191,13 @@ export function bindLoginEvents(onLoginSuccess) {
               const accountNameEl = $("mfa-mandatory-account-name");
               if (accountNameEl) accountNameEl.textContent = username;
 
+              const tokenToUse = res.data.mfa_token || res.data.mfa_setup_token || mfaSetupForm.dataset.mfaToken;
               // Initiate setup request to get secret & QR code
               try {
                 const setupRes = await apiFetch("/api/v1/auth/mfa/setup", {
                   method: "POST",
                   headers: {
-                    Authorization: `Bearer ${res.data.mfa_token}`
+                    Authorization: `Bearer ${tokenToUse}`
                   }
                 });
                 const setupJson = await setupRes.json();
