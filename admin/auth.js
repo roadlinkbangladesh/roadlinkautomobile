@@ -34,14 +34,8 @@ export function saveToken(token, rememberMe) {
  * Removes the token from BOTH sessionStorage and localStorage.
  */
 export function clearToken() {
-  sessionStorage.removeItem("token");
   localStorage.removeItem("token");
-  sessionStorage.removeItem("mandatorySecurityAction");
-  sessionStorage.removeItem("mustChangePassword");
-  sessionStorage.removeItem("mustEnrollMfa");
-  sessionStorage.removeItem("currentUser");
-  sessionStorage.removeItem("active_admin_module");
-  sessionStorage.removeItem("redirect_route");
+  sessionStorage.clear();
   
   if (window.location.hash && window.location.hash !== "#/login") {
     history.replaceState(null, "", "#/login");
@@ -464,6 +458,7 @@ export function bindLoginEvents(onLoginSuccess) {
 export function bindLogoutEvents(onLogoutSuccess) {
   const btnSidebarLogout = $("btn-sidebar-logout");
   const btnTopbarLogout = $("btn-topbar-logout");
+  const btnIdleLogout = $("btn-idle-logout");
 
   const handleLogout = () => {
     clearToken();
@@ -476,6 +471,10 @@ export function bindLogoutEvents(onLogoutSuccess) {
 
   if (btnTopbarLogout) {
     btnTopbarLogout.addEventListener("click", handleLogout);
+  }
+
+  if (btnIdleLogout) {
+    btnIdleLogout.addEventListener("click", handleLogout);
   }
 }
 
