@@ -138,11 +138,12 @@ export async function verifyMfaLogin(request, env) {
             return unauthorized("Invalid MFA code or recovery code.");
         }
 
-        // MFA verification succeeded -> update last used
+        // MFA verification succeeded -> update last used and increment token_version to consume pre-auth token
+        const nextTokenVersion = (user.token_version ?? 1) + 1;
         const nowIso = new Date().toISOString();
         await env.DB
-            .prepare(`UPDATE users SET mfa_last_used_at = ?, last_login_at = ? WHERE id = ?`)
-            .bind(nowIso, nowIso, user.id)
+            .prepare(`UPDATE users SET mfa_last_used_at = ?, last_login_at = ?, token_version = ?, updated_at = ? WHERE id = ?`)
+            .bind(nowIso, nowIso, nextTokenVersion, nowIso, user.id)
             .run();
 
         // Fetch permissions
@@ -161,7 +162,7 @@ export async function verifyMfaLogin(request, env) {
                 id: user.id,
                 username: user.username,
                 role_id: user.role_id,
-                token_version: user.token_version ?? 1
+                token_version: nextTokenVersion
             },
             env.JWT_SECRET,
             expiresIn
