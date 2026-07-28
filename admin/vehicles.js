@@ -27,27 +27,26 @@ let vehiclesEventsBound = false;
  * @param {Object} query - Optional route query parameters e.g. { status: "available" }
  */
 export async function initVehiclesView(query = {}) {
-  await loadAdminVehiclesAsync();
-  initVehicleTable();
-
   if (query && query.status) {
     const statusVal = query.status.toLowerCase();
     tableState.statusFilter = statusVal;
     tableState.currentPage = 1;
     saveTableState();
-
-    const statusFilterSelect = $("vehicle-status-filter");
-    if (statusFilterSelect) {
-      statusFilterSelect.value = statusVal;
-    }
-    renderVehicleTable();
-  } else {
-    // Sync input UI with tableState if statusFilter was set
-    const statusFilterSelect = $("vehicle-status-filter");
-    if (statusFilterSelect && statusFilterSelect.value !== tableState.statusFilter) {
-      statusFilterSelect.value = tableState.statusFilter;
-    }
   }
+
+  if (tableState.statusFilter === "archived") {
+    await loadAdminVehiclesAsync({ status: "archived" });
+  } else {
+    await loadAdminVehiclesAsync();
+  }
+
+  initVehicleTable();
+
+  const statusFilterSelect = $("vehicle-status-filter");
+  if (statusFilterSelect) {
+    statusFilterSelect.value = tableState.statusFilter;
+  }
+  renderVehicleTable();
   
   const btnAdd = $("btn-add-vehicle");
   if (btnAdd) {

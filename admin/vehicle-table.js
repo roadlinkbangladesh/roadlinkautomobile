@@ -3,7 +3,7 @@
  * Handles rendering, filtering, sorting, and pagination of the vehicle inventory table.
  */
 
-import { getAllVehicles } from "./js/inventory.js";
+import { getAllVehicles, loadAdminVehiclesAsync } from "./js/inventory.js";
 import { getPublicFileUrl } from "./js/shared/api.js";
 import { hasPermission } from "./auth.js";
 
@@ -78,10 +78,15 @@ export function initVehicleTable() {
 
     // Binds status filter change event
     if (statusFilter) {
-      statusFilter.addEventListener("change", () => {
+      statusFilter.addEventListener("change", async () => {
         state.statusFilter = statusFilter.value;
         state.currentPage = 1;
         saveState();
+        if (state.statusFilter === "archived") {
+          await loadAdminVehiclesAsync({ status: "archived" });
+        } else {
+          await loadAdminVehiclesAsync();
+        }
         renderVehicleTable();
       });
     }
