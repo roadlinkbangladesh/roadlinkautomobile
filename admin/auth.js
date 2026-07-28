@@ -37,6 +37,7 @@ export function clearToken() {
   sessionStorage.removeItem("token");
   localStorage.removeItem("token");
   sessionStorage.removeItem("mustChangePassword");
+  sessionStorage.removeItem("mustEnrollMfa");
   sessionStorage.removeItem("currentUser");
   sessionStorage.removeItem("active_admin_module");
   sessionStorage.removeItem("redirect_route");
@@ -174,71 +175,33 @@ export function bindLoginEvents(onLoginSuccess) {
     try {
       const res = await login(username, password, rememberMe);
       if (res.success && res.data) {
-        if (res.data.mfa_required) {
-          loginForm.style.display = "none";
-
-          if (res.data.mfa_setup_required) {
-            // Mandatory MFA enrollment flow
-            const mfaSetupForm = $("mfa-mandatory-setup-form");
-            const mfaChallenge = $("mfa-challenge-form");
-            if (mfaChallenge) mfaChallenge.style.display = "none";
-
-            if (mfaSetupForm) {
-              mfaSetupForm.style.display = "block";
-              mfaSetupForm.dataset.mfaToken = res.data.mfa_token;
-              mfaSetupForm.dataset.rememberMe = String(rememberMe);
-
-              const accountNameEl = $("mfa-mandatory-account-name");
-              if (accountNameEl) accountNameEl.textContent = username;
-
-              const tokenToUse = res.data.mfa_token || res.data.mfa_setup_token || mfaSetupForm.dataset.mfaToken;
-              // Initiate setup request to get secret & QR code
-              try {
-                const setupRes = await apiFetch("/api/v1/auth/mfa/setup", {
-                  method: "POST",
-                  headers: {
-                    Authorization: `Bearer ${tokenToUse}`
-                  }
-                });
-                const setupJson = await setupRes.json();
-                if (setupRes.ok && setupJson.success && setupJson.data) {
-                  const { secret, otpauth_url, qr_code_url, setup_token, account_name } = setupJson.data;
-
-                  if (setup_token) {
-                    mfaSetupForm.dataset.setupToken = setup_token;
-                  }
-
-                  if (accountNameEl && account_name) {
-                    accountNameEl.textContent = account_name;
-                  }
-
-                  const secretDisplay = $("mfa-mandatory-secret-display");
-                  if (secretDisplay) secretDisplay.value = secret;
-
-                  const qrCanvas = $("mfa-mandatory-qr-canvas");
-                  if (qrCanvas && window.QRious) {
-                    new window.QRious({
-                      element: qrCanvas,
-                      value: otpauth_url || qr_code_url,
-                      size: 160,
-                      level: "M"
-                    });
-                  }
-                }
-              } catch (setupErr) {
-                console.error("Failed to fetch mandatory MFA setup data:", setupErr);
-              }
-
-              const codeInput = $("mfa-mandatory-code-input");
-              if (codeInput) {
-                codeInput.value = "";
-                codeInput.focus();
-              }
-            }
-            return;
+        if (res.data.token) {
+          localStorage.setItem("rememberMe", rememberMe);
+          saveToken(res.data.token, rememberMe);
+          
+          if (res.data.mustChangePassword) {
+            sessionStorage.setItem("mustChangePassword", "true");
+          } else {
+            sessionStorage.removeItem("mustChangePassword");
           }
 
+          if (res.data.mustEnrollMfa || (res.data.mfa_required && res.data.mfa_setup_required)) {
+            sessionStorage.setItem("mustEnrollMfa", "true");
+          } else {
+            sessionStorage.removeItem("mustEnrollMfa");
+          }
+
+          if (res.data.user) {
+            sessionStorage.setItem("currentUser", JSON.stringify(res.data.user));
+          } else {
+            sessionStorage.removeItem("currentUser");
+          }
+
+          sessionStorage.removeItem("active_admin_module");
+          if (onLoginSuccess) onLoginSuccess();
+        } else if (res.data.mfa_required && !res.data.mfa_setup_required) {
           // MFA challenge step for users with configured MFA
+          loginForm.style.display = "none";
           const mfaChallenge = $("mfa-challenge-form");
           const mfaSetupForm = $("mfa-mandatory-setup-form");
           if (mfaSetupForm) mfaSetupForm.style.display = "none";
@@ -253,27 +216,6 @@ export function bindLoginEvents(onLoginSuccess) {
               mfaInput.focus();
             }
           }
-          return;
-        }
-
-        if (res.data.token) {
-          localStorage.setItem("rememberMe", rememberMe);
-          saveToken(res.data.token, rememberMe);
-          
-          if (res.data.mustChangePassword) {
-            sessionStorage.setItem("mustChangePassword", "true");
-          } else {
-            sessionStorage.removeItem("mustChangePassword");
-          }
-
-          if (res.data.user) {
-            sessionStorage.setItem("currentUser", JSON.stringify(res.data.user));
-          } else {
-            sessionStorage.removeItem("currentUser");
-          }
-
-          sessionStorage.removeItem("active_admin_module");
-          if (onLoginSuccess) onLoginSuccess();
         }
       } else {
         showError(res.message || "Invalid username or password");
