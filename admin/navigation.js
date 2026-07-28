@@ -134,9 +134,11 @@ class NavigationController {
     this.bindSidebarEvents();
     this.bindPopState();
 
-    const mustChange = sessionStorage.getItem("mustChangePassword") === "true";
-    const mustEnroll = sessionStorage.getItem("mustEnrollMfa") === "true";
-    if (mustChange || mustEnroll) {
+    const mandatoryAction = sessionStorage.getItem("mandatorySecurityAction") || 
+      (sessionStorage.getItem("mustChangePassword") === "true" ? "PASSWORD_CHANGE" : 
+      (sessionStorage.getItem("mustEnrollMfa") === "true" ? "MFA_ENROLLMENT" : null));
+
+    if (mandatoryAction) {
       this.navigateTo("profile", { replaceState: true });
       return;
     }
@@ -164,9 +166,11 @@ class NavigationController {
       if (!isAuthenticated()) return;
       const { route, query } = this.parseHash(window.location.hash);
       
-      const mustChange = sessionStorage.getItem("mustChangePassword") === "true";
-      const mustEnroll = sessionStorage.getItem("mustEnrollMfa") === "true";
-      if ((mustChange || mustEnroll) && route !== "profile") {
+      const mandatoryAction = sessionStorage.getItem("mandatorySecurityAction") || 
+        (sessionStorage.getItem("mustChangePassword") === "true" ? "PASSWORD_CHANGE" : 
+        (sessionStorage.getItem("mustEnrollMfa") === "true" ? "MFA_ENROLLMENT" : null));
+
+      if (mandatoryAction && route !== "profile") {
         this.navigateTo("profile", { replaceState: true });
         return;
       }
@@ -211,9 +215,10 @@ class NavigationController {
       }
     }
 
-    const mustChange = sessionStorage.getItem("mustChangePassword") === "true";
-    const mustEnroll = sessionStorage.getItem("mustEnrollMfa") === "true";
-    const isMandatoryLocked = mustChange || mustEnroll;
+    const mandatoryAction = sessionStorage.getItem("mandatorySecurityAction") || 
+      (sessionStorage.getItem("mustChangePassword") === "true" ? "PASSWORD_CHANGE" : 
+      (sessionStorage.getItem("mustEnrollMfa") === "true" ? "MFA_ENROLLMENT" : null));
+    const isMandatoryLocked = Boolean(mandatoryAction);
 
     if (isMandatoryLocked) {
       name = "profile";
