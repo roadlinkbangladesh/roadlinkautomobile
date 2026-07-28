@@ -36,6 +36,7 @@ export function saveToken(token, rememberMe) {
 export function clearToken() {
   sessionStorage.removeItem("token");
   localStorage.removeItem("token");
+  sessionStorage.removeItem("mandatorySecurityAction");
   sessionStorage.removeItem("mustChangePassword");
   sessionStorage.removeItem("mustEnrollMfa");
   sessionStorage.removeItem("currentUser");
@@ -179,13 +180,21 @@ export function bindLoginEvents(onLoginSuccess) {
           localStorage.setItem("rememberMe", rememberMe);
           saveToken(res.data.token, rememberMe);
           
-          if (res.data.mustChangePassword) {
+          const mandatoryAction = res.data.mandatorySecurityAction || (res.data.mustChangePassword ? "PASSWORD_CHANGE" : (res.data.mustEnrollMfa ? "MFA_ENROLLMENT" : null));
+
+          if (mandatoryAction) {
+            sessionStorage.setItem("mandatorySecurityAction", mandatoryAction);
+          } else {
+            sessionStorage.removeItem("mandatorySecurityAction");
+          }
+
+          if (res.data.mustChangePassword || mandatoryAction === "PASSWORD_CHANGE") {
             sessionStorage.setItem("mustChangePassword", "true");
           } else {
             sessionStorage.removeItem("mustChangePassword");
           }
 
-          if (res.data.mustEnrollMfa || (res.data.mfa_required && res.data.mfa_setup_required)) {
+          if (res.data.mustEnrollMfa || mandatoryAction === "MFA_ENROLLMENT") {
             sessionStorage.setItem("mustEnrollMfa", "true");
           } else {
             sessionStorage.removeItem("mustEnrollMfa");
