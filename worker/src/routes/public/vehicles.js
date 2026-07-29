@@ -1,7 +1,7 @@
 import { success, notFound, serverError } from "../../utils/response.js";
 import { mapDbToVehicle } from "../../services/vehicle-mapper.js";
 import { VehicleRepository } from "../../repositories/vehicle-repository.js";
-import { getStorageBucket } from "../../utils/storage.js";
+import { getStorageBucket, extractObjectKey } from "../../utils/storage.js";
 
 /**
  * GET /api/v1/public/vehicles - Public Vehicle Inventory Listing
@@ -193,7 +193,7 @@ export const getPublicImage = getPublicFile;
  */
 export async function getPublicVehicleAuctionSheet(request, env, ctx, params) {
   try {
-    const vehicle = await VehicleRepository.findVehicleByIdOrStock(env.DB, params.identifier);
+    const vehicle = await VehicleRepository.findVehicleByIdOrStock(env.DB, params.identifier, { isAdmin: true });
     if (!vehicle || !vehicle.published || vehicle.archivedAt) {
       return notFound("Vehicle not found.");
     }
@@ -202,18 +202,10 @@ export async function getPublicVehicleAuctionSheet(request, env, ctx, params) {
       return notFound("Auction sheet not available for this vehicle.");
     }
 
-    let key = vehicle.auctionSheetUrl.trim();
-    if (key.startsWith("http://") || key.startsWith("https://")) {
-      if (key.includes("/uploads/")) {
-        key = key.substring(key.indexOf("uploads/"));
-      } else if (key.includes("/api/v1/public/files/")) {
-        key = key.substring(key.indexOf("/api/v1/public/files/") + "/api/v1/public/files/".length);
-      }
+    let key = extractObjectKey(vehicle.auctionSheetUrl);
+    if (!key) {
+      return notFound("Auction sheet storage key is missing or invalid.");
     }
-    if (key.startsWith("/api/v1/public/files/")) {
-      key = key.replace(/^\/api\/v1\/public\/files\//, "");
-    }
-    key = key.replace(/^\/+/, "");
 
     const bucket = getStorageBucket(env);
     if (!bucket) {
@@ -226,7 +218,13 @@ export async function getPublicVehicleAuctionSheet(request, env, ctx, params) {
     }
 
     const headers = new Headers();
-    headers.set("Cache-Control", "public, max-age=3600");
+    // Cache-Control and anti-download protective headers
+    headers.set("Cache-Control", "private, no-cache, no-store, must-revalidate");
+    headers.set("Pragma", "no-cache");
+    headers.set("Expires", "0");
+    headers.set("X-Content-Type-Options", "nosniff");
+    headers.set("X-Frame-Options", "SAMEORIGIN");
+    headers.set("Content-Security-Policy", "frame-ancestors 'self'");
 
     const ext = key.split(".").pop().toLowerCase();
     const mimeTypes = {
