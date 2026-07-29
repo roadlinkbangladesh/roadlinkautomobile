@@ -28,8 +28,8 @@ export class VehicleService {
   /**
    * Fetch a single vehicle with its images by numeric ID, stock number, or slug
    */
-  static async getVehicleByIdOrStock(db, idOrStockOrSlug) {
-    return await VehicleRepository.findVehicleByIdOrStock(db, idOrStockOrSlug);
+  static async getVehicleByIdOrStock(db, idOrStockOrSlug, options = {}) {
+    return await VehicleRepository.findVehicleByIdOrStock(db, idOrStockOrSlug, options);
   }
 
   /**
@@ -92,7 +92,7 @@ export class VehicleService {
     const vehicles = [];
     for (const row of rows) {
       const images = await VehicleRepository.findVehicleImages(db, row.id);
-      vehicles.push(mapDbToVehicle(row, images));
+      vehicles.push(mapDbToVehicle(row, images, { isAdmin: true }));
     }
 
     return {
@@ -265,14 +265,14 @@ export class VehicleService {
       });
     }
 
-    return await VehicleRepository.findVehicleByIdOrStock(env.DB, String(vehicleId));
+    return await VehicleRepository.findVehicleByIdOrStock(env.DB, String(vehicleId), { isAdmin: true });
   }
 
   /**
    * Update vehicle with Domain & Platform Policy Validation
    */
   static async updateVehicle(env, idOrStock, data, auditContext = {}) {
-    const existingVehicle = await VehicleRepository.findVehicleByIdOrStock(env.DB, idOrStock);
+    const existingVehicle = await VehicleRepository.findVehicleByIdOrStock(env.DB, idOrStock, { isAdmin: true });
     if (!existingVehicle) throw new VehicleServiceError("Vehicle not found.", "NOT_FOUND");
 
     const dbId = existingVehicle.dbId;
@@ -443,14 +443,14 @@ export class VehicleService {
       });
     }
 
-    return await VehicleRepository.findVehicleByIdOrStock(env.DB, String(dbId));
+    return await VehicleRepository.findVehicleByIdOrStock(env.DB, String(dbId), { isAdmin: true });
   }
 
   /**
    * Delete vehicle
    */
   static async deleteVehicle(env, idOrStock, auditContext = {}) {
-    const existingVehicle = await VehicleRepository.findVehicleByIdOrStock(env.DB, idOrStock);
+    const existingVehicle = await VehicleRepository.findVehicleByIdOrStock(env.DB, idOrStock, { isAdmin: true });
     if (!existingVehicle) throw new VehicleServiceError("Vehicle not found.", "NOT_FOUND");
 
     const dbId = existingVehicle.dbId;
