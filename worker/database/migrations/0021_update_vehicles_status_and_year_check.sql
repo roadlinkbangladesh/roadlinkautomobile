@@ -2,6 +2,8 @@
 
 PRAGMA foreign_keys=OFF;
 
+DROP TABLE IF EXISTS _vehicles_new;
+
 CREATE TABLE IF NOT EXISTS _vehicles_new (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     slug TEXT NOT NULL UNIQUE,
