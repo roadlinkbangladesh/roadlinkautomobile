@@ -227,16 +227,33 @@ export function bindVehicleEvents() {
     btnDetailsDelete.addEventListener("click", handleDetailsDeleteClick);
   }
 
-  // Quick actions change listeners
-  const quickStatusSelect = $("details-quick-status");
-  if (quickStatusSelect) {
-    quickStatusSelect.removeEventListener("change", handleQuickStatusChange);
-    quickStatusSelect.addEventListener("change", handleQuickStatusChange);
+  // Administration Panel change & save listeners
+  const adminStatusSelect = $("admin-panel-status");
+  if (adminStatusSelect) {
+    adminStatusSelect.removeEventListener("change", updateAdminPanelControlsState);
+    adminStatusSelect.addEventListener("change", updateAdminPanelControlsState);
   }
-  const quickPublishSelect = $("details-quick-publish");
-  if (quickPublishSelect) {
-    quickPublishSelect.removeEventListener("change", handleQuickPublishChange);
-    quickPublishSelect.addEventListener("change", handleQuickPublishChange);
+  const adminPublishSelect = $("admin-panel-publish");
+  if (adminPublishSelect) {
+    adminPublishSelect.removeEventListener("change", updateAdminPanelControlsState);
+    adminPublishSelect.addEventListener("change", updateAdminPanelControlsState);
+  }
+  const adminFeaturedChk = $("admin-panel-featured");
+  if (adminFeaturedChk) {
+    adminFeaturedChk.removeEventListener("change", updateAdminPanelControlsState);
+    adminFeaturedChk.addEventListener("change", updateAdminPanelControlsState);
+  }
+  const adminFeaturedOrderInput = $("admin-panel-featured-order");
+  if (adminFeaturedOrderInput) {
+    adminFeaturedOrderInput.removeEventListener("input", updateAdminPanelControlsState);
+    adminFeaturedOrderInput.addEventListener("input", updateAdminPanelControlsState);
+    adminFeaturedOrderInput.removeEventListener("change", updateAdminPanelControlsState);
+    adminFeaturedOrderInput.addEventListener("change", updateAdminPanelControlsState);
+  }
+  const btnAdminPanelSave = $("btn-admin-panel-save");
+  if (btnAdminPanelSave) {
+    btnAdminPanelSave.removeEventListener("click", handleAdminPanelSave);
+    btnAdminPanelSave.addEventListener("click", handleAdminPanelSave);
   }
 }
 
@@ -1485,35 +1502,39 @@ export function openVehicleDetailsModal(vehicleId) {
     }
   }
 
-  // Quick Actions / Status controls
-  const actionsPanel = $("details-actions-panel");
-  const statusCtrl = $("details-status-control");
-  const publishCtrl = $("details-publish-control");
-  const quickStatusSelect = $("details-quick-status");
-  const quickPublishSelect = $("details-quick-publish");
+  // Administration Panel controls
+  const adminPanel = $("details-admin-panel");
+  const adminStatusSelect = $("admin-panel-status");
+  const adminPublishSelect = $("admin-panel-publish");
+  const adminFeaturedChk = $("admin-panel-featured");
+  const adminFeaturedOrderInput = $("admin-panel-featured-order");
 
-  const canEdit = hasPermission("vehicles.edit");
+  const canEdit = hasPermission("vehicles.edit") || hasPermission("vehicles.update");
   const canPublish = hasPermission("vehicles.publish");
 
-  if (actionsPanel) {
+  if (adminPanel) {
     if (canEdit || canPublish) {
-      actionsPanel.style.display = "flex";
+      adminPanel.style.display = "flex";
 
-      if (canEdit && statusCtrl && quickStatusSelect) {
-        statusCtrl.style.display = "flex";
-        quickStatusSelect.value = vehicle.status;
-      } else if (statusCtrl) {
-        statusCtrl.style.display = "none";
-      }
+      const isPub = vehicle.published !== false && vehicle.isPublished !== false;
+      const isFeat = Boolean(vehicle.featured || vehicle.isFeatured);
+      const featPos = vehicle.featuredPosition || vehicle.featured_position || 1;
 
-      if (canPublish && publishCtrl && quickPublishSelect) {
-        publishCtrl.style.display = "flex";
-        quickPublishSelect.value = vehicle.published !== false ? "published" : "draft";
-      } else if (publishCtrl) {
-        publishCtrl.style.display = "none";
-      }
+      if (adminStatusSelect) adminStatusSelect.value = vehicle.status;
+      if (adminPublishSelect) adminPublishSelect.value = isPub ? "published" : "draft";
+      if (adminFeaturedChk) adminFeaturedChk.checked = isFeat;
+      if (adminFeaturedOrderInput) adminFeaturedOrderInput.value = featPos;
+
+      initialAdminState = {
+        status: vehicle.status,
+        published: isPub,
+        featured: isFeat,
+        featuredOrder: featPos
+      };
+
+      updateAdminPanelControlsState();
     } else {
-      actionsPanel.style.display = "none";
+      adminPanel.style.display = "none";
     }
   }
 
@@ -1568,45 +1589,104 @@ function handleDetailsDeleteClick() {
   }
 }
 
-/**
- * Instantly updates vehicle status from details modal controls.
- */
-async function handleQuickStatusChange(e) {
-  if (!activeDetailsVehicleId) return;
-  const newStatus = e.target.value;
-  try {
-    await updateVehicleStatusAsync(activeDetailsVehicleId, { status: newStatus });
-    showQuickSaveFeedback();
-    renderVehicleTable();
-    initDashboard();
+let initialAdminState = {
+  status: "available",
+  published: true,
+  featured: false,
+  featuredOrder: 1
+};
 
-    const vehicle = getAllVehicles().find(v => v.id === activeDetailsVehicleId);
-    if (vehicle) {
-      updateDetailsModalBadges(vehicle);
-    }
-  } catch (err) {
-    alert("Failed to update status in DB: " + err.message);
+/**
+ * Checks if current admin panel values differ from initial values and toggles Save button and Order field state.
+ */
+function updateAdminPanelControlsState() {
+  const statusEl = $("admin-panel-status");
+  const publishEl = $("admin-panel-publish");
+  const featuredEl = $("admin-panel-featured");
+  const orderEl = $("admin-panel-featured-order");
+  const orderContainer = $("admin-panel-order-container");
+  const saveBtn = $("btn-admin-panel-save");
+
+  if (!statusEl || !publishEl || !featuredEl || !orderEl || !saveBtn) return;
+
+  const isFeatured = featuredEl.checked;
+  orderEl.disabled = !isFeatured;
+  if (orderContainer) {
+    orderContainer.style.opacity = isFeatured ? "1" : "0.5";
   }
+
+  const curStatus = statusEl.value;
+  const curPublished = publishEl.value === "published";
+  const curFeatured = featuredEl.checked;
+  const curOrder = parseInt(orderEl.value || "1", 10);
+
+  const isChanged = (
+    curStatus !== initialAdminState.status ||
+    curPublished !== initialAdminState.published ||
+    curFeatured !== initialAdminState.featured ||
+    (curFeatured && curOrder !== initialAdminState.featuredOrder)
+  );
+
+  saveBtn.disabled = !isChanged;
+  saveBtn.style.opacity = isChanged ? "1" : "0.5";
+  saveBtn.style.cursor = isChanged ? "pointer" : "not-allowed";
 }
 
 /**
- * Instantly updates vehicle publication state from details modal controls.
+ * Saves administrative changes made in the details modal.
  */
-async function handleQuickPublishChange(e) {
+async function handleAdminPanelSave() {
   if (!activeDetailsVehicleId) return;
-  const pubValue = e.target.value === "published";
+
+  const statusEl = $("admin-panel-status");
+  const publishEl = $("admin-panel-publish");
+  const featuredEl = $("admin-panel-featured");
+  const orderEl = $("admin-panel-featured-order");
+
+  if (!statusEl || !publishEl || !featuredEl || !orderEl) return;
+
+  const newStatus = statusEl.value;
+  const newPublished = publishEl.value === "published";
+  const newFeatured = featuredEl.checked;
+  const newOrder = parseInt(orderEl.value || "1", 10);
+
   try {
-    await updateVehicleStatusAsync(activeDetailsVehicleId, { published: pubValue });
-    showQuickSaveFeedback();
+    const saveBtn = $("btn-admin-panel-save");
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.style.opacity = "0.5";
+    }
+
+    await updateVehicleStatusAsync(activeDetailsVehicleId, {
+      status: newStatus,
+      published: newPublished,
+      featured: newFeatured,
+      featuredPosition: newOrder
+    });
+
+    // Refresh memory data and views
+    await loadAdminVehiclesAsync();
     renderVehicleTable();
     initDashboard();
 
-    const vehicle = getAllVehicles().find(v => v.id === activeDetailsVehicleId);
+    // Refresh initial state to new saved values
+    initialAdminState = {
+      status: newStatus,
+      published: newPublished,
+      featured: newFeatured,
+      featuredOrder: newOrder
+    };
+
+    updateAdminPanelControlsState();
+    showQuickSaveFeedback();
+
+    const vehicle = getAllVehicles().find(v => String(v.id) === String(activeDetailsVehicleId));
     if (vehicle) {
       updateDetailsModalBadges(vehicle);
     }
   } catch (err) {
-    alert("Failed to update publish state in DB: " + err.message);
+    alert("Failed to save administrative changes: " + err.message);
+    updateAdminPanelControlsState();
   }
 }
 
