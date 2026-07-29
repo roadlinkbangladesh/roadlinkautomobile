@@ -1,7 +1,6 @@
 import { success, notFound, serverError } from "../../utils/response.js";
-import { mapDbToVehicle } from "../../services/vehicle-mapper.js";
-import { VehicleRepository } from "../../repositories/vehicle-repository.js";
-import { getStorageBucket, extractObjectKey } from "../../utils/storage.js";
+import { VehicleService, VehicleServiceError } from "../../services/vehicle-service.js";
+import { getStorageBucket } from "../../utils/storage.js";
 
 /**
  * GET /api/v1/public/vehicles - Public Vehicle Inventory Listing
@@ -9,105 +8,21 @@ import { getStorageBucket, extractObjectKey } from "../../utils/storage.js";
 export async function listPublicVehicles(request, env) {
   try {
     const url = new URL(request.url);
-    const search = (url.searchParams.get("search") || "").trim();
-    const category = (url.searchParams.get("category") || url.searchParams.get("bodyType") || "all").toLowerCase();
-    const make = (url.searchParams.get("make") || "all").toLowerCase();
-    const status = url.searchParams.get("status");
-    const featured = url.searchParams.get("featured");
-    const includeSold = url.searchParams.get("includeSold") === "true";
-    const sort = url.searchParams.get("sort") || "order-asc";
-    const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+    const queryParams = {
+      search: url.searchParams.get("search") || "",
+      category: url.searchParams.get("category") || url.searchParams.get("bodyType") || "all",
+      make: url.searchParams.get("make") || "all",
+      status: url.searchParams.get("status"),
+      featured: url.searchParams.get("featured"),
+      includeSold: url.searchParams.get("includeSold"),
+      sort: url.searchParams.get("sort") || "order-asc",
+      page: url.searchParams.get("page") || "1",
+      limit: url.searchParams.get("limit") || "100",
+      hasLimit: url.searchParams.has("limit")
+    };
 
-    // Fetch settings for sold vehicles and featured limit defaults
-    const settings = await env.DB.prepare(`SELECT show_sold_vehicles, featured_vehicles_limit FROM settings WHERE id = 1`).first();
-    const showSoldVehicles = Boolean(settings?.show_sold_vehicles);
-    const featuredLimit = Math.min(9, Math.max(1, settings?.featured_vehicles_limit || 6));
-
-    let limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || "100", 10)));
-    if ((featured === "true" || featured === "1") && !url.searchParams.has("limit")) {
-      limit = featuredLimit;
-    }
-
-    let sqlWhere = [`is_published = 1 AND archived_at IS NULL`];
-    let params = [];
-
-    // Include sold vehicles ONLY if global website setting allows it AND client requested them (or filtered by status=sold)
-    if (!showSoldVehicles) {
-      sqlWhere.push(`LOWER(status) != 'sold'`);
-    } else if (!includeSold && (!status || status.toLowerCase() !== "sold")) {
-      sqlWhere.push(`LOWER(status) != 'sold'`);
-    }
-    if (search) {
-      sqlWhere.push(`(
-        LOWER(stock_number) LIKE ? OR
-        LOWER(make) LIKE ? OR
-        LOWER(model) LIKE ? OR
-        LOWER(grade) LIKE ? OR
-        LOWER(color) LIKE ? OR
-        LOWER(transmission) LIKE ? OR
-        LOWER(fuel_type) LIKE ? OR
-        LOWER(short_description) LIKE ? OR
-        CAST(year AS TEXT) LIKE ?
-      )`);
-      const term = `%${search.toLowerCase()}%`;
-      params.push(term, term, term, term, term, term, term, term, term);
-    }
-
-    if (category && category !== "all") {
-      if (category === "sedan") {
-        sqlWhere.push(`LOWER(body_type) = 'sedan'`);
-      } else if (category === "suv") {
-        sqlWhere.push(`(LOWER(body_type) = 'suv' OR LOWER(body_type) = 'crossover')`);
-      } else {
-        sqlWhere.push(`LOWER(body_type) = LOWER(?)`);
-        params.push(category);
-      }
-    }
-
-    if (make && make !== "all") {
-      sqlWhere.push(`LOWER(make) = LOWER(?)`);
-      params.push(make);
-    }
-
-    if (status) {
-      sqlWhere.push(`LOWER(status) = LOWER(?)`);
-      params.push(status);
-    }
-
-    if (featured === "true" || featured === "1") {
-      sqlWhere.push(`is_featured = 1`);
-    }
-
-    const whereClause = `WHERE ${sqlWhere.join(" AND ")}`;
-
-    let orderBy = "ORDER BY display_order ASC, created_at DESC";
-    if (featured === "true" || featured === "1") {
-      orderBy = "ORDER BY CASE WHEN featured_position > 0 THEN featured_position ELSE 999 END ASC, display_order ASC, created_at DESC";
-    } else if (sort === "price-asc") orderBy = "ORDER BY price ASC";
-    else if (sort === "price-desc") orderBy = "ORDER BY price DESC";
-    else if (sort === "year-desc") orderBy = "ORDER BY year DESC";
-    else if (sort === "date-desc") orderBy = "ORDER BY created_at DESC";
-
-    const totalItems = await VehicleRepository.countVehicles(env.DB, whereClause, params);
-
-    const offset = (page - 1) * limit;
-    const rows = await VehicleRepository.findVehicles(env.DB, whereClause, orderBy, params, limit, offset);
-
-    const vehicles = [];
-    for (const row of rows) {
-      const images = await VehicleRepository.findVehicleImages(env.DB, row.id);
-      vehicles.push(mapDbToVehicle(row, images));
-    }
-
-    return success({
-      items: vehicles,
-      pagination: {
-        page,
-        limit,
-        totalItems,
-        totalPages: Math.ceil(totalItems / limit) || 1
-      }
-    });
+    const result = await VehicleService.listPublicVehicles(env, queryParams);
+    return success(result);
   } catch (error) {
     console.error("List public vehicles error:", error);
     return serverError("Failed to fetch vehicles.");
@@ -119,8 +34,8 @@ export async function listPublicVehicles(request, env) {
  */
 export async function getPublicVehicle(request, env, ctx, params) {
   try {
-    const vehicle = await VehicleRepository.findVehicleByIdOrStock(env.DB, params.identifier);
-    if (!vehicle || !vehicle.published || vehicle.archivedAt) {
+    const vehicle = await VehicleService.getPublicVehicle(env.DB, params.identifier);
+    if (!vehicle) {
       return notFound("Vehicle not found.");
     }
     return success(vehicle);
@@ -193,19 +108,7 @@ export const getPublicImage = getPublicFile;
  */
 export async function getPublicVehicleAuctionSheet(request, env, ctx, params) {
   try {
-    const vehicle = await VehicleRepository.findVehicleByIdOrStock(env.DB, params.identifier, { isAdmin: true });
-    if (!vehicle || !vehicle.published || vehicle.archivedAt) {
-      return notFound("Vehicle not found.");
-    }
-
-    if (!vehicle.auctionSheetAvailable || !vehicle.auctionSheetUrl) {
-      return notFound("Auction sheet not available for this vehicle.");
-    }
-
-    let key = extractObjectKey(vehicle.auctionSheetUrl);
-    if (!key) {
-      return notFound("Auction sheet storage key is missing or invalid.");
-    }
+    const { vehicle, key } = await VehicleService.getPublicAuctionSheetInfo(env, params.identifier);
 
     const bucket = getStorageBucket(env);
     if (!bucket) {
@@ -269,7 +172,11 @@ export async function getPublicVehicleAuctionSheet(request, env, ctx, params) {
 
     return new Response(object.body, { headers });
   } catch (error) {
+    if (error instanceof VehicleServiceError && error.type === "NOT_FOUND") {
+      return notFound(error.message);
+    }
     console.error("Get public vehicle auction sheet error:", error);
     return notFound("Auction sheet not found.");
   }
 }
+
