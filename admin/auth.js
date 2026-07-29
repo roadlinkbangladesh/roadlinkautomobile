@@ -214,6 +214,8 @@ export function bindLoginEvents(onLoginSuccess) {
             sessionStorage.removeItem("currentUser");
           }
 
+          sessionStorage.setItem("is_fresh_login", "true");
+          sessionStorage.removeItem("redirect_route");
           sessionStorage.removeItem("active_admin_module");
           if (onLoginSuccess) onLoginSuccess();
         } else if (res.data.mfa_required && !res.data.mfa_setup_required) {
@@ -322,6 +324,8 @@ export function bindLoginEvents(onLoginSuccess) {
             sessionStorage.setItem("currentUser", JSON.stringify(res.data.user));
           }
 
+          sessionStorage.setItem("is_fresh_login", "true");
+          sessionStorage.removeItem("redirect_route");
           sessionStorage.removeItem("active_admin_module");
           if (onLoginSuccess) onLoginSuccess();
         } else {
