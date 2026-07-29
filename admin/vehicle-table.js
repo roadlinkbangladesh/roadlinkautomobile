@@ -408,23 +408,15 @@ export function renderVehicleTable() {
     let actionButtonsHtml = "";
     if (canView) {
       actionButtonsHtml += `
-        <button class="btn-action-view btn btn-view-site" data-id="${v.id}" title="View Details" style="padding: 5px 10px; font-size: 0.8rem; font-weight: 600; border-radius: var(--radius-sm); background: var(--bg-white); border: 1.5px solid var(--border-color); margin: 0; color: var(--text-dark); display: inline-flex; align-items: center; gap: 5px;">
+        <button class="btn-action-view btn btn-view-site" data-id="${v.id}" title="View Details" style="padding: 5px 12px; font-size: 0.8rem; font-weight: 600; border-radius: var(--radius-sm); background: var(--bg-white); border: 1.5px solid var(--border-color); margin: 0; color: var(--text-dark); display: inline-flex; align-items: center; gap: 5px;">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-blue);"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0z"/><circle cx="12" cy="12" r="3"/></svg>
-          View
-        </button>
-      `;
-    }
-    if (canEdit) {
-      actionButtonsHtml += `
-        <button class="btn-action-edit" data-id="${v.id}" title="Edit Vehicle" style="padding: 5px 10px; font-size: 0.8rem;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-edit-2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-          Edit
+          Details
         </button>
       `;
     }
     if (canDelete) {
       actionButtonsHtml += `
-        <button class="btn-action-delete" data-id="${v.id}" title="Delete Vehicle" style="padding: 5px 10px; font-size: 0.8rem;">
+        <button class="btn-action-delete" data-id="${v.id}" title="Delete Vehicle" style="padding: 5px 12px; font-size: 0.8rem;">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
           Delete
         </button>
@@ -437,6 +429,25 @@ export function renderVehicleTable() {
       ? `<span class="badge" style="padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; background: rgba(249, 115, 22, 0.1); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.25); display: inline-flex; align-items: center; gap: 4px;">⭐ #${featuredPos > 0 ? featuredPos : 1}</span>`
       : `<span style="color: var(--text-muted); font-size: 0.85rem; font-weight: 500;">—</span>`;
 
+    const vehicleStatusText = v.status === "pending" ? "reserved" : (v.status || "available");
+
+    const statusCellHtml = `
+      <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start; font-size: 0.8rem;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; width: 72px;">Vehicle:</span>
+          <span class="badge" style="padding: 2px 8px; border-radius: var(--radius-full); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; ${statusStyle}">
+            ${vehicleStatusText}
+          </span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; width: 72px;">Publication:</span>
+          <span class="badge" style="padding: 2px 8px; border-radius: var(--radius-full); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; ${publishedStyle}">
+            ${publishedText}
+          </span>
+        </div>
+      </div>
+    `;
+
     row.innerHTML = `
       <td>
         <img src="${thumbnailSrc}" alt="${v.make} ${v.model}" class="thumb-img" referrerpolicy="no-referrer" data-id="${v.id}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800';">
@@ -445,17 +456,10 @@ export function renderVehicleTable() {
       <td style="font-weight: 600; font-family: var(--font-display);">${vehicleName}</td>
       <td style="font-weight: 700; color: var(--primary-blue); font-family: var(--font-mono);">${formattedPrice}</td>
       <td>
-        <span class="badge" style="padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; ${statusStyle}">
-          ${v.status === "pending" ? "reserved" : v.status}
-        </span>
+        ${statusCellHtml}
       </td>
       <td>
         ${featuredSummaryHtml}
-      </td>
-      <td>
-        <span class="badge" style="padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; ${publishedStyle}">
-          ${publishedText}
-        </span>
       </td>
       <td>
         <div class="action-buttons" style="gap: 8px; align-items: center;">
