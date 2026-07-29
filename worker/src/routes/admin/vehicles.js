@@ -15,105 +15,16 @@ import {
 } from "../../utils/validator.js";
 import { purgeArchivedVehicleMedia } from "../../services/vehicle-lifecycle.js";
 import { deleteSupersededMedia } from "../../services/orphan-cleanup.js";
+import { mapDbToVehicle } from "../../services/vehicle-mapper.js";
+import { VehicleRepository } from "../../repositories/vehicle-repository.js";
 
-/**
- * Helper to map DB vehicle row and vehicle_images rows into frontend vehicle object
- */
-export function mapDbToVehicle(row, images = []) {
-  if (!row) return null;
-
-  const exteriorImages = images.filter(i => i.image_type === "exterior").map(i => resolveFileUrl(i.image_url));
-  const interiorImages = images.filter(i => i.image_type === "interior").map(i => resolveFileUrl(i.image_url));
-  const auctionImages = images.filter(i => i.image_type === "auction").map(i => resolveFileUrl(i.image_url));
-  const allImageUrls = images.map(i => resolveFileUrl(i.image_url));
-
-  let parsedFeatures = [];
-  if (row.features) {
-    try {
-      parsedFeatures = JSON.parse(row.features);
-    } catch (e) {
-      parsedFeatures = String(row.features).split(",").map(f => f.trim()).filter(Boolean);
-    }
-  }
-
-  const defaultFallback = "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
-  const cover = exteriorImages[0] || allImageUrls[0] || defaultFallback;
-
-  // Resolve auction sheet URL and enforce auctionSheetAvailable logic
-  const rawSheet = row.auction_sheet_url || (auctionImages[0] || "");
-  const resolvedSheetUrl = resolveFileUrl(rawSheet);
-  const hasAuctionSheet = Boolean(rawSheet && rawSheet.trim() !== "");
-  const auctionSheetAvailable = Boolean(row.auction_sheet_available) && hasAuctionSheet;
-
-  return {
-    id: String(row.id),
-    dbId: row.id,
-    displayOrder: row.display_order ?? 0,
-    featuredPosition: row.featured_position ?? 0,
-    isNewArrival: Boolean(row.is_new_arrival),
-    slug: row.slug,
-    stockNumber: row.stock_number,
-    featured: Boolean(row.is_featured),
-    published: Boolean(row.is_published),
-    status: row.status,
-    make: row.make,
-    model: row.model,
-    grade: row.grade || "",
-    year: row.year,
-    mileage: row.mileage ?? 0,
-    engineCC: row.engine_cc ?? 0,
-    fuel: row.fuel || "",
-    transmission: row.transmission || "",
-    drive: row.drive || "",
-    bodyType: row.body_type || "",
-    exteriorColor: row.exterior_color || "",
-    interiorColor: row.interior_color || "",
-    seats: row.seats ?? 5,
-    doors: row.doors ?? 4,
-    chassisNumber: row.chassis_number || "",
-    registration: row.registration || "",
-    steering: row.steering || "",
-    accidentHistory: row.accident_history || "None",
-    purchasePrice: row.purchase_price ?? 0,
-    price: row.price ?? 0,
-    currency: row.currency || "BDT",
-    negotiable: Boolean(row.negotiable),
-    shortDescription: row.short_description || "",
-    description: row.description || "",
-    features: parsedFeatures,
-    auctionGrade: row.auction_grade || "",
-    auctionSheetAvailable,
-    auctionSheetUrl: resolvedSheetUrl,
-    youtubeUrl: row.youtube_url || "",
-    arrivalDate: row.arrival_date || "",
-    archivedAt: row.archived_at || null,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    images: allImageUrls.length > 0 ? allImageUrls : [cover],
-    exteriorImages: exteriorImages.length > 0 ? exteriorImages : [cover],
-    interiorImages: interiorImages,
-    coverImage: cover,
-    posterImage: cover
-  };
-}
+export { mapDbToVehicle };
 
 /**
  * Fetch a single vehicle with its images by numeric ID, stock number, or slug
  */
 export async function getVehicleByIdOrStock(db, idOrStockOrSlug) {
-  let row = null;
-  if (/^\d+$/.test(idOrStockOrSlug)) {
-    row = await db.prepare(`SELECT * FROM vehicles WHERE id = ?`).bind(parseInt(idOrStockOrSlug, 10)).first();
-  }
-  if (!row) {
-    row = await db.prepare(`SELECT * FROM vehicles WHERE LOWER(stock_number) = LOWER(?) OR LOWER(slug) = LOWER(?)`).bind(idOrStockOrSlug, idOrStockOrSlug).first();
-  }
-  if (!row) return null;
-
-  const imagesRes = await db.prepare(`SELECT * FROM vehicle_images WHERE vehicle_id = ? ORDER BY display_order ASC, id ASC`).bind(row.id).all();
-  const images = imagesRes?.results || [];
-
-  return mapDbToVehicle(row, images);
+  return await VehicleRepository.findVehicleByIdOrStock(db, idOrStockOrSlug);
 }
 
 /**
@@ -176,18 +87,15 @@ export async function listAdminVehicles(request, env) {
     else if (sort === "stock-asc") orderBy = "ORDER BY stock_number ASC";
     else if (sort === "date-asc") orderBy = "ORDER BY created_at ASC";
 
-    const countRes = await env.DB.prepare(`SELECT COUNT(*) as total FROM vehicles ${whereClause}`).bind(...params).first();
-    const totalItems = countRes?.total || 0;
+    const totalItems = await VehicleRepository.countVehicles(env.DB, whereClause, params);
 
     const offset = (page - 1) * limit;
-    const query = `SELECT * FROM vehicles ${whereClause} ${orderBy} LIMIT ? OFFSET ?`;
-    const rowsRes = await env.DB.prepare(query).bind(...params, limit, offset).all();
-    const rows = rowsRes?.results || [];
+    const rows = await VehicleRepository.findVehicles(env.DB, whereClause, orderBy, params, limit, offset);
 
     const vehicles = [];
     for (const row of rows) {
-      const imgRes = await env.DB.prepare(`SELECT * FROM vehicle_images WHERE vehicle_id = ? ORDER BY display_order ASC, id ASC`).bind(row.id).all();
-      vehicles.push(mapDbToVehicle(row, imgRes?.results || []));
+      const images = await VehicleRepository.findVehicleImages(env.DB, row.id);
+      vehicles.push(mapDbToVehicle(row, images));
     }
 
     return success({
@@ -213,7 +121,7 @@ export async function getAdminVehicle(request, env, ctx, params) {
   if (auth.errorResponse) return auth.errorResponse;
 
   try {
-    const vehicle = await getVehicleByIdOrStock(env.DB, params.id);
+    const vehicle = await VehicleRepository.findVehicleByIdOrStock(env.DB, params.id);
     if (!vehicle) return notFound("Vehicle not found.");
     return success(vehicle);
   } catch (error) {
@@ -262,7 +170,7 @@ export async function createAdminVehicle(request, env) {
     }
 
     // 3. Case-Insensitive Uniqueness Check for Stock Number
-    const existingStock = await env.DB.prepare(`SELECT id FROM vehicles WHERE LOWER(stock_number) = LOWER(?)`).bind(data.stockNumber.trim()).first();
+    const existingStock = await VehicleRepository.findByStockNumber(env.DB, data.stockNumber.trim());
     if (existingStock) {
       return badRequest(`Stock number "${data.stockNumber}" already exists.`);
     }
@@ -276,7 +184,7 @@ export async function createAdminVehicle(request, env) {
     const slugErr = validateSlug(slug);
     if (slugErr) return validationError(slugErr);
 
-    const existingSlug = await env.DB.prepare(`SELECT id FROM vehicles WHERE LOWER(slug) = LOWER(?)`).bind(slug).first();
+    const existingSlug = await VehicleRepository.findBySlug(env.DB, slug);
     if (existingSlug) {
       slug = `${slug}-${Math.floor(100 + Math.random() * 900)}`;
     }
@@ -298,42 +206,49 @@ export async function createAdminVehicle(request, env) {
     const sheetKey = extractObjectKey(rawSheet);
     const sheetAvailable = sheetKey !== "" && data.auctionSheetAvailable ? 1 : 0;
 
-    const result = await env.DB.prepare(`
-      INSERT INTO vehicles (
-        slug, stock_number, make, model, year, status, is_published, is_featured, featured_position, is_new_arrival,
-        display_order, grade, auction_grade, mileage, engine_cc, transmission,
-        fuel, drive, body_type, exterior_color, interior_color, seats, doors,
-        chassis_number, registration, steering, accident_history, purchase_price,
-        price, currency, negotiable, short_description, description, features,
-        auction_sheet_available, auction_sheet_url, youtube_url, arrival_date,
-        archived_at, created_at, updated_at
-      ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?,
-        ?, ?, ?
-      )
-    `).bind(
-      slug, data.stockNumber.trim(), data.make.trim(), data.model.trim(), parseInt(data.year, 10), status,
-      data.published !== false ? 1 : 0, isFeatured,
-      data.featuredPosition !== undefined ? parseInt(data.featuredPosition, 10) : 0,
-      data.isNewArrival ? 1 : 0,
-      parseInt(data.displayOrder || 0, 10), data.grade || "", data.auctionGrade || "",
-      data.mileage ? parseInt(data.mileage, 10) : 0, data.engineCC ? parseInt(data.engineCC, 10) : 0,
-      data.transmission || "", data.fuel || "", data.drive || "", data.bodyType || "",
-      data.exteriorColor || "", data.interiorColor || "",
-      data.seats ? parseInt(data.seats, 10) : 5, data.doors ? parseInt(data.doors, 10) : 4,
-      data.chassisNumber || "", data.registration || "", data.steering || "",
-      data.accidentHistory || "None", data.purchasePrice ? parseFloat(data.purchasePrice) : 0,
-      parseFloat(data.price), data.currency || "BDT", data.negotiable ? 1 : 0,
-      data.shortDescription || "", data.description || "", featuresJson,
-      sheetAvailable, sheetKey,
-      data.youtubeUrl || "", data.arrivalDate || "",
-      archivedAt, now, now
-    ).run();
+    const result = await VehicleRepository.insertVehicle(env.DB, {
+      slug,
+      stockNumber: data.stockNumber.trim(),
+      make: data.make.trim(),
+      model: data.model.trim(),
+      year: parseInt(data.year, 10),
+      status,
+      isPublished: data.published !== false ? 1 : 0,
+      isFeatured,
+      featuredPosition: data.featuredPosition !== undefined ? parseInt(data.featuredPosition, 10) : 0,
+      isNewArrival: data.isNewArrival ? 1 : 0,
+      displayOrder: parseInt(data.displayOrder || 0, 10),
+      grade: data.grade || "",
+      auctionGrade: data.auctionGrade || "",
+      mileage: data.mileage ? parseInt(data.mileage, 10) : 0,
+      engineCC: data.engineCC ? parseInt(data.engineCC, 10) : 0,
+      transmission: data.transmission || "",
+      fuel: data.fuel || "",
+      drive: data.drive || "",
+      bodyType: data.bodyType || "",
+      exteriorColor: data.exteriorColor || "",
+      interiorColor: data.interiorColor || "",
+      seats: data.seats ? parseInt(data.seats, 10) : 5,
+      doors: data.doors ? parseInt(data.doors, 10) : 4,
+      chassisNumber: data.chassisNumber || "",
+      registration: data.registration || "",
+      steering: data.steering || "",
+      accidentHistory: data.accidentHistory || "None",
+      purchasePrice: data.purchasePrice ? parseFloat(data.purchasePrice) : 0,
+      price: parseFloat(data.price),
+      currency: data.currency || "BDT",
+      negotiable: data.negotiable ? 1 : 0,
+      shortDescription: data.shortDescription || "",
+      description: data.description || "",
+      featuresJson,
+      auctionSheetAvailable: sheetAvailable,
+      auctionSheetUrl: sheetKey,
+      youtubeUrl: data.youtubeUrl || "",
+      arrivalDate: data.arrivalDate || "",
+      archivedAt,
+      createdAt: now,
+      updatedAt: now
+    });
 
     const vehicleId = result.meta.last_row_id;
 
@@ -342,10 +257,7 @@ export async function createAdminVehicle(request, env) {
     for (const url of extImages) {
       const cleanKey = extractObjectKey(url);
       if (cleanKey) {
-        await env.DB.prepare(`
-          INSERT INTO vehicle_images (vehicle_id, image_type, image_url, display_order, created_at)
-          VALUES (?, 'exterior', ?, ?, ?)
-        `).bind(vehicleId, cleanKey, order++, now).run();
+        await VehicleRepository.insertVehicleImage(env.DB, vehicleId, "exterior", cleanKey, order++, now);
       }
     }
 
@@ -354,10 +266,7 @@ export async function createAdminVehicle(request, env) {
     for (const url of intImages) {
       const cleanKey = extractObjectKey(url);
       if (cleanKey) {
-        await env.DB.prepare(`
-          INSERT INTO vehicle_images (vehicle_id, image_type, image_url, display_order, created_at)
-          VALUES (?, 'interior', ?, ?, ?)
-        `).bind(vehicleId, cleanKey, order++, now).run();
+        await VehicleRepository.insertVehicleImage(env.DB, vehicleId, "interior", cleanKey, order++, now);
       }
     }
 
@@ -378,7 +287,7 @@ export async function createAdminVehicle(request, env) {
       details: JSON.stringify({ stockNumber: data.stockNumber, make: data.make, model: data.model, status })
     });
 
-    const createdVehicle = await getVehicleByIdOrStock(env.DB, String(vehicleId));
+    const createdVehicle = await VehicleRepository.findVehicleByIdOrStock(env.DB, String(vehicleId));
     return created(createdVehicle, "Vehicle created successfully.");
   } catch (error) {
     console.error("Create admin vehicle error:", error);
@@ -397,7 +306,7 @@ export async function updateAdminVehicle(request, env, ctx, params) {
   const config = await platformConfig.getConfig(env);
 
   try {
-    const existingVehicle = await getVehicleByIdOrStock(env.DB, params.id);
+    const existingVehicle = await VehicleRepository.findVehicleByIdOrStock(env.DB, params.id);
     if (!existingVehicle) return notFound("Vehicle not found.");
 
     const dbId = existingVehicle.dbId;
@@ -410,7 +319,7 @@ export async function updateAdminVehicle(request, env, ctx, params) {
       const stockErr = validateStockNumber(newStockNumber);
       if (stockErr) return validationError(stockErr);
 
-      const dupe = await env.DB.prepare(`SELECT id FROM vehicles WHERE LOWER(stock_number) = LOWER(?) AND id != ?`).bind(newStockNumber, dbId).first();
+      const dupe = await VehicleRepository.findByStockNumber(env.DB, newStockNumber, dbId);
       if (dupe) {
         return badRequest(`Stock number "${newStockNumber}" is already in use by another vehicle.`);
       }
@@ -459,67 +368,53 @@ export async function updateAdminVehicle(request, env, ctx, params) {
       archivedAt = null;
     }
 
-    await env.DB.prepare(`
-      UPDATE vehicles SET
-        stock_number = ?, make = ?, model = ?, year = ?, status = ?,
-        is_published = ?, is_featured = ?, featured_position = ?, is_new_arrival = ?, display_order = ?, grade = ?,
-        auction_grade = ?, mileage = ?, engine_cc = ?, transmission = ?,
-        fuel = ?, drive = ?, body_type = ?, exterior_color = ?, interior_color = ?,
-        seats = ?, doors = ?, chassis_number = ?, registration = ?, steering = ?,
-        accident_history = ?, purchase_price = ?, price = ?, currency = ?,
-        negotiable = ?, short_description = ?, description = ?, features = ?,
-        auction_sheet_available = ?, auction_sheet_url = ?, youtube_url = ?,
-        arrival_date = ?, archived_at = ?, updated_at = ?
-      WHERE id = ?
-    `).bind(
-      newStockNumber,
-      (data.make || existingVehicle.make).trim(),
-      (data.model || existingVehicle.model).trim(),
-      data.year ? parseInt(data.year, 10) : existingVehicle.year,
-      newStatus,
-      data.published !== undefined ? (data.published ? 1 : 0) : (existingVehicle.published ? 1 : 0),
-      newFeatured,
-      data.featuredPosition !== undefined ? parseInt(data.featuredPosition, 10) : existingVehicle.featuredPosition,
-      data.isNewArrival !== undefined ? (data.isNewArrival ? 1 : 0) : (existingVehicle.isNewArrival ? 1 : 0),
-      data.displayOrder !== undefined ? parseInt(data.displayOrder, 10) : existingVehicle.displayOrder,
-      data.grade !== undefined ? data.grade : existingVehicle.grade,
-      data.auctionGrade !== undefined ? data.auctionGrade : existingVehicle.auctionGrade,
-      data.mileage !== undefined ? parseInt(data.mileage, 10) : existingVehicle.mileage,
-      data.engineCC !== undefined ? parseInt(data.engineCC, 10) : existingVehicle.engineCC,
-      data.transmission !== undefined ? data.transmission : existingVehicle.transmission,
-      data.fuel !== undefined ? data.fuel : existingVehicle.fuel,
-      data.drive !== undefined ? data.drive : existingVehicle.drive,
-      data.bodyType !== undefined ? data.bodyType : existingVehicle.bodyType,
-      data.exteriorColor !== undefined ? data.exteriorColor : existingVehicle.exteriorColor,
-      data.interiorColor !== undefined ? data.interiorColor : existingVehicle.interiorColor,
-      data.seats !== undefined ? parseInt(data.seats, 10) : existingVehicle.seats,
-      data.doors !== undefined ? parseInt(data.doors, 10) : existingVehicle.doors,
-      data.chassisNumber !== undefined ? data.chassisNumber : existingVehicle.chassisNumber,
-      data.registration !== undefined ? data.registration : existingVehicle.registration,
-      data.steering !== undefined ? data.steering : existingVehicle.steering,
-      data.accidentHistory !== undefined ? data.accidentHistory : existingVehicle.accidentHistory,
-      data.purchasePrice !== undefined ? parseFloat(data.purchasePrice) : existingVehicle.purchasePrice,
-      data.price !== undefined ? parseFloat(data.price) : existingVehicle.price,
-      data.currency || existingVehicle.currency || "BDT",
-      data.negotiable !== undefined ? (data.negotiable ? 1 : 0) : (existingVehicle.negotiable ? 1 : 0),
-      data.shortDescription !== undefined ? data.shortDescription : existingVehicle.shortDescription,
-      data.description !== undefined ? data.description : existingVehicle.description,
+    await VehicleRepository.updateVehicle(env.DB, dbId, {
+      stockNumber: newStockNumber,
+      make: (data.make || existingVehicle.make).trim(),
+      model: (data.model || existingVehicle.model).trim(),
+      year: data.year ? parseInt(data.year, 10) : existingVehicle.year,
+      status: newStatus,
+      isPublished: data.published !== undefined ? (data.published ? 1 : 0) : (existingVehicle.published ? 1 : 0),
+      isFeatured: newFeatured,
+      featuredPosition: data.featuredPosition !== undefined ? parseInt(data.featuredPosition, 10) : existingVehicle.featuredPosition,
+      isNewArrival: data.isNewArrival !== undefined ? (data.isNewArrival ? 1 : 0) : (existingVehicle.isNewArrival ? 1 : 0),
+      displayOrder: data.displayOrder !== undefined ? parseInt(data.displayOrder, 10) : existingVehicle.displayOrder,
+      grade: data.grade !== undefined ? data.grade : existingVehicle.grade,
+      auctionGrade: data.auctionGrade !== undefined ? data.auctionGrade : existingVehicle.auctionGrade,
+      mileage: data.mileage !== undefined ? parseInt(data.mileage, 10) : existingVehicle.mileage,
+      engineCC: data.engineCC !== undefined ? parseInt(data.engineCC, 10) : existingVehicle.engineCC,
+      transmission: data.transmission !== undefined ? data.transmission : existingVehicle.transmission,
+      fuel: data.fuel !== undefined ? data.fuel : existingVehicle.fuel,
+      drive: data.drive !== undefined ? data.drive : existingVehicle.drive,
+      bodyType: data.bodyType !== undefined ? data.bodyType : existingVehicle.bodyType,
+      exteriorColor: data.exteriorColor !== undefined ? data.exteriorColor : existingVehicle.exteriorColor,
+      interiorColor: data.interiorColor !== undefined ? data.interiorColor : existingVehicle.interiorColor,
+      seats: data.seats !== undefined ? parseInt(data.seats, 10) : existingVehicle.seats,
+      doors: data.doors !== undefined ? parseInt(data.doors, 10) : existingVehicle.doors,
+      chassisNumber: data.chassisNumber !== undefined ? data.chassisNumber : existingVehicle.chassisNumber,
+      registration: data.registration !== undefined ? data.registration : existingVehicle.registration,
+      steering: data.steering !== undefined ? data.steering : existingVehicle.steering,
+      accidentHistory: data.accidentHistory !== undefined ? data.accidentHistory : existingVehicle.accidentHistory,
+      purchasePrice: data.purchasePrice !== undefined ? parseFloat(data.purchasePrice) : existingVehicle.purchasePrice,
+      price: data.price !== undefined ? parseFloat(data.price) : existingVehicle.price,
+      currency: data.currency || existingVehicle.currency || "BDT",
+      negotiable: data.negotiable !== undefined ? (data.negotiable ? 1 : 0) : (existingVehicle.negotiable ? 1 : 0),
+      shortDescription: data.shortDescription !== undefined ? data.shortDescription : existingVehicle.shortDescription,
+      description: data.description !== undefined ? data.description : existingVehicle.description,
       featuresJson,
-      sheetAvailable,
-      sheetKey,
-      data.youtubeUrl !== undefined ? data.youtubeUrl : existingVehicle.youtubeUrl,
-      data.arrivalDate !== undefined ? data.arrivalDate : existingVehicle.arrivalDate,
+      auctionSheetAvailable: sheetAvailable,
+      auctionSheetUrl: sheetKey,
+      youtubeUrl: data.youtubeUrl !== undefined ? data.youtubeUrl : existingVehicle.youtubeUrl,
+      arrivalDate: data.arrivalDate !== undefined ? data.arrivalDate : existingVehicle.arrivalDate,
       archivedAt,
-      now,
-      dbId
-    ).run();
+      updatedAt: now
+    });
 
     // Re-sync vehicle images if provided
     if (data.exteriorImages || data.interiorImages || data.images) {
-      const oldImageRes = await env.DB.prepare(`SELECT image_url FROM vehicle_images WHERE vehicle_id = ?`).bind(dbId).all();
-      const oldImages = oldImageRes?.results || [];
+      const oldImages = await VehicleRepository.findVehicleImages(env.DB, dbId);
 
-      await env.DB.prepare(`DELETE FROM vehicle_images WHERE vehicle_id = ?`).bind(dbId).run();
+      await VehicleRepository.deleteVehicleImages(env.DB, dbId);
 
       const newKeys = new Set();
 
@@ -528,10 +423,7 @@ export async function updateAdminVehicle(request, env, ctx, params) {
         const cleanKey = extractObjectKey(url);
         if (cleanKey) {
           newKeys.add(cleanKey);
-          await env.DB.prepare(`
-            INSERT INTO vehicle_images (vehicle_id, image_type, image_url, display_order, created_at)
-            VALUES (?, 'exterior', ?, ?, ?)
-          `).bind(dbId, cleanKey, order++, now).run();
+          await VehicleRepository.insertVehicleImage(env.DB, dbId, "exterior", cleanKey, order++, now);
         }
       }
 
@@ -540,10 +432,7 @@ export async function updateAdminVehicle(request, env, ctx, params) {
         const cleanKey = extractObjectKey(url);
         if (cleanKey) {
           newKeys.add(cleanKey);
-          await env.DB.prepare(`
-            INSERT INTO vehicle_images (vehicle_id, image_type, image_url, display_order, created_at)
-            VALUES (?, 'interior', ?, ?, ?)
-          `).bind(dbId, cleanKey, order++, now).run();
+          await VehicleRepository.insertVehicleImage(env.DB, dbId, "interior", cleanKey, order++, now);
         }
       }
 
@@ -573,7 +462,7 @@ export async function updateAdminVehicle(request, env, ctx, params) {
       details: JSON.stringify({ stockNumber: newStockNumber, status: newStatus })
     });
 
-    const updated = await getVehicleByIdOrStock(env.DB, String(dbId));
+    const updated = await VehicleRepository.findVehicleByIdOrStock(env.DB, String(dbId));
     return success(updated, "Vehicle updated successfully.");
   } catch (error) {
     console.error("Update admin vehicle error:", error);
@@ -591,7 +480,7 @@ export async function deleteAdminVehicle(request, env, ctx, params) {
   const { ipAddress, userAgent } = getRequestMeta(request);
 
   try {
-    const existingVehicle = await getVehicleByIdOrStock(env.DB, params.id);
+    const existingVehicle = await VehicleRepository.findVehicleByIdOrStock(env.DB, params.id);
     if (!existingVehicle) return notFound("Vehicle not found.");
 
     const dbId = existingVehicle.dbId;
@@ -600,8 +489,8 @@ export async function deleteAdminVehicle(request, env, ctx, params) {
     await purgeArchivedVehicleMedia(env, dbId);
 
     // Remove DB rows
-    await env.DB.prepare(`DELETE FROM vehicle_images WHERE vehicle_id = ?`).bind(dbId).run();
-    await env.DB.prepare(`DELETE FROM vehicles WHERE id = ?`).bind(dbId).run();
+    await VehicleRepository.deleteVehicleImages(env.DB, dbId);
+    await VehicleRepository.deleteVehicle(env.DB, dbId);
 
     await logAudit(env, {
       actingUserId: auth.user.id,
@@ -632,7 +521,7 @@ export async function updateAdminVehicleStatus(request, env, ctx, params) {
   const { ipAddress, userAgent } = getRequestMeta(request);
 
   try {
-    const existingVehicle = await getVehicleByIdOrStock(env.DB, params.id);
+    const existingVehicle = await VehicleRepository.findVehicleByIdOrStock(env.DB, params.id);
     if (!existingVehicle) return notFound("Vehicle not found.");
 
     const dbId = existingVehicle.dbId;
@@ -658,11 +547,7 @@ export async function updateAdminVehicleStatus(request, env, ctx, params) {
     const transitionErr = validateVehicleStateTransition(existingVehicle.status, newStatus, body.confirmRestore === true);
     if (transitionErr) return validationError(transitionErr);
 
-    await env.DB.prepare(`
-      UPDATE vehicles
-      SET status = ?, is_published = ?, archived_at = ?, updated_at = ?
-      WHERE id = ?
-    `).bind(newStatus, newPublished, newArchivedAt, now, dbId).run();
+    await VehicleRepository.updateVehicleStatus(env.DB, dbId, newStatus, newPublished, newArchivedAt, now);
 
     if (newStatus === "archived") {
       await purgeArchivedVehicleMedia(env, dbId);
@@ -680,7 +565,7 @@ export async function updateAdminVehicleStatus(request, env, ctx, params) {
       details: JSON.stringify({ status: newStatus, published: Boolean(newPublished), archivedAt: newArchivedAt })
     });
 
-    const updated = await getVehicleByIdOrStock(env.DB, String(dbId));
+    const updated = await VehicleRepository.findVehicleByIdOrStock(env.DB, String(dbId));
     return success(updated, "Vehicle status updated successfully.");
   } catch (error) {
     console.error("Update admin vehicle status error:", error);
@@ -696,21 +581,8 @@ export async function getDashboardStats(request, env) {
   if (auth.errorResponse) return auth.errorResponse;
 
   try {
-    const totalRes = await env.DB.prepare(`SELECT COUNT(*) as c FROM vehicles WHERE archived_at IS NULL`).first();
-    const availRes = await env.DB.prepare(`SELECT COUNT(*) as c FROM vehicles WHERE status = 'available' AND archived_at IS NULL`).first();
-    const incomRes = await env.DB.prepare(`SELECT COUNT(*) as c FROM vehicles WHERE status = 'incoming' AND archived_at IS NULL`).first();
-    const resvRes = await env.DB.prepare(`SELECT COUNT(*) as c FROM vehicles WHERE (status = 'reserved' OR status = 'pending') AND archived_at IS NULL`).first();
-    const soldRes = await env.DB.prepare(`SELECT COUNT(*) as c FROM vehicles WHERE status = 'sold' AND archived_at IS NULL`).first();
-    const archRes = await env.DB.prepare(`SELECT COUNT(*) as c FROM vehicles WHERE status = 'archived' OR archived_at IS NOT NULL`).first();
-
-    return success({
-      total: totalRes?.c || 0,
-      available: availRes?.c || 0,
-      incoming: incomRes?.c || 0,
-      reserved: resvRes?.c || 0,
-      sold: soldRes?.c || 0,
-      archived: archRes?.c || 0
-    });
+    const stats = await VehicleRepository.getDashboardStats(env.DB);
+    return success(stats);
   } catch (error) {
     console.error("Dashboard stats error:", error);
     return serverError("Failed to fetch dashboard metrics.");
