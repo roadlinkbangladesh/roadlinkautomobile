@@ -395,9 +395,9 @@ export function renderVehicleTable() {
     const thumbnailSrc = rawCover ? getPublicFileUrl(rawCover) : "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
     const vehicleName = `${v.year} ${v.make} ${v.model} ${v.grade ? `(${v.grade})` : ""}`.trim();
 
-    const canEdit = hasPermission("vehicles.edit");
+    const canView = hasPermission("vehicles.view");
+    const canEdit = hasPermission("vehicles.edit") || hasPermission("vehicles.update");
     const canDelete = hasPermission("vehicles.delete");
-    const canPublish = hasPermission("vehicles.publish");
 
     const isPublished = v.published !== false && v.isPublished !== false;
     const publishedText = isPublished ? "Published" : "Draft";
@@ -406,25 +406,17 @@ export function renderVehicleTable() {
       : "background-color: rgba(100, 116, 139, 0.08); color: #64748b; border: 1px solid rgba(100, 116, 139, 0.2);";
 
     let actionButtonsHtml = "";
-    if (hasPermission("vehicles.view")) {
+    if (canView) {
       actionButtonsHtml += `
-        <button class="btn-action-view btn btn-view-site" data-id="${v.id}" style="padding: 4px 8px; font-size: 0.8rem; border-radius: var(--radius-sm); background: var(--bg-white); border: 1.5px solid var(--border-color); margin: 0; color: var(--text-dark); display: inline-flex; align-items: center; gap: 4px;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye" style="color: var(--primary-blue);"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0z"/><circle cx="12" cy="12" r="3"/></svg>
-          Details
-        </button>
-      `;
-    }
-    if (canEdit || canPublish) {
-      actionButtonsHtml += `
-        <button class="btn-action-status btn btn-view-site" data-id="${v.id}" style="padding: 4px 8px; font-size: 0.8rem; border-radius: var(--radius-sm); background: var(--bg-white); border: 1.5px solid var(--border-color); margin: 0; color: var(--text-dark); display: inline-flex; align-items: center; gap: 4px;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Status
+        <button class="btn-action-view btn btn-view-site" data-id="${v.id}" title="View Details" style="padding: 5px 10px; font-size: 0.8rem; font-weight: 600; border-radius: var(--radius-sm); background: var(--bg-white); border: 1.5px solid var(--border-color); margin: 0; color: var(--text-dark); display: inline-flex; align-items: center; gap: 5px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-blue);"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0z"/><circle cx="12" cy="12" r="3"/></svg>
+          View
         </button>
       `;
     }
     if (canEdit) {
       actionButtonsHtml += `
-        <button class="btn-action-edit" data-id="${v.id}">
+        <button class="btn-action-edit" data-id="${v.id}" title="Edit Vehicle" style="padding: 5px 10px; font-size: 0.8rem;">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-edit-2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
           Edit
         </button>
@@ -432,7 +424,7 @@ export function renderVehicleTable() {
     }
     if (canDelete) {
       actionButtonsHtml += `
-        <button class="btn-action-delete" data-id="${v.id}">
+        <button class="btn-action-delete" data-id="${v.id}" title="Delete Vehicle" style="padding: 5px 10px; font-size: 0.8rem;">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
           Delete
         </button>
@@ -441,15 +433,9 @@ export function renderVehicleTable() {
 
     const isFeatured = v.featured === true || v.isFeatured === true || v.is_featured === 1;
     const featuredPos = v.featuredPosition || v.featured_position || 0;
-    const featuredControls = `
-      <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
-        <label style="display: inline-flex; align-items: center; gap: 4px; cursor: pointer; margin: 0; font-size: 0.8rem; font-weight: 600; color: var(--text-dark);">
-          <input type="checkbox" class="chk-featured-inline" data-id="${v.id}" ${isFeatured ? 'checked' : ''} style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary-blue);">
-          <span>Featured</span>
-        </label>
-        <input type="number" class="input-featured-pos-inline" data-id="${v.id}" min="1" max="9" value="${featuredPos > 0 ? featuredPos : ''}" placeholder="#" ${!isFeatured ? 'disabled' : ''} title="Featured Rank (1-9)" style="width: 48px; padding: 3px 6px; font-size: 0.8rem; font-weight: 700; border: 1px solid var(--border-color); border-radius: var(--radius-sm); text-align: center; ${!isFeatured ? 'opacity: 0.4; cursor: not-allowed; background: var(--bg-light);' : 'background: #ffffff; color: var(--text-dark);'}">
-      </div>
-    `;
+    const featuredSummaryHtml = isFeatured
+      ? `<span class="badge" style="padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; background: rgba(249, 115, 22, 0.1); color: #f97316; border: 1px solid rgba(249, 115, 22, 0.25); display: inline-flex; align-items: center; gap: 4px;">⭐ #${featuredPos > 0 ? featuredPos : 1}</span>`
+      : `<span style="color: var(--text-muted); font-size: 0.85rem; font-weight: 500;">—</span>`;
 
     row.innerHTML = `
       <td>
@@ -464,7 +450,7 @@ export function renderVehicleTable() {
         </span>
       </td>
       <td>
-        ${featuredControls}
+        ${featuredSummaryHtml}
       </td>
       <td>
         <span class="badge" style="padding: 4px 10px; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: inline-block; ${publishedStyle}">
