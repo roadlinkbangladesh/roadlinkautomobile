@@ -269,14 +269,12 @@ function handleAddClick() {
 }
 
 /**
- * Event delegation handler for actions (Edit, Delete, Thumbnail zoom) in the table body.
+ * Event delegation handler for actions (Details, Delete, Thumbnail click) in the table body.
  */
 function handleTableActions(e) {
   const thumbImg = e.target.closest(".thumb-img");
   const viewBtn = e.target.closest(".btn-action-view");
-  const editBtn = e.target.closest(".btn-action-edit");
   const deleteBtn = e.target.closest(".btn-action-delete");
-  const statusBtn = e.target.closest(".btn-action-status");
 
   if (thumbImg) {
     const vehicleId = thumbImg.getAttribute("data-id");
@@ -284,13 +282,6 @@ function handleTableActions(e) {
   } else if (viewBtn) {
     const vehicleId = viewBtn.getAttribute("data-id");
     openVehicleDetailsModal(vehicleId);
-  } else if (editBtn) {
-    if (!hasPermission("vehicles.edit")) {
-      alert("Access Denied. You do not have permission to edit vehicles.");
-      return;
-    }
-    const vehicleId = editBtn.getAttribute("data-id");
-    openVehicleModal(vehicleId);
   } else if (deleteBtn) {
     if (!hasPermission("vehicles.delete")) {
       alert("Access Denied. You do not have permission to delete vehicles.");
@@ -298,9 +289,6 @@ function handleTableActions(e) {
     }
     const vehicleId = deleteBtn.getAttribute("data-id");
     openDeleteConfirmation(vehicleId);
-  } else if (statusBtn) {
-    const vehicleId = statusBtn.getAttribute("data-id");
-    openStatusModal(vehicleId);
   }
 }
 
