@@ -1,5 +1,6 @@
 import { success, notFound, serverError } from "../../utils/response.js";
-import { mapDbToVehicle, getVehicleByIdOrStock } from "../admin/vehicles.js";
+import { mapDbToVehicle } from "../../services/vehicle-mapper.js";
+import { VehicleRepository } from "../../repositories/vehicle-repository.js";
 import { getStorageBucket } from "../../utils/storage.js";
 
 /**
@@ -87,18 +88,15 @@ export async function listPublicVehicles(request, env) {
     else if (sort === "year-desc") orderBy = "ORDER BY year DESC";
     else if (sort === "date-desc") orderBy = "ORDER BY created_at DESC";
 
-    const countRes = await env.DB.prepare(`SELECT COUNT(*) as total FROM vehicles ${whereClause}`).bind(...params).first();
-    const totalItems = countRes?.total || 0;
+    const totalItems = await VehicleRepository.countVehicles(env.DB, whereClause, params);
 
     const offset = (page - 1) * limit;
-    const query = `SELECT * FROM vehicles ${whereClause} ${orderBy} LIMIT ? OFFSET ?`;
-    const rowsRes = await env.DB.prepare(query).bind(...params, limit, offset).all();
-    const rows = rowsRes?.results || [];
+    const rows = await VehicleRepository.findVehicles(env.DB, whereClause, orderBy, params, limit, offset);
 
     const vehicles = [];
     for (const row of rows) {
-      const imgRes = await env.DB.prepare(`SELECT * FROM vehicle_images WHERE vehicle_id = ? ORDER BY display_order ASC, id ASC`).bind(row.id).all();
-      vehicles.push(mapDbToVehicle(row, imgRes?.results || []));
+      const images = await VehicleRepository.findVehicleImages(env.DB, row.id);
+      vehicles.push(mapDbToVehicle(row, images));
     }
 
     return success({
@@ -121,7 +119,7 @@ export async function listPublicVehicles(request, env) {
  */
 export async function getPublicVehicle(request, env, ctx, params) {
   try {
-    const vehicle = await getVehicleByIdOrStock(env.DB, params.identifier);
+    const vehicle = await VehicleRepository.findVehicleByIdOrStock(env.DB, params.identifier);
     if (!vehicle || !vehicle.published || vehicle.archivedAt) {
       return notFound("Vehicle not found.");
     }
@@ -195,7 +193,7 @@ export const getPublicImage = getPublicFile;
  */
 export async function getPublicVehicleAuctionSheet(request, env, ctx, params) {
   try {
-    const vehicle = await getVehicleByIdOrStock(env.DB, params.identifier);
+    const vehicle = await VehicleRepository.findVehicleByIdOrStock(env.DB, params.identifier);
     if (!vehicle || !vehicle.published || vehicle.archivedAt) {
       return notFound("Vehicle not found.");
     }
