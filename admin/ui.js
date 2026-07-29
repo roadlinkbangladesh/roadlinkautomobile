@@ -28,6 +28,11 @@ export function showLoginView(reasonMessage = null) {
     }
   });
 
+  // Clear any stale navigation state
+  sessionStorage.removeItem("redirect_route");
+  sessionStorage.removeItem("active_admin_module");
+  sessionStorage.removeItem("is_fresh_login");
+
   if (loginView) loginView.style.display = "flex";
   if (adminLayout) adminLayout.style.display = "none";
 
