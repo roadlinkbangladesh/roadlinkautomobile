@@ -254,4 +254,85 @@ export class VehicleRepository {
       WHERE id = ?
     `).bind(status, isPublished, archivedAt, updatedAt, dbId).run();
   }
+
+  /**
+   * Fetch auction sheet URL for a vehicle
+   * @param {Object} db - D1 Database binding
+   * @param {number} vehicleId
+   * @returns {Promise<Object|null>}
+   */
+  static async getAuctionSheetUrl(db, vehicleId) {
+    return await db.prepare(`SELECT auction_sheet_url FROM vehicles WHERE id = ?`).bind(vehicleId).first();
+  }
+
+  /**
+   * Clear auction sheet for a vehicle
+   * @param {Object} db - D1 Database binding
+   * @param {number} vehicleId
+   * @returns {Promise<Object>}
+   */
+  static async clearAuctionSheet(db, vehicleId) {
+    return await db.prepare(`UPDATE vehicles SET auction_sheet_url = NULL, auction_sheet_available = 0 WHERE id = ?`).bind(vehicleId).run();
+  }
+
+  /**
+   * Find sold vehicles eligible for auto-archiving
+   * @param {Object} db - D1 Database binding
+   * @param {string} cutoffIso
+   * @returns {Promise<Array>}
+   */
+  static async findVehiclesToArchive(db, cutoffIso) {
+    const res = await db.prepare(`
+      SELECT id, stock_number FROM vehicles
+      WHERE status = 'sold' AND archived_at IS NULL AND updated_at < ?
+    `).bind(cutoffIso).all();
+    return res?.results || [];
+  }
+
+  /**
+   * Mark vehicle as archived in DB
+   * @param {Object} db - D1 Database binding
+   * @param {number} vehicleId
+   * @param {string} nowIso
+   * @returns {Promise<Object>}
+   */
+  static async archiveVehicleRecord(db, vehicleId, nowIso) {
+    return await db.prepare(`
+      UPDATE vehicles
+      SET status = 'archived', is_featured = 0, is_published = 0, archived_at = ?, updated_at = ?
+      WHERE id = ?
+    `).bind(nowIso, nowIso, vehicleId).run();
+  }
+
+  /**
+   * Check if a key is referenced in vehicle tables (vehicle_images or vehicles auction_sheet_url)
+   * @param {Object} db - D1 Database binding
+   * @param {string} oldKey
+   * @returns {Promise<boolean>}
+   */
+  static async hasVehicleMediaReferences(db, oldKey) {
+    const imgCheck = await db.prepare(`SELECT id FROM vehicle_images WHERE image_url LIKE ?`).bind(`%${oldKey}%`).first();
+    if (imgCheck) return true;
+    const vehCheck = await db.prepare(`SELECT id FROM vehicles WHERE auction_sheet_url LIKE ?`).bind(`%${oldKey}%`).first();
+    return Boolean(vehCheck);
+  }
+
+  /**
+   * Gather active vehicle media keys (images and auction sheets)
+   * @param {Object} db - D1 Database binding
+   * @returns {Promise<Array<string>>}
+   */
+  static async getActiveVehicleMediaKeys(db) {
+    const keys = [];
+    const vehicleImgRes = await db.prepare(`SELECT image_url FROM vehicle_images`).all();
+    for (const img of vehicleImgRes?.results || []) {
+      if (img.image_url) keys.push(img.image_url);
+    }
+    const vehicleDocRes = await db.prepare(`SELECT auction_sheet_url FROM vehicles WHERE auction_sheet_url IS NOT NULL AND TRIM(auction_sheet_url) != ''`).all();
+    for (const doc of vehicleDocRes?.results || []) {
+      if (doc.auction_sheet_url) keys.push(doc.auction_sheet_url);
+    }
+    return keys;
+  }
 }
+
