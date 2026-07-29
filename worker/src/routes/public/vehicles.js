@@ -223,8 +223,31 @@ export async function getPublicVehicleAuctionSheet(request, env, ctx, params) {
     headers.set("Pragma", "no-cache");
     headers.set("Expires", "0");
     headers.set("X-Content-Type-Options", "nosniff");
-    headers.set("X-Frame-Options", "SAMEORIGIN");
-    headers.set("Content-Security-Policy", "frame-ancestors 'self'");
+
+    // Route-specific Content-Security-Policy allowing authorized portal framing
+    const frameAncestors = new Set([
+      "'self'",
+      "https://roadlinkautomobiles.com",
+      "https://www.roadlinkautomobiles.com",
+      "https://admin.roadlinkautomobiles.com"
+    ]);
+
+    const reqOrigin = request.headers.get("Origin");
+    if (reqOrigin && reqOrigin !== "null") {
+      frameAncestors.add(reqOrigin);
+    }
+
+    const reqReferer = request.headers.get("Referer");
+    if (reqReferer) {
+      try {
+        const refUrl = new URL(reqReferer);
+        frameAncestors.add(refUrl.origin);
+      } catch (e) {
+        // ignore invalid URL
+      }
+    }
+
+    headers.set("Content-Security-Policy", `frame-ancestors ${Array.from(frameAncestors).join(" ")}`);
 
     const ext = key.split(".").pop().toLowerCase();
     const mimeTypes = {
