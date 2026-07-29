@@ -59,8 +59,8 @@ export class VehicleService {
     if (status && status !== "all") {
       if (status === "archived") {
         sqlWhere.push(`archived_at IS NOT NULL`);
-      } else if (status === "draft") {
-        sqlWhere.push(`(LOWER(status) = 'draft' OR is_published = 0) AND archived_at IS NULL`);
+      } else if (status === "draft" || status === "unpublished") {
+        sqlWhere.push(`is_published = 0 AND archived_at IS NULL`);
       } else {
         sqlWhere.push(`LOWER(status) = LOWER(?) AND archived_at IS NULL`);
         params.push(status);
@@ -128,13 +128,20 @@ export class VehicleService {
     const priceErr = validateNumber(data.price, { name: "Price", required: true, min: 0 });
     if (priceErr) throw new VehicleServiceError(priceErr, "VALIDATION_ERROR");
 
-    const status = (data.status || "available").toLowerCase();
-    const transitionErr = validateVehicleStateTransition("draft", status);
+    const rawStatus = (data.status || "available").toLowerCase();
+    const transitionErr = validateVehicleStateTransition("available", rawStatus);
     if (transitionErr) throw new VehicleServiceError(transitionErr, "VALIDATION_ERROR");
+
+    // Map "draft" to isPublished = 0 and valid operational status
+    let isPublished = (data.published === false || rawStatus === "draft") ? 0 : 1;
+    let dbStatus = rawStatus;
+    if (rawStatus === "draft" || rawStatus === "archived" || !["available", "incoming", "reserved", "sold"].includes(rawStatus)) {
+      dbStatus = "available";
+    }
 
     // 2. Business Rule: Featured vehicles CANNOT be Archived
     let isFeatured = data.featured ? 1 : 0;
-    if (status === "archived" && isFeatured) {
+    if (rawStatus === "archived" && isFeatured) {
       throw new VehicleServiceError("Featured vehicles cannot be set to Archived status.", "BAD_REQUEST");
     }
 
@@ -167,7 +174,7 @@ export class VehicleService {
     }
 
     const now = new Date().toISOString();
-    const archivedAt = status === "archived" ? now : null;
+    const archivedAt = rawStatus === "archived" ? now : null;
     const featuresJson = JSON.stringify(data.features || []);
 
     // Normalize auction sheet
@@ -181,8 +188,8 @@ export class VehicleService {
       make: data.make.trim(),
       model: data.model.trim(),
       year: parseInt(data.year, 10),
-      status,
-      isPublished: data.published !== false ? 1 : 0,
+      status: dbStatus,
+      isPublished,
       isFeatured,
       featuredPosition: data.featuredPosition !== undefined ? parseInt(data.featuredPosition, 10) : 0,
       isNewArrival: data.isNewArrival ? 1 : 0,
@@ -286,15 +293,28 @@ export class VehicleService {
 
     // 2. Validate Vehicle Status Transition
     const currentStatus = existingVehicle.status;
-    const newStatus = data.status !== undefined ? data.status.toLowerCase() : currentStatus;
-    const isRestore = data.restore === true || (currentStatus === "sold" && newStatus === "available" && data.confirmRestore === true);
+    const rawRequestedStatus = data.status !== undefined ? data.status.toLowerCase() : currentStatus;
+    const isRestore = data.restore === true || (currentStatus === "sold" && rawRequestedStatus === "available" && data.confirmRestore === true);
 
-    const transitionErr = validateVehicleStateTransition(currentStatus, newStatus, isRestore);
+    const transitionErr = validateVehicleStateTransition(currentStatus, rawRequestedStatus, isRestore);
     if (transitionErr) throw new VehicleServiceError(transitionErr, "VALIDATION_ERROR");
+
+    let isPublishedVal = existingVehicle.published ? 1 : 0;
+    if (data.published !== undefined) {
+      isPublishedVal = data.published ? 1 : 0;
+    }
+    if (rawRequestedStatus === "draft") {
+      isPublishedVal = 0;
+    }
+
+    let dbStatus = rawRequestedStatus;
+    if (rawRequestedStatus === "draft" || rawRequestedStatus === "archived" || !["available", "incoming", "reserved", "sold"].includes(rawRequestedStatus)) {
+      dbStatus = ["available", "incoming", "reserved", "sold"].includes(currentStatus) ? currentStatus : "available";
+    }
 
     // 3. Business Rule: Featured vehicles CANNOT be Archived
     let newFeatured = data.featured !== undefined ? (data.featured ? 1 : 0) : (existingVehicle.featured ? 1 : 0);
-    if (newStatus === "archived" && newFeatured) {
+    if (rawRequestedStatus === "archived" && newFeatured) {
       throw new VehicleServiceError("Featured vehicles cannot be Archived. Please un-feature the vehicle before archiving.", "BAD_REQUEST");
     }
 
@@ -320,10 +340,10 @@ export class VehicleService {
     const sheetAvailable = sheetKey !== "" && requestedSheetAvailable ? 1 : 0;
 
     let archivedAt = existingVehicle.archivedAt;
-    if (newStatus === "archived" && !archivedAt) {
+    if (rawRequestedStatus === "archived" && !archivedAt) {
       archivedAt = now;
       newFeatured = 0; // Automatically clear featured status on archive
-    } else if (newStatus !== "archived") {
+    } else if (rawRequestedStatus !== "archived") {
       archivedAt = null;
     }
 
@@ -332,8 +352,8 @@ export class VehicleService {
       make: (data.make || existingVehicle.make).trim(),
       model: (data.model || existingVehicle.model).trim(),
       year: data.year ? parseInt(data.year, 10) : existingVehicle.year,
-      status: newStatus,
-      isPublished: data.published !== undefined ? (data.published ? 1 : 0) : (existingVehicle.published ? 1 : 0),
+      status: dbStatus,
+      isPublished: isPublishedVal,
       isFeatured: newFeatured,
       featuredPosition: data.featuredPosition !== undefined ? parseInt(data.featuredPosition, 10) : existingVehicle.featuredPosition,
       isNewArrival: data.isNewArrival !== undefined ? (data.isNewArrival ? 1 : 0) : (existingVehicle.isNewArrival ? 1 : 0),
@@ -469,28 +489,38 @@ export class VehicleService {
     const dbId = existingVehicle.dbId;
     const now = new Date().toISOString();
 
-    let newStatus = body.status !== undefined ? body.status.toLowerCase() : existingVehicle.status;
+    let rawStatus = body.status !== undefined ? body.status.toLowerCase() : existingVehicle.status;
     let newPublished = body.published !== undefined ? (body.published ? 1 : 0) : (existingVehicle.published ? 1 : 0);
     let newArchivedAt = existingVehicle.archivedAt;
 
-    if (body.archive === true || newStatus === "archived") {
+    if (rawStatus === "draft") {
+      newPublished = 0;
+      rawStatus = ["available", "incoming", "reserved", "sold"].includes(existingVehicle.status) ? existingVehicle.status : "available";
+    }
+
+    let targetStatus = rawStatus;
+    if (body.archive === true || rawStatus === "archived") {
       if (existingVehicle.featured) {
         throw new VehicleServiceError("Featured vehicles cannot be archived. Please un-feature the vehicle first.", "BAD_REQUEST");
       }
-      newStatus = "archived";
+      targetStatus = ["available", "incoming", "reserved", "sold"].includes(existingVehicle.status) ? existingVehicle.status : "available";
       newArchivedAt = now;
       newPublished = 0;
     } else if (body.archive === false) {
       newArchivedAt = null;
-      if (newStatus === "archived") newStatus = "available";
+      if (!["available", "incoming", "reserved", "sold"].includes(targetStatus)) {
+        targetStatus = "available";
+      }
+    } else if (!["available", "incoming", "reserved", "sold"].includes(targetStatus)) {
+      targetStatus = "available";
     }
 
-    const transitionErr = validateVehicleStateTransition(existingVehicle.status, newStatus, body.confirmRestore === true);
+    const transitionErr = validateVehicleStateTransition(existingVehicle.status, rawStatus, body.confirmRestore === true);
     if (transitionErr) throw new VehicleServiceError(transitionErr, "VALIDATION_ERROR");
 
-    await VehicleRepository.updateVehicleStatus(env.DB, dbId, newStatus, newPublished, newArchivedAt, now);
+    await VehicleRepository.updateVehicleStatus(env.DB, dbId, targetStatus, newPublished, newArchivedAt, now);
 
-    if (newStatus === "archived") {
+    if (rawStatus === "archived") {
       await purgeArchivedVehicleMedia(env, dbId);
     }
 
