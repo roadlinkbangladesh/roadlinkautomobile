@@ -75,6 +75,11 @@ export function hasPermission(permissionKey) {
   if (!user) return false;
   
   if (Array.isArray(user.permissions)) {
+    if (user.permissions.includes("vehicles.manage") && permissionKey.startsWith("vehicles.")) {
+      return true;
+    }
+    if (permissionKey === "vehicles.edit" && user.permissions.includes("vehicles.update")) return true;
+    if (permissionKey === "vehicles.update" && user.permissions.includes("vehicles.edit")) return true;
     return user.permissions.includes(permissionKey);
   }
   
