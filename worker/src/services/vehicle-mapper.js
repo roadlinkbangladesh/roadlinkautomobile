@@ -4,10 +4,12 @@ import { resolveFileUrl } from "../utils/storage.js";
  * Maps a database vehicle row and its associated vehicle_images rows to a domain/API vehicle object.
  * @param {Object} row - The DB row from the `vehicles` table.
  * @param {Array} images - Array of DB rows from the `vehicle_images` table.
+ * @param {Object} [options={}] - Options (e.g., { isAdmin: true })
  * @returns {Object|null}
  */
-export function mapDbToVehicle(row, images = []) {
+export function mapDbToVehicle(row, images = [], options = {}) {
   if (!row) return null;
+  const isAdmin = Boolean(options.isAdmin);
 
   const exteriorImages = images.filter(i => i.image_type === "exterior").map(i => resolveFileUrl(i.image_url));
   const interiorImages = images.filter(i => i.image_type === "interior").map(i => resolveFileUrl(i.image_url));
@@ -28,9 +30,22 @@ export function mapDbToVehicle(row, images = []) {
 
   // Resolve auction sheet URL and enforce auctionSheetAvailable logic
   const rawSheet = row.auction_sheet_url || (auctionImages[0] || "");
-  const resolvedSheetUrl = resolveFileUrl(rawSheet);
   const hasAuctionSheet = Boolean(rawSheet && rawSheet.trim() !== "");
   const auctionSheetAvailable = Boolean(row.auction_sheet_available) && hasAuctionSheet;
+
+  // Detect auction sheet format
+  const ext = (rawSheet.split(".").pop() || "").toLowerCase();
+  const auctionSheetFormat = ext === "pdf" ? "pdf" : "image";
+
+  // For public consumers, use the protected vehicle endpoint rather than raw file/R2 storage path
+  let auctionSheetUrl = "";
+  if (hasAuctionSheet) {
+    if (isAdmin) {
+      auctionSheetUrl = resolveFileUrl(rawSheet);
+    } else {
+      auctionSheetUrl = `/api/v1/public/vehicles/${row.id}/auction-sheet`;
+    }
+  }
 
   return {
     id: String(row.id),
@@ -70,7 +85,8 @@ export function mapDbToVehicle(row, images = []) {
     features: parsedFeatures,
     auctionGrade: row.auction_grade || "",
     auctionSheetAvailable,
-    auctionSheetUrl: resolvedSheetUrl,
+    auctionSheetUrl,
+    auctionSheetFormat,
     youtubeUrl: row.youtube_url || "",
     arrivalDate: row.arrival_date || "",
     archivedAt: row.archived_at || null,
