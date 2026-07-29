@@ -335,7 +335,7 @@ async function handleTableFeaturedChange(e) {
         featured: isChecked,
         featuredPosition: isChecked ? pos : 0
       });
-      await loadVehiclesAsync();
+      await loadAdminVehiclesAsync();
       renderVehicleTable();
     } catch (err) {
       alert("Error updating featured status: " + err.message);
@@ -357,7 +357,7 @@ async function handleTableFeaturedChange(e) {
         featured: true,
         featuredPosition: pos
       });
-      await loadVehiclesAsync();
+      await loadAdminVehiclesAsync();
       renderVehicleTable();
     } catch (err) {
       alert("Error updating featured rank: " + err.message);
