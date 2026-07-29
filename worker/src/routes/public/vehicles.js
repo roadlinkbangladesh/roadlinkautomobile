@@ -28,7 +28,7 @@ export async function listPublicVehicles(request, env) {
       limit = featuredLimit;
     }
 
-    let sqlWhere = [`is_published = 1 AND archived_at IS NULL AND LOWER(status) != 'draft'`];
+    let sqlWhere = [`is_published = 1 AND archived_at IS NULL`];
     let params = [];
 
     // Include sold vehicles ONLY if global website setting allows it AND client requested them (or filtered by status=sold)
