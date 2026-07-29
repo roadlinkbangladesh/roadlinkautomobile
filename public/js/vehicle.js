@@ -523,10 +523,11 @@ function hydrateDescription(car) {
 /**
  * Opens Auction Sheet Modal supporting both images and PDFs without exposing direct storage URLs.
  */
-function openAuctionSheetModal(fileUrl, carTitle, rawSheetUrl = "") {
+function openAuctionSheetModal(fileUrl, carTitle, rawSheetUrl = "", format = "") {
   closeAuctionSheetModal();
 
-  const isPdf = rawSheetUrl.toLowerCase().endsWith(".pdf") || 
+  const isPdf = format === "pdf" ||
+                rawSheetUrl.toLowerCase().endsWith(".pdf") || 
                 rawSheetUrl.toLowerCase().includes(".pdf") || 
                 fileUrl.toLowerCase().includes(".pdf");
 
@@ -542,7 +543,7 @@ function openAuctionSheetModal(fileUrl, carTitle, rawSheetUrl = "") {
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
-      <div class="auction-modal-body" id="auction-modal-body">
+      <div class="auction-modal-body" id="auction-modal-body" style="position: relative; user-select: none; -webkit-user-select: none;">
         <div class="auction-modal-loading" id="auction-modal-loading">
           <div class="auction-modal-spinner"></div>
           <p>Loading auction document...</p>
@@ -560,6 +561,7 @@ function openAuctionSheetModal(fileUrl, carTitle, rawSheetUrl = "") {
   document.body.appendChild(overlay);
   document.body.style.overflow = "hidden";
 
+  const modalContainer = overlay.querySelector(".auction-modal-container");
   const modalBody = overlay.querySelector("#auction-modal-body");
   const loadingEl = overlay.querySelector("#auction-modal-loading");
   const errorEl = overlay.querySelector("#auction-modal-error");
@@ -573,9 +575,15 @@ function openAuctionSheetModal(fileUrl, carTitle, rawSheetUrl = "") {
     if (loadingEl) loadingEl.style.display = "none";
   };
 
+  // Prevent right-click context menu on modal
+  if (modalContainer) {
+    modalContainer.addEventListener("contextmenu", (e) => e.preventDefault());
+  }
+
   if (isPdf) {
     const iframe = document.createElement("iframe");
-    iframe.src = fileUrl;
+    // Pass toolbar=0&navpanes=0&scrollbar=1 hash to instruct PDF viewers to hide top download/print toolbars
+    iframe.src = `${fileUrl}#toolbar=0&navpanes=0&scrollbar=1`;
     iframe.title = `Official Japanese Auction Certificate for ${carTitle}`;
     iframe.style.display = "none";
     iframe.style.width = "100%";
@@ -590,6 +598,17 @@ function openAuctionSheetModal(fileUrl, carTitle, rawSheetUrl = "") {
 
     modalBody.appendChild(iframe);
   } else {
+    const imgWrapper = document.createElement("div");
+    imgWrapper.style.position = "relative";
+    imgWrapper.style.display = "flex";
+    imgWrapper.style.justifyContent = "center";
+    imgWrapper.style.alignItems = "center";
+    imgWrapper.style.maxWidth = "100%";
+    imgWrapper.style.maxHeight = "75vh";
+    imgWrapper.style.overflow = "auto";
+    imgWrapper.style.userSelect = "none";
+    imgWrapper.style.webkitUserSelect = "none";
+
     const img = new Image();
     img.src = fileUrl;
     img.alt = `Official Japanese Auction Certificate for ${carTitle}`;
@@ -597,6 +616,13 @@ function openAuctionSheetModal(fileUrl, carTitle, rawSheetUrl = "") {
     img.style.maxWidth = "100%";
     img.style.maxHeight = "75vh";
     img.style.objectFit = "contain";
+    img.style.userSelect = "none";
+    img.style.webkitUserSelect = "none";
+    img.style.webkitUserDrag = "none";
+
+    // Disable context menu and drag-and-drop on image
+    img.addEventListener("contextmenu", (e) => e.preventDefault());
+    img.addEventListener("dragstart", (e) => e.preventDefault());
 
     img.onload = () => {
       hideLoading();
@@ -604,7 +630,21 @@ function openAuctionSheetModal(fileUrl, carTitle, rawSheetUrl = "") {
     };
     img.onerror = showError;
 
-    modalBody.appendChild(img);
+    imgWrapper.appendChild(img);
+
+    // Transparent protective shield preventing right-click / drag-saving on image
+    const shield = document.createElement("div");
+    shield.style.position = "absolute";
+    shield.style.top = "0";
+    shield.style.left = "0";
+    shield.style.right = "0";
+    shield.style.bottom = "0";
+    shield.style.zIndex = "2";
+    shield.addEventListener("contextmenu", (e) => e.preventDefault());
+    shield.addEventListener("dragstart", (e) => e.preventDefault());
+
+    imgWrapper.appendChild(shield);
+    modalBody.appendChild(imgWrapper);
   }
 
   const closeBtn = overlay.querySelector("#btn-close-auction-modal");
@@ -618,20 +658,26 @@ function openAuctionSheetModal(fileUrl, carTitle, rawSheetUrl = "") {
     }
   });
 
-  const handleKeydown = (e) => {
+  // Block keyboard shortcuts for save (Ctrl+S/Cmd+S) and print (Ctrl+P/Cmd+P)
+  const preventSaveAndPrint = (e) => {
     if (e.key === "Escape") {
       closeAuctionSheetModal();
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S" || e.key === "p" || e.key === "P")) {
+      e.preventDefault();
+      e.stopPropagation();
     }
   };
-  document.addEventListener("keydown", handleKeydown);
-  overlay._handleKeydown = handleKeydown;
+  document.addEventListener("keydown", preventSaveAndPrint, true);
+  overlay._handleKeydown = preventSaveAndPrint;
 }
 
 function closeAuctionSheetModal() {
   const overlay = document.getElementById("auction-sheet-modal-overlay");
   if (overlay) {
     if (overlay._handleKeydown) {
-      document.removeEventListener("keydown", overlay._handleKeydown);
+      document.removeEventListener("keydown", overlay._handleKeydown, true);
     }
     overlay.remove();
     document.body.style.overflow = "";
@@ -648,18 +694,16 @@ function hydrateAuctionSheet(car) {
 
   if (car.auctionSheetUrl && car.auctionSheetAvailable) {
     const fileUrl = getPublicFileUrl(car.auctionSheetUrl);
+    const format = car.auctionSheetFormat || (car.auctionSheetUrl.toLowerCase().includes(".pdf") ? "pdf" : "image");
 
     if (downloadBtn) {
-      downloadBtn.onclick = (e) => {
-        e.preventDefault();
-        openAuctionSheetModal(fileUrl, `${car.year} ${car.make} ${car.model}`, car.auctionSheetUrl);
-      };
+      downloadBtn.style.display = "none"; // Hide any separate download button for public users
     }
 
     if (viewBtn) {
       viewBtn.onclick = (e) => {
         e.preventDefault();
-        openAuctionSheetModal(fileUrl, `${car.year} ${car.make} ${car.model}`, car.auctionSheetUrl);
+        openAuctionSheetModal(fileUrl, `${car.year} ${car.make} ${car.model}`, car.auctionSheetUrl, format);
       };
     }
     section.style.display = 'block';
