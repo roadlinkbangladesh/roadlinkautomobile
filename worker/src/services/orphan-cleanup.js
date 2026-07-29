@@ -4,6 +4,7 @@
 
 import { getStorageBucket, extractObjectKey, deleteStoredFile } from "../utils/storage.js";
 import { platformConfig } from "./platform-config.js";
+import { VehicleRepository } from "../repositories/vehicle-repository.js";
 
 /**
  * Deletes a superseded media file from R2 storage if it is no longer referenced.
@@ -21,13 +22,14 @@ export async function deleteSupersededMedia(env, oldKeyOrUrl, newKeyOrUrl) {
 
   // Double check if old key is used elsewhere in database
   try {
-    const imgCheck = await env.DB.prepare(`SELECT id FROM vehicle_images WHERE image_url LIKE ?`).bind(`%${oldKey}%`).first();
-    const vehCheck = await env.DB.prepare(`SELECT id FROM vehicles WHERE auction_sheet_url LIKE ?`).bind(`%${oldKey}%`).first();
+    const isVehicleRef = await VehicleRepository.hasVehicleMediaReferences(env.DB, oldKey);
+    if (isVehicleRef) return false;
+
     const setLogoCheck = await env.DB.prepare(`SELECT id FROM settings WHERE company_logo_url LIKE ?`).bind(`%${oldKey}%`).first();
     const setFaviconCheck = await env.DB.prepare(`SELECT id FROM settings WHERE favicon_url LIKE ?`).bind(`%${oldKey}%`).first();
     const carCheck = await env.DB.prepare(`SELECT id FROM carousel_slides WHERE image_url LIKE ?`).bind(`%${oldKey}%`).first();
 
-    if (!imgCheck && !vehCheck && !setLogoCheck && !setFaviconCheck && !carCheck) {
+    if (!setLogoCheck && !setFaviconCheck && !carCheck) {
       return await deleteStoredFile(env, oldKey);
     }
   } catch (err) {
@@ -68,16 +70,11 @@ export async function runOrphanCleanup(env) {
       if (slide.image_url) activeKeys.add(extractObjectKey(slide.image_url));
     }
 
-    // Vehicle image keys
-    const vehicleImgRes = await env.DB.prepare(`SELECT image_url FROM vehicle_images`).all();
-    for (const img of vehicleImgRes?.results || []) {
-      if (img.image_url) activeKeys.add(extractObjectKey(img.image_url));
-    }
-
-    // Vehicle auction sheet keys
-    const vehicleDocRes = await env.DB.prepare(`SELECT auction_sheet_url FROM vehicles WHERE auction_sheet_url IS NOT NULL AND TRIM(auction_sheet_url) != ''`).all();
-    for (const doc of vehicleDocRes?.results || []) {
-      if (doc.auction_sheet_url) activeKeys.add(extractObjectKey(doc.auction_sheet_url));
+    // Vehicle image keys and auction sheet keys via VehicleRepository
+    const vehicleKeys = await VehicleRepository.getActiveVehicleMediaKeys(env.DB);
+    for (const rawUrl of vehicleKeys) {
+      const key = extractObjectKey(rawUrl);
+      if (key) activeKeys.add(key);
     }
   } catch (err) {
     console.error("[OrphanCleanup] Error collecting active media references from DB:", err);
@@ -119,3 +116,4 @@ export async function runOrphanCleanup(env) {
 
   return { scanned: scannedCount, deleted: deletedCount, orphanDaysCutoff: orphanDays };
 }
+
