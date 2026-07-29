@@ -44,64 +44,14 @@ function getToken() {
 }
 
 export function isAdminContext() {
-  if (typeof window !== "undefined") {
-    return window.location.pathname.includes("/admin");
-  }
-  return false;
+  return true;
 }
 
 /**
- * Fetches published vehicles for public portal from Public REST API.
+ * Loads vehicles for the Admin application strictly from the Admin REST API.
  */
-export async function loadVehiclesAsync(params = {}, forceAdmin = false) {
-  if (forceAdmin || isAdminContext()) {
-    return loadAdminVehiclesAsync(params);
-  }
-
-  let endpoint = "/api/v1/public/vehicles";
-  
-  const queryParts = [];
-  if (params.search) queryParts.push(`search=${encodeURIComponent(params.search)}`);
-  if (params.status) queryParts.push(`status=${encodeURIComponent(params.status)}`);
-  if (params.make) queryParts.push(`make=${encodeURIComponent(params.make)}`);
-  if (params.sort) queryParts.push(`sort=${encodeURIComponent(params.sort)}`);
-  if (params.page) queryParts.push(`page=${params.page}`);
-  if (params.includeSold) {
-    queryParts.push("includeSold=true");
-  }
-  if (params.limit) queryParts.push(`limit=${params.limit || 100}`);
-
-  if (queryParts.length > 0) {
-    endpoint += `?${queryParts.join("&")}`;
-  }
-
-  try {
-    const response = await apiRequest(endpoint);
-    const contentType = response.headers.get("content-type") || "";
-    
-    if (response.ok && contentType.includes("application/json")) {
-      const payload = await response.json();
-      if (payload && payload.success && payload.data) {
-        let items = (payload.data.items || []).map(normalizeVehicleMedia);
-        // Public portal inventory filtering: Exclude unpublished, draft, and sold vehicles
-        items = items.filter(v => 
-          v.published !== false && 
-          v.isPublished !== false &&
-          v.status?.toLowerCase() !== 'draft'
-        );
-        publicVehicles = items;
-        if (!isAdminContext()) {
-          cachedVehicles = items;
-          isLoaded = true;
-        }
-        return items;
-      }
-    }
-  } catch (err) {
-    console.error("Failed to load vehicles from Public Worker API:", err);
-  }
-
-  return publicVehicles.length > 0 ? publicVehicles : cachedVehicles;
+export async function loadVehiclesAsync(params = {}) {
+  return loadAdminVehiclesAsync(params);
 }
 
 /**
@@ -152,29 +102,14 @@ export async function loadAdminVehiclesAsync(params = {}) {
 }
 
 /**
- * Returns cached vehicles or triggers async load.
- * For public portal viewers, returns publicVehicles or filters out unpublished, draft, and sold vehicles.
- * For admin viewers, returns all adminVehicles (including sold, draft, reserved).
+ * Returns cached admin vehicles or triggers async load.
  */
 export function getAllVehicles() {
-  if (isAdminContext()) {
-    if (adminVehicles.length > 0) return adminVehicles;
-    if (!isLoaded && typeof window !== "undefined") {
-      loadAdminVehiclesAsync();
-    }
-    return adminVehicles.length > 0 ? adminVehicles : cachedVehicles;
-  }
-
-  if (publicVehicles.length > 0) return publicVehicles;
+  if (adminVehicles.length > 0) return adminVehicles;
   if (!isLoaded && typeof window !== "undefined") {
-    loadVehiclesAsync();
+    loadAdminVehiclesAsync();
   }
-
-  return cachedVehicles.filter(v => 
-    v.published !== false && 
-    v.isPublished !== false &&
-    v.status?.toLowerCase() !== 'draft'
-  );
+  return adminVehicles.length > 0 ? adminVehicles : cachedVehicles;
 }
 
 /**
@@ -185,12 +120,11 @@ export function loadVehicles() {
 }
 
 /**
- * Placeholder for legacy saveVehicles function.
+ * Saves vehicles to cache.
  */
 export function saveVehicles(vehicles) {
   cachedVehicles = vehicles;
-  if (isAdminContext()) adminVehicles = vehicles;
-  else publicVehicles = vehicles;
+  adminVehicles = vehicles;
 }
 
 /**
