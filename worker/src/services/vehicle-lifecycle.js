@@ -5,6 +5,7 @@
 import { platformConfig } from "./platform-config.js";
 import { extractObjectKey, deleteStoredFile } from "../utils/storage.js";
 import { logAudit } from "../utils/audit.js";
+import { VehicleRepository } from "../repositories/vehicle-repository.js";
 
 /**
  * Purges media assets (exterior/interior images and auction sheet) for a vehicle when it transitions to Archived.
@@ -18,7 +19,7 @@ export async function purgeArchivedVehicleMedia(env, vehicleId) {
 
   try {
     // 1. Fetch vehicle auction sheet
-    const vehicle = await env.DB.prepare(`SELECT auction_sheet_url FROM vehicles WHERE id = ?`).bind(vehicleId).first();
+    const vehicle = await VehicleRepository.getAuctionSheetUrl(env.DB, vehicleId);
     if (vehicle && vehicle.auction_sheet_url) {
       const docKey = extractObjectKey(vehicle.auction_sheet_url);
       if (docKey) {
@@ -26,12 +27,11 @@ export async function purgeArchivedVehicleMedia(env, vehicleId) {
         purgedDocs++;
       }
       // Clear auction_sheet_url and availability flag in database
-      await env.DB.prepare(`UPDATE vehicles SET auction_sheet_url = NULL, auction_sheet_available = 0 WHERE id = ?`).bind(vehicleId).run();
+      await VehicleRepository.clearAuctionSheet(env.DB, vehicleId);
     }
 
     // 2. Fetch all vehicle images
-    const imagesRes = await env.DB.prepare(`SELECT image_url FROM vehicle_images WHERE vehicle_id = ?`).bind(vehicleId).all();
-    const images = imagesRes?.results || [];
+    const images = await VehicleRepository.findVehicleImages(env.DB, vehicleId);
 
     for (const img of images) {
       if (img.image_url) {
@@ -44,7 +44,7 @@ export async function purgeArchivedVehicleMedia(env, vehicleId) {
     }
 
     // Delete image records from vehicle_images table
-    await env.DB.prepare(`DELETE FROM vehicle_images WHERE vehicle_id = ?`).bind(vehicleId).run();
+    await VehicleRepository.deleteVehicleImages(env.DB, vehicleId);
 
   } catch (err) {
     console.error(`Error purging media for archived vehicle ID ${vehicleId}:`, err);
@@ -69,21 +69,12 @@ export async function runVehicleRetentionArchiving(env) {
 
   try {
     // Select sold vehicles updated or sold prior to cutoffIso that are not yet archived
-    const soldRes = await env.DB.prepare(`
-      SELECT id, stock_number FROM vehicles
-      WHERE status = 'sold' AND archived_at IS NULL AND updated_at < ?
-    `).bind(cutoffIso).all();
-
-    const vehiclesToArchive = soldRes?.results || [];
+    const vehiclesToArchive = await VehicleRepository.findVehiclesToArchive(env.DB, cutoffIso);
     const nowIso = new Date().toISOString();
 
     for (const v of vehiclesToArchive) {
       // 1. Update vehicle status to archived and set archived_at
-      await env.DB.prepare(`
-        UPDATE vehicles
-        SET status = 'archived', is_featured = 0, is_published = 0, archived_at = ?, updated_at = ?
-        WHERE id = ?
-      `).bind(nowIso, nowIso, v.id).run();
+      await VehicleRepository.archiveVehicleRecord(env.DB, v.id, nowIso);
 
       // 2. Purge media files (exterior images, interior images, auction sheet) to reduce R2 storage
       await purgeArchivedVehicleMedia(env, v.id);
@@ -106,3 +97,4 @@ export async function runVehicleRetentionArchiving(env) {
 
   return { archivedVehiclesCount: archivedCount, cutoffDate: cutoffIso, archiveAfterMonths: months };
 }
+
