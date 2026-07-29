@@ -22,7 +22,7 @@ import { initIdleTimeout } from "./idle-timeout.js";
  */
 async function init() {
   // Always bind event handlers first
-  bindLoginEvents(showDashboardView);
+  bindLoginEvents(() => showDashboardView({ isFreshLogin: true }));
   bindLogoutEvents(showLoginView);
   
   // Start inactivity timer tracking for non-RememberMe sessions
@@ -113,7 +113,7 @@ async function init() {
       console.error("Failed to fetch user profile during init:", e);
     }
 
-    showDashboardView();
+    showDashboardView({ isFreshLogin: false });
 
     const valid = await validateSession();
 
@@ -122,10 +122,9 @@ async function init() {
       return;
     }
   } else {
-    // Preserve requested route for deep linking if hash exists
-    if (window.location.hash && window.location.hash !== "#/" && window.location.hash !== "#/login") {
-      sessionStorage.setItem("redirect_route", window.location.hash);
-    }
+    sessionStorage.removeItem("redirect_route");
+    sessionStorage.removeItem("active_admin_module");
+    sessionStorage.removeItem("is_fresh_login");
     showLoginView();
   }
 }
@@ -227,7 +226,7 @@ function applyUIPermissions() {
   }
 }
 
-function showDashboardView() {
+function showDashboardView(options = {}) {
   const loginView = $("login-view");
   const adminLayout = $("admin-layout");
 
@@ -236,10 +235,21 @@ function showDashboardView() {
 
   applyUIPermissions();
 
-  const redirectRoute = sessionStorage.getItem("redirect_route");
-  if (redirectRoute) {
-    sessionStorage.removeItem("redirect_route");
-    navigationController.navigateToHash(redirectRoute);
+  const isFreshLogin = options?.isFreshLogin === true || sessionStorage.getItem("is_fresh_login") === "true";
+  sessionStorage.removeItem("is_fresh_login");
+  sessionStorage.removeItem("redirect_route");
+
+  if (isFreshLogin) {
+    sessionStorage.removeItem("active_admin_module");
+    const mandatoryAction = sessionStorage.getItem("mandatorySecurityAction") || 
+      (sessionStorage.getItem("mustChangePassword") === "true" ? "PASSWORD_CHANGE" : 
+      (sessionStorage.getItem("mustEnrollMfa") === "true" ? "MFA_ENROLLMENT" : null));
+
+    if (mandatoryAction) {
+      navigationController.navigateTo("profile", { replaceState: true });
+    } else {
+      navigationController.navigateTo("dashboard", { replaceState: true });
+    }
   } else {
     navigationController.init();
   }
