@@ -2,7 +2,8 @@
  * Centralized Validation & Business Rule Enforcement Utilities
  */
 
-export const VEHICLE_STATUSES = ["draft", "available", "incoming", "reserved", "sold", "archived"];
+export const VEHICLE_STATUSES = ["available", "incoming", "reserved", "sold"];
+export const ALLOWED_INPUT_STATUSES = ["available", "incoming", "reserved", "sold", "draft", "archived"];
 
 /**
  * Validates string format and constraints
@@ -121,8 +122,8 @@ export function validateVehicleStateTransition(currentStatus, newStatus, isResto
   const current = (currentStatus || "available").toLowerCase();
   const next = (newStatus || "available").toLowerCase();
 
-  if (!VEHICLE_STATUSES.includes(next)) {
-    return `Invalid status "${next}". Allowed statuses: ${VEHICLE_STATUSES.join(", ")}.`;
+  if (!ALLOWED_INPUT_STATUSES.includes(next)) {
+    return `Invalid status "${next}". Allowed statuses: ${ALLOWED_INPUT_STATUSES.join(", ")}.`;
   }
 
   if (current === "sold" && next === "available" && !isRestore) {
