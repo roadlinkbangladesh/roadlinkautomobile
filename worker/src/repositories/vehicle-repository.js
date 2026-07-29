@@ -37,14 +37,15 @@ export class VehicleRepository {
    * Fetch mapped vehicle object (with images) by numeric ID, stock number, or slug
    * @param {Object} db - D1 Database binding
    * @param {string|number} idOrStockOrSlug
+   * @param {Object} [options={}]
    * @returns {Promise<Object|null>}
    */
-  static async findVehicleByIdOrStock(db, idOrStockOrSlug) {
+  static async findVehicleByIdOrStock(db, idOrStockOrSlug, options = {}) {
     const row = await VehicleRepository.findRawVehicleByIdOrStock(db, idOrStockOrSlug);
     if (!row) return null;
 
     const images = await VehicleRepository.findVehicleImages(db, row.id);
-    return mapDbToVehicle(row, images);
+    return mapDbToVehicle(row, images, options);
   }
 
   /**
