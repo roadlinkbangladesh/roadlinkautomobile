@@ -57,11 +57,7 @@ function bindMetricCardEvents() {
   const cardSold = document.querySelector(".bg-card-charcoal");
 
   const navigateAndFilter = (status) => {
-    if (status === "all") {
-      navigationController.navigateTo("vehicles", { query: {} });
-    } else {
-      navigationController.navigateTo("vehicles", { query: { status } });
-    }
+    navigationController.navigateTo("vehicles", { query: { status } });
   };
 
   if (cardTotal) {
