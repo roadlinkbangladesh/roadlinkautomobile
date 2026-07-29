@@ -66,7 +66,7 @@ export async function getAdminVehicle(request, env, ctx, params) {
   if (auth.errorResponse) return auth.errorResponse;
 
   try {
-    const vehicle = await VehicleService.getVehicleByIdOrStock(env.DB, params.id);
+    const vehicle = await VehicleService.getVehicleByIdOrStock(env.DB, params.id, { isAdmin: true });
     if (!vehicle) return notFound("Vehicle not found.");
     return success(vehicle);
   } catch (error) {
