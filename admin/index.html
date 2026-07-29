@@ -130,7 +130,7 @@
             </div>
             <div style="margin-top: 6px;">
               <span style="display: block; color: var(--text-muted); font-weight: 600; margin-bottom: 4px;">Secret Key (Base32):</span>
-              <div style="display: flex; gap: 6px; align-items: center;">
+              <div class="mfa-control-row" style="display: flex; gap: 6px; align-items: center;">
                 <input type="text" id="mfa-mandatory-secret-display" readonly style="flex: 1; padding: 6px 8px; font-family: var(--font-mono); font-size: 0.825rem; font-weight: 700; background: var(--bg-light); border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); letter-spacing: 1px;">
                 <button type="button" id="btn-mfa-mandatory-copy-secret" class="btn btn-view-site" style="margin: 0; padding: 6px 10px; font-size: 0.75rem; white-space: nowrap;">Copy Key</button>
               </div>
@@ -1057,13 +1057,13 @@
                         <!-- Manual Secret & Verification Form -->
                         <div>
                           <h5 style="margin: 0 0 6px 0; font-size: 0.9rem; font-weight: 700;">1. Scan QR Code or Enter Secret Key</h5>
-                          <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 16px;">
+                          <div class="mfa-control-row" style="display: flex; gap: 8px; align-items: center; margin-bottom: 16px;">
                             <input type="text" id="mfa-secret-display" readonly style="flex: 1; padding: 8px 12px; font-family: var(--font-mono); font-size: 0.9rem; font-weight: 700; background: var(--bg-light); border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); letter-spacing: 1px;">
                             <button type="button" id="btn-mfa-copy-secret" class="btn btn-view-site" style="margin: 0; padding: 8px 14px; font-size: 0.8rem;">Copy Key</button>
                           </div>
 
                           <h5 style="margin: 0 0 6px 0; font-size: 0.9rem; font-weight: 700;">2. Enter 6-Digit Verification Code</h5>
-                          <div style="display: flex; gap: 10px; align-items: flex-start; max-width: 380px;">
+                          <div class="mfa-verify-row" style="display: flex; gap: 10px; align-items: flex-start; max-width: 380px;">
                             <input type="text" id="mfa-confirm-code" placeholder="123456" maxlength="6" style="flex: 1; padding: 10px; font-family: var(--font-mono); font-size: 1.1rem; text-align: center; letter-spacing: 2px; border: 1.5px solid var(--border-color); border-radius: var(--radius-sm);">
                             <button type="button" id="btn-mfa-confirm-enable" class="btn btn-login-submit" style="width: auto; padding: 10px 20px; margin: 0; white-space: nowrap;">Activate MFA</button>
                           </div>
