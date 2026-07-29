@@ -247,7 +247,7 @@ export class VehicleService {
     }
 
     // If created directly in archived state, purge media as per retention rule
-    if (status === "archived") {
+    if (rawStatus === "archived") {
       await purgeArchivedVehicleMedia(env, vehicleId);
     }
 
@@ -261,7 +261,7 @@ export class VehicleService {
         status: "SUCCESS",
         ipAddress: auditContext.ipAddress,
         userAgent: auditContext.userAgent,
-        details: JSON.stringify({ stockNumber: data.stockNumber, make: data.make, model: data.model, status })
+        details: JSON.stringify({ stockNumber: data.stockNumber, make: data.make, model: data.model, status: dbStatus })
       });
     }
 
@@ -425,7 +425,7 @@ export class VehicleService {
     }
 
     // If transitioned to archived status, purge media
-    if (newStatus === "archived") {
+    if (rawRequestedStatus === "archived") {
       await purgeArchivedVehicleMedia(env, dbId);
     }
 
@@ -439,7 +439,7 @@ export class VehicleService {
         status: "SUCCESS",
         ipAddress: auditContext.ipAddress,
         userAgent: auditContext.userAgent,
-        details: JSON.stringify({ stockNumber: newStockNumber, status: newStatus })
+        details: JSON.stringify({ stockNumber: newStockNumber, status: dbStatus })
       });
     }
 
@@ -534,7 +534,7 @@ export class VehicleService {
         status: "SUCCESS",
         ipAddress: auditContext.ipAddress,
         userAgent: auditContext.userAgent,
-        details: JSON.stringify({ status: newStatus, published: Boolean(newPublished), archivedAt: newArchivedAt })
+        details: JSON.stringify({ status: targetStatus, published: Boolean(newPublished), archivedAt: newArchivedAt })
       });
     }
 
