@@ -40,7 +40,7 @@ async function init() {
     panelId: "vehicles-view-panel",
     btnId: "nav-item-vehicles",
     title: "Vehicles Inventory",
-    init: () => initVehiclesView()
+    init: (query) => initVehiclesView(query)
   });
 
   navigationController.registerModule("settings", {
