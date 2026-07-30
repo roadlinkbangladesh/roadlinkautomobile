@@ -34,6 +34,33 @@ export class VehicleRepository {
   }
 
   /**
+   * Fetch all images associated with multiple vehicle IDs in a single batch query
+   * @param {Object} db - D1 Database binding
+   * @param {Array<number>} vehicleIds
+   * @returns {Promise<Map<number, Array>>} Map of vehicle_id to image array
+   */
+  static async findImagesForVehicleIds(db, vehicleIds) {
+    const imagesMap = new Map();
+    if (!Array.isArray(vehicleIds) || vehicleIds.length === 0) {
+      return imagesMap;
+    }
+
+    const placeholders = vehicleIds.map(() => "?").join(", ");
+    const query = `SELECT * FROM vehicle_images WHERE vehicle_id IN (${placeholders}) ORDER BY display_order ASC, id ASC`;
+    const imagesRes = await db.prepare(query).bind(...vehicleIds).all();
+    const rows = imagesRes?.results || [];
+
+    for (const img of rows) {
+      if (!imagesMap.has(img.vehicle_id)) {
+        imagesMap.set(img.vehicle_id, []);
+      }
+      imagesMap.get(img.vehicle_id).push(img);
+    }
+
+    return imagesMap;
+  }
+
+  /**
    * Fetch mapped vehicle object (with images) by numeric ID, stock number, or slug
    * @param {Object} db - D1 Database binding
    * @param {string|number} idOrStockOrSlug
