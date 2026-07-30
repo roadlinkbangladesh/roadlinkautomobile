@@ -115,7 +115,18 @@ export function created(data = null, message = "Created successfully.") {
 /**
  * 400 Bad Request
  */
-export function badRequest(message = "Bad request.") {
+export function badRequest(message = "Bad request.", extra = null) {
+    if (extra && typeof extra === "object") {
+        const body = {
+            success: false,
+            ...extra,
+            message
+        };
+        return Response.json(body, {
+            status: HTTP_STATUS.BAD_REQUEST,
+            headers: CORS_HEADERS
+        });
+    }
     return json(
         HTTP_STATUS.BAD_REQUEST,
         false,
@@ -127,7 +138,18 @@ export function badRequest(message = "Bad request.") {
 /**
  * 401 Unauthorized
  */
-export function unauthorized(message = "Unauthorized.") {
+export function unauthorized(message = "Unauthorized.", extra = null) {
+    if (extra && typeof extra === "object") {
+        const body = {
+            success: false,
+            ...extra,
+            message
+        };
+        return Response.json(body, {
+            status: HTTP_STATUS.UNAUTHORIZED,
+            headers: CORS_HEADERS
+        });
+    }
     return json(
         HTTP_STATUS.UNAUTHORIZED,
         false,
