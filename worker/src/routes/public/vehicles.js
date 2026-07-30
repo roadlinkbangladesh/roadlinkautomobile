@@ -1,4 +1,4 @@
-import { success, notFound, serverError } from "../../utils/response.js";
+import { success, notFound, serverError, applySecurityHeaders } from "../../utils/response.js";
 import { VehicleService, VehicleServiceError } from "../../services/vehicle-service.js";
 import { getStorageBucket } from "../../utils/storage.js";
 
@@ -170,7 +170,9 @@ export async function getPublicVehicleAuctionSheet(request, env, ctx, params) {
     const filename = `Auction-Sheet-${safeStock}.${ext}`;
     headers.set("Content-Disposition", `inline; filename="${filename}"`);
 
-    return new Response(object.body, { headers });
+    const securedHeaders = applySecurityHeaders(headers, request);
+
+    return new Response(object.body, { headers: securedHeaders });
   } catch (error) {
     if (error instanceof VehicleServiceError && error.type === "NOT_FOUND") {
       return notFound(error.message);
