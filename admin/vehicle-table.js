@@ -434,13 +434,11 @@ export function renderVehicleTable() {
     const statusCellHtml = `
       <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start; font-size: 0.8rem;">
         <div style="display: flex; align-items: center; gap: 6px;">
-          <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; width: 72px;">Vehicle:</span>
           <span class="badge" style="padding: 2px 8px; border-radius: var(--radius-full); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; ${statusStyle}">
             ${vehicleStatusText}
           </span>
         </div>
         <div style="display: flex; align-items: center; gap: 6px;">
-          <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; width: 72px;">Publication:</span>
           <span class="badge" style="padding: 2px 8px; border-radius: var(--radius-full); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; ${publishedStyle}">
             ${publishedText}
           </span>
