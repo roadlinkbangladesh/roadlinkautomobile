@@ -10,6 +10,8 @@
     "build": "echo 'No build step needed for static files'"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "cors": "^2.8.6",
+    "express": "^4.19.2",
+    "sql.js": "^1.14.1"
   }
 }
