@@ -34,12 +34,8 @@ export async function ensureRolesMfaColumn(env) {
 }
 
 export async function listRoles(request, env) {
-    const auth = await authenticate(request, env);
+    const auth = await authenticate(request, env, ["roles.manage", "users.manage"]);
     if (auth.errorResponse) return auth.errorResponse;
-
-    if (!auth.permissions.includes("roles.manage") && !auth.permissions.includes("users.manage")) {
-        return forbidden("Access denied. Insufficient permissions.");
-    }
 
     try {
         await ensureRolesMfaColumn(env);
@@ -89,12 +85,8 @@ export async function listRoles(request, env) {
 }
 
 export async function getRole(request, env, ctx, params) {
-    const auth = await authenticate(request, env);
+    const auth = await authenticate(request, env, ["roles.manage", "users.manage"]);
     if (auth.errorResponse) return auth.errorResponse;
-
-    if (!auth.permissions.includes("roles.manage") && !auth.permissions.includes("users.manage")) {
-        return forbidden("Access denied. Insufficient permissions.");
-    }
 
     const id = parseInt(params.id);
     if (isNaN(id)) {
