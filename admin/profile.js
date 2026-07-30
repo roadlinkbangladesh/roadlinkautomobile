@@ -70,10 +70,10 @@ async function loadProfileData() {
       sessionStorage.setItem("currentUser", JSON.stringify(user));
       if (user.must_change_password) {
         sessionStorage.setItem("mustChangePassword", "true");
-        updateForcedPasswordPromptState(true);
       } else {
-        updateForcedPasswordPromptState();
+        sessionStorage.removeItem("mustChangePassword");
       }
+      updateMandatorySecurityActionBanners();
       
       // Update topbar profile view labels if they exist
       const topbarRoleElements = document.querySelectorAll(".user-role");
