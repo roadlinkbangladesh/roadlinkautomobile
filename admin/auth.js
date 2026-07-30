@@ -269,12 +269,13 @@ export function bindLoginEvents(onLoginSuccess) {
   }
 
   if (mfaChallengeForm) {
-    const mfaErrorAlert = $("mfa-error-alert");
-    const mfaErrorMessage = $("mfa-error-message");
-
     function showMfaError(message) {
-      if (mfaErrorMessage) mfaErrorMessage.textContent = message;
-      if (mfaErrorAlert) mfaErrorAlert.style.display = "flex";
+      const alertEl = $("mfa-error-alert");
+      const msgEl = $("mfa-error-message");
+      if (msgEl) msgEl.textContent = message;
+      if (alertEl) {
+        alertEl.style.display = "flex";
+      }
       const codeInput = $("mfa-code-input");
       if (codeInput) {
         codeInput.select();
@@ -284,7 +285,8 @@ export function bindLoginEvents(onLoginSuccess) {
 
     mfaChallengeForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      if (mfaErrorAlert) mfaErrorAlert.style.display = "none";
+      const alertEl = $("mfa-error-alert");
+      if (alertEl) alertEl.style.display = "none";
 
       const codeInput = $("mfa-code-input");
       const code = codeInput ? codeInput.value.trim() : "";
@@ -356,7 +358,7 @@ export function bindLoginEvents(onLoginSuccess) {
             showLoginView(res.message || "Account is temporarily locked due to too many failed attempts. Please try again later.");
           } else {
             // Normal incorrect OTP: Keep user on MFA page and display error
-            let msg = res.message || "Invalid verification code or recovery code. Please try again.";
+            let msg = res.message || res.error || "Invalid verification code or recovery code. Please try again.";
             if (typeof res.attempts_remaining === "number" && res.attempts_remaining > 0) {
               msg = `Invalid verification code. Please try again (${res.attempts_remaining} attempt${res.attempts_remaining === 1 ? '' : 's'} remaining).`;
             }
@@ -404,10 +406,9 @@ export function bindLoginEvents(onLoginSuccess) {
   }
 
   if (mfaMandatoryForm) {
-    const errAlert = $("mfa-mandatory-error-alert");
-    const errMsg = $("mfa-mandatory-error-message");
-
     function showMandatoryMfaError(message) {
+      const errAlert = $("mfa-mandatory-error-alert");
+      const errMsg = $("mfa-mandatory-error-message");
       if (errMsg) errMsg.textContent = message;
       if (errAlert) errAlert.style.display = "flex";
       const codeInput = $("mfa-mandatory-code-input");
@@ -419,7 +420,8 @@ export function bindLoginEvents(onLoginSuccess) {
 
     mfaMandatoryForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      if (errAlert) errAlert.style.display = "none";
+      const alertEl = $("mfa-mandatory-error-alert");
+      if (alertEl) alertEl.style.display = "none";
 
       const codeInput = $("mfa-mandatory-code-input");
       const code = codeInput ? codeInput.value.trim() : "";
