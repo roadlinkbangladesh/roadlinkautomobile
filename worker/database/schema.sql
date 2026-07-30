@@ -64,3 +64,5 @@ CREATE INDEX idx_vehicle_status ON vehicles(status);
 CREATE INDEX idx_vehicle_status_archived ON vehicles(status, archived_at);
 CREATE INDEX idx_vehicle_stock ON vehicles(stock_number);
 CREATE INDEX idx_vehicle_year ON vehicles(year);
+CREATE INDEX IF NOT EXISTS idx_vehicles_published_status ON vehicles(is_published, status, archived_at);
+CREATE INDEX IF NOT EXISTS idx_vehicles_featured ON vehicles(is_featured, archived_at, featured_position);
