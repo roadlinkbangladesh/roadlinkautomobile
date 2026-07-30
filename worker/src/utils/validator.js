@@ -179,3 +179,11 @@ export function validateFileUpload(file, category, config) {
 
   return null;
 }
+
+/**
+ * Escapes SQL wildcard characters (% and _) in search terms for safe usage in LIKE clauses.
+ */
+export function escapeSqlWildcards(str) {
+  if (typeof str !== "string") return "";
+  return str.replace(/[%_\\]/g, "\\$&");
+}
