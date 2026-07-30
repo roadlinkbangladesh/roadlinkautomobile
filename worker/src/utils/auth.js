@@ -30,7 +30,19 @@ export function getPendingMandatoryAction(user, roleRequiresMfa) {
 /**
  * Common Authentication & Authorization Middleware for Workers
  */
-export async function authenticate(request, env, requiredPermission = null, isChangePasswordRoute = false, isMfaSetupRoute = false, isMfaVerifyRoute = false) {
+export async function authenticate(request, env, reqPerm = null, changePassRoute = false, mfaSetupRoute = false, mfaVerifyRoute = false) {
+    let requiredPermission = reqPerm;
+    let isChangePasswordRoute = changePassRoute;
+    let isMfaSetupRoute = mfaSetupRoute;
+    let isMfaVerifyRoute = mfaVerifyRoute;
+
+    if (reqPerm && typeof reqPerm === "object" && !Array.isArray(reqPerm)) {
+        requiredPermission = reqPerm.requiredPermission || null;
+        isChangePasswordRoute = reqPerm.isChangePasswordRoute || false;
+        isMfaSetupRoute = reqPerm.isMfaSetupRoute || false;
+        isMfaVerifyRoute = reqPerm.isMfaVerifyRoute || false;
+    }
+
     const authHeader = request.headers.get("Authorization");
     const { ipAddress, userAgent } = getRequestMeta(request);
 
@@ -145,14 +157,26 @@ export async function authenticate(request, env, requiredPermission = null, isCh
         };
     }
 
-    if (requiredPermission && !user.is_super_admin && !permissions.includes(requiredPermission)) {
+    let hasPermission = false;
+    if (!requiredPermission) {
+        hasPermission = true;
+    } else if (user.is_super_admin) {
+        hasPermission = true;
+    } else if (Array.isArray(requiredPermission)) {
+        hasPermission = requiredPermission.some(p => permissions.includes(p));
+    } else {
+        hasPermission = permissions.includes(requiredPermission);
+    }
+
+    if (!hasPermission) {
+        const permString = Array.isArray(requiredPermission) ? requiredPermission.join(", ") : requiredPermission;
         await logAudit(env, {
             actingUserId: user.id,
             actingUsername: user.username,
             action: "security.permission_denied",
             resourceType: "authorization",
             status: "FAILURE",
-            reason: `Missing required permission: ${requiredPermission}`,
+            reason: `Missing required permission: ${permString}`,
             ipAddress,
             userAgent
         });
