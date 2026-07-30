@@ -141,11 +141,13 @@ export class VehicleService {
     const offset = (pageNum - 1) * limitNum;
     const rows = await VehicleRepository.findVehicles(db, whereClause, orderBy, params, limitNum, offset);
 
-    const vehicles = [];
-    for (const row of rows) {
-      const images = await VehicleRepository.findVehicleImages(db, row.id);
-      vehicles.push(mapDbToVehicle(row, images, { isAdmin: true }));
-    }
+    const vehicleIds = rows.map(r => r.id);
+    const imagesMap = await VehicleRepository.findImagesForVehicleIds(db, vehicleIds);
+
+    const vehicles = rows.map(row => {
+      const images = imagesMap.get(row.id) || [];
+      return mapDbToVehicle(row, images, { isAdmin: true });
+    });
 
     return {
       items: vehicles,
@@ -245,11 +247,13 @@ export class VehicleService {
     const offset = (page - 1) * limit;
     const rows = await VehicleRepository.findVehicles(env.DB, whereClause, orderBy, params, limit, offset);
 
-    const vehicles = [];
-    for (const row of rows) {
-      const images = await VehicleRepository.findVehicleImages(env.DB, row.id);
-      vehicles.push(mapDbToVehicle(row, images));
-    }
+    const vehicleIds = rows.map(r => r.id);
+    const imagesMap = await VehicleRepository.findImagesForVehicleIds(env.DB, vehicleIds);
+
+    const vehicles = rows.map(row => {
+      const images = imagesMap.get(row.id) || [];
+      return mapDbToVehicle(row, images);
+    });
 
     return {
       items: vehicles,
