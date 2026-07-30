@@ -269,10 +269,21 @@ export function bindLoginEvents(onLoginSuccess) {
   }
 
   if (mfaChallengeForm) {
+    const mfaErrorAlert = $("mfa-error-alert");
+    const mfaErrorMessage = $("mfa-error-message");
+
+    function showMfaError(message) {
+      if (mfaErrorMessage) mfaErrorMessage.textContent = message;
+      if (mfaErrorAlert) mfaErrorAlert.style.display = "flex";
+      const codeInput = $("mfa-code-input");
+      if (codeInput) {
+        codeInput.select();
+        codeInput.focus();
+      }
+    }
+
     mfaChallengeForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const mfaErrorAlert = $("mfa-error-alert");
-      const mfaErrorMessage = $("mfa-error-message");
       if (mfaErrorAlert) mfaErrorAlert.style.display = "none";
 
       const codeInput = $("mfa-code-input");
@@ -345,7 +356,11 @@ export function bindLoginEvents(onLoginSuccess) {
             showLoginView(res.message || "Account is temporarily locked due to too many failed attempts. Please try again later.");
           } else {
             // Normal incorrect OTP: Keep user on MFA page and display error
-            showMfaError(res.message || "Invalid verification code or recovery code. Please try again.");
+            let msg = res.message || "Invalid verification code or recovery code. Please try again.";
+            if (typeof res.attempts_remaining === "number" && res.attempts_remaining > 0) {
+              msg = `Invalid verification code. Please try again (${res.attempts_remaining} attempt${res.attempts_remaining === 1 ? '' : 's'} remaining).`;
+            }
+            showMfaError(msg);
           }
         }
       } catch (err) {
@@ -357,16 +372,6 @@ export function bindLoginEvents(onLoginSuccess) {
         }
       }
     });
-
-    function showMfaError(message) {
-      if (mfaErrorMessage) mfaErrorMessage.textContent = message;
-      if (mfaErrorAlert) mfaErrorAlert.style.display = "flex";
-      const codeInput = $("mfa-code-input");
-      if (codeInput) {
-        codeInput.select();
-        codeInput.focus();
-      }
-    }
   }
 
   // 4. Mandatory MFA Enrollment Form Handler
@@ -399,10 +404,21 @@ export function bindLoginEvents(onLoginSuccess) {
   }
 
   if (mfaMandatoryForm) {
+    const errAlert = $("mfa-mandatory-error-alert");
+    const errMsg = $("mfa-mandatory-error-message");
+
+    function showMandatoryMfaError(message) {
+      if (errMsg) errMsg.textContent = message;
+      if (errAlert) errAlert.style.display = "flex";
+      const codeInput = $("mfa-mandatory-code-input");
+      if (codeInput) {
+        codeInput.select();
+        codeInput.focus();
+      }
+    }
+
     mfaMandatoryForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const errAlert = $("mfa-mandatory-error-alert");
-      const errMsg = $("mfa-mandatory-error-message");
       if (errAlert) errAlert.style.display = "none";
 
       const codeInput = $("mfa-mandatory-code-input");
@@ -477,16 +493,6 @@ export function bindLoginEvents(onLoginSuccess) {
         }
       }
     });
-
-    function showMandatoryMfaError(message) {
-      if (errMsg) errMsg.textContent = message;
-      if (errAlert) errAlert.style.display = "flex";
-      const codeInput = $("mfa-mandatory-code-input");
-      if (codeInput) {
-        codeInput.select();
-        codeInput.focus();
-      }
-    }
   }
 
   function showError(message) {
