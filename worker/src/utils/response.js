@@ -38,6 +38,33 @@ export function getCorsHeaders(request) {
 }
 
 /**
+ * Injects security and CORS headers into custom Response headers objects
+ */
+export function applySecurityHeaders(customHeaders = {}, request = null) {
+  const headers = customHeaders instanceof Headers ? customHeaders : new Headers(customHeaders);
+
+  if (!headers.has("X-Content-Type-Options")) {
+    headers.set("X-Content-Type-Options", "nosniff");
+  }
+  if (!headers.has("Referrer-Policy")) {
+    headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  }
+  if (!headers.has("Permissions-Policy")) {
+    headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  }
+
+  const origin = request ? request.headers.get("Origin") : null;
+  if (origin && origin !== "null") {
+    headers.set("Access-Control-Allow-Origin", origin);
+    headers.set("Vary", "Origin");
+  } else if (!headers.has("Access-Control-Allow-Origin")) {
+    headers.set("Access-Control-Allow-Origin", "*");
+  }
+
+  return headers;
+}
+
+/**
  * Standard JSON response
  */
 function json(status, success, data = null, message = null) {
