@@ -4,7 +4,7 @@
  */
 
 import { $, apiFetch } from "./utils.js";
-import { getCurrentUser, clearToken } from "./auth.js";
+import { getCurrentUser, clearToken, logout } from "./auth.js";
 import { navigationController } from "./navigation.js";
 import { validatePasswordComplexity } from "./password-validator.js";
 import { showLoginView } from "./ui.js";
@@ -343,9 +343,8 @@ function bindProfileEvents() {
         updateMandatorySecurityActionBanners();
 
         if (wasForcedChange || result.data?.requires_login || result.requires_login) {
-          setTimeout(() => {
-            clearToken();
-            sessionStorage.clear();
+          setTimeout(async () => {
+            await logout();
             showLoginView("Password changed successfully! Please sign in with your new password.");
           }, 1200);
         } else {
@@ -578,8 +577,7 @@ function bindMfaEvents() {
 
           if (!mfaRecoveryCodes || mfaRecoveryCodes.length === 0) {
             if (pendingMandatoryLogout) {
-              clearToken();
-              sessionStorage.clear();
+              await logout();
               showLoginView("MFA enrollment complete! Please sign in with your credentials.");
             }
           }
@@ -681,12 +679,11 @@ function bindMfaEvents() {
   }
 
   if (btnCloseRecoveryModal) {
-    btnCloseRecoveryModal.addEventListener("click", () => {
+    btnCloseRecoveryModal.addEventListener("click", async () => {
       const modal = $("mfa-recovery-codes-modal");
       if (modal) modal.style.display = "none";
       if (pendingMandatoryLogout) {
-        clearToken();
-        sessionStorage.clear();
+        await logout();
         showLoginView("MFA enrollment complete! Please sign in with your credentials.");
       }
     });

@@ -31,23 +31,28 @@ export function saveToken(token, rememberMe) {
   }
 }
 /**
- * Removes the token from BOTH sessionStorage and localStorage.
+ * Removes the token and user data from BOTH sessionStorage and localStorage.
  */
 export function clearToken() {
-  const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-  if (token) {
-    try {
-      fetch("/api/v1/auth/logout", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${token}` }
-      }).catch(() => {});
-    } catch (e) {}
-  }
   localStorage.removeItem("token");
   sessionStorage.clear();
   
   if (window.location.hash && window.location.hash !== "#/login") {
     history.replaceState(null, "", "#/login");
+  }
+}
+
+/**
+ * Initiates server-side logout to invalidate active tokens and clears local session.
+ * @returns {Promise<void>}
+ */
+export async function logout() {
+  try {
+    await apiFetch("/api/v1/auth/logout", { method: "POST" });
+  } catch (err) {
+    console.warn("Logout endpoint error:", err);
+  } finally {
+    clearToken();
   }
 }
 
@@ -491,12 +496,7 @@ export function bindLogoutEvents(onLogoutSuccess) {
   const btnIdleLogout = $("btn-idle-logout");
 
   const handleLogout = async () => {
-    try {
-      await apiFetch("/api/v1/auth/logout", { method: "POST" });
-    } catch (err) {
-      console.warn("Logout endpoint error:", err);
-    }
-    clearToken();
+    await logout();
     if (onLogoutSuccess) onLogoutSuccess();
   };
 

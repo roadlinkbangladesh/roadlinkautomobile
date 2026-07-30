@@ -1,4 +1,4 @@
-import { isAuthenticated, clearToken } from "./auth.js";
+import { isAuthenticated, clearToken, logout } from "./auth.js";
 import { showLoginView } from "./ui.js";
 import { $ } from "./utils.js";
 
@@ -81,9 +81,9 @@ function updateCountdown() {
 /**
  * Handles session logout on timeout.
  */
-function handleTimeout() {
+async function handleTimeout() {
   hideWarningModal();
-  clearToken();
+  await logout();
   showLoginView();
   alert("Your session has expired due to inactivity. Please log in again.");
 }
