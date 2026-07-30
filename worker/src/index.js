@@ -1,4 +1,5 @@
 import { preflight, notFound, serverError } from "./utils/response.js";
+import { logger } from "./utils/logger.js";
 import { API } from "./config/constants.js";
 import { login, logout } from "./routes/auth/login.js";
 import {
@@ -237,7 +238,7 @@ export default {
                 }
             }
 
-            console.log("Incoming request:", method, pathname);
+            logger.request(request, "Incoming request");
             
             if (!handler) {
                 return notFound();
@@ -246,7 +247,7 @@ export default {
             return await handler(request, env, ctx, params);
 
         } catch (error) {
-            console.error(error);
+            logger.requestError(request, error);
             return serverError();
         }
     }
