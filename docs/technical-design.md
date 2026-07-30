@@ -239,6 +239,14 @@ Route handlers wrap service calls in `try ... catch` blocks and map domain error
    * `X-Content-Type-Options: nosniff`
    * `Cache-Control: private, max-age=3600`
 
+### 5.4 Unified Session Termination & Server-Side Logout Flow
+
+1. All client-initiated logouts, password change security resets, MFA completion logouts, and idle timeout expirations MUST invoke `logout()` exported from `admin/auth.js`.
+2. `logout()` executes an HTTP `POST` request to `/api/v1/auth/logout` via `apiFetch()`, properly routed to the API backend via `buildUrl()`.
+3. Backend route `POST /api/v1/auth/logout` increments the user's `token_version` in D1 (`UPDATE users SET token_version = token_version + 1`), invalidating active tokens across all sessions, and logs an `auth.logout` audit entry.
+4. Local token and session storage is cleared via `clearToken()`.
+5. Network calls MUST NOT be embedded directly inside `clearToken()`, preserving `clearToken()` as a synchronous client state cleanup utility.
+
 ---
 
 ## 6. Coding Conventions & Implementation Patterns

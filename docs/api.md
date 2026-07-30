@@ -218,7 +218,25 @@ Submits 6-digit TOTP code or emergency backup code during MFA step.
 
 ---
 
-### 4.3 MFA Setup & Enrolment
+### 4.3 Logout
+`POST /api/v1/auth/logout`
+
+Terminates the user's active session, increments the user's database `token_version` to invalidate active tokens across all sessions, and logs an `auth.logout` audit event.
+
+#### Headers
+`Authorization: Bearer <token>`
+
+#### Success Response (HTTP 200)
+```json
+{
+  "success": true,
+  "message": "Logged out successfully"
+}
+```
+
+---
+
+### 4.4 MFA Setup & Enrolment
 * `GET /api/v1/auth/mfa/status` — Get current user MFA status
 * `POST /api/v1/auth/mfa/setup` — Generate TOTP secret, QR code URI, and single-use backup codes
 * `POST /api/v1/auth/mfa/enable` — Confirm enrolment with 6-digit TOTP code
