@@ -1,5 +1,5 @@
 /**
- * Roadlink Automobiles - Global Settings & Locations Management
+ * Roadlink Automobiles - Public Settings & Locations Loader
  * Single source of truth for public website settings and business location rendering.
  */
 
@@ -29,6 +29,14 @@ let cachedLocations = [];
 
 export function getPublicSettings() {
   return cachedSettings;
+}
+
+export function getSettings() {
+  return cachedSettings;
+}
+
+export function getLocations() {
+  return cachedLocations;
 }
 
 /**
@@ -76,7 +84,7 @@ export async function fetchPublicSettings() {
 }
 
 /**
- * Fetches public business locations from backend API and hydrates location sections & footers
+ * Fetches public business locations from backend API
  */
 export async function fetchPublicLocations() {
   try {
@@ -95,7 +103,6 @@ export async function fetchPublicLocations() {
   }
 }
 
-// Helper to format WhatsApp number for visual display
 function formatWaDisplay(raw) {
   if (!raw) return '';
   const clean = String(raw).trim();
@@ -109,9 +116,6 @@ function formatWaDisplay(raw) {
   return `+${clean}`;
 }
 
-/**
- * Hydrates homepage location section and footer contact list from database locations
- */
 function hydrateLocationsUI(locations) {
   const settings = getSettings();
   const defaultLoc = locations.find(l => l.isDefault) || locations[0];
@@ -119,7 +123,6 @@ function hydrateLocationsUI(locations) {
   const contactList = document.getElementById("dyn-contact-list");
   const actionsBar = document.getElementById("contact-actions-bar");
 
-  // 1. Homepage Location Cards (#dyn-contact-list)
   if (contactList && locations.length > 0) {
     contactList.innerHTML = locations.map((loc) => {
       const isDefault = loc.isDefault;
@@ -129,7 +132,6 @@ function hydrateLocationsUI(locations) {
 
       const hoursHtml = (loc.businessHours || loc.openingHours) ? `<p class="loc-extra-info"><strong>Hours:</strong> ${loc.businessHours || loc.openingHours}</p>` : '';
       const servicesHtml = loc.services ? `<p class="loc-extra-info"><strong>Services:</strong> ${loc.services}</p>` : '';
-
       const navUrl = loc.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.title + ' ' + loc.address)}`;
 
       return `
@@ -155,14 +157,12 @@ function hydrateLocationsUI(locations) {
     }).join('');
   }
 
-  // Helper to select a location card
   const selectLocationCard = (cardEl, loc) => {
     if (!cardEl) return;
     const embedUrl = cardEl.dataset.mapEmbed || loc?.mapEmbedUrl || '';
     const navUrl = cardEl.dataset.navUrl || loc?.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((loc?.title || '') + ' ' + (loc?.address || ''))}`;
     const title = cardEl.dataset.locTitle || loc?.title || 'Location';
 
-    // Highlight selected card
     if (contactList) {
       contactList.querySelectorAll(".location-card-item").forEach(card => {
         card.classList.remove("active-location");
@@ -170,19 +170,16 @@ function hydrateLocationsUI(locations) {
       cardEl.classList.add("active-location");
     }
 
-    // Update Map Iframe
     if (mapIframe && embedUrl) {
       mapIframe.src = embedUrl;
     }
 
-    // Update Get Directions button
     const directionsBtn = document.getElementById("btn-get-directions");
     if (directionsBtn) {
       directionsBtn.href = navUrl;
       directionsBtn.title = `Get directions to ${title}`;
     }
 
-    // Dynamic WhatsApp update if location has specific WhatsApp
     const waLink = document.getElementById("contact-action-wa");
     const locWa = loc?.whatsapp || settings.whatsapp;
     if (waLink && locWa) {
@@ -194,7 +191,6 @@ function hydrateLocationsUI(locations) {
       if (waValEl) waValEl.textContent = waDisp;
     }
 
-    // Dynamic Email update if location has specific Email
     const emailLink = document.getElementById("contact-action-email");
     const locEmail = loc?.email || settings.email;
     if (emailLink && locEmail) {
@@ -205,7 +201,6 @@ function hydrateLocationsUI(locations) {
     }
   };
 
-  // Bind click handlers to location cards
   if (contactList) {
     contactList.querySelectorAll(".location-card-item").forEach(card => {
       card.addEventListener("click", () => {
@@ -216,7 +211,6 @@ function hydrateLocationsUI(locations) {
     });
   }
 
-  // 2. Render Contact Actions Bar (#contact-actions-bar)
   if (actionsBar) {
     const rawWa = settings.whatsapp || '';
     const waSanitized = rawWa ? sanitizePhoneNumber(rawWa) : '';
@@ -261,7 +255,6 @@ function hydrateLocationsUI(locations) {
     `;
   }
 
-  // Set initial default map and directions state
   if (defaultLoc) {
     const defaultCard = contactList?.querySelector(`[data-loc-id="${defaultLoc.id}"]`) || contactList?.firstElementChild;
     if (defaultCard) {
@@ -269,12 +262,10 @@ function hydrateLocationsUI(locations) {
     }
   }
 
-  // 3. Footer Contact List (.footer-contact-list) - Display ONLY Default Location
   if (defaultLoc) {
     document.querySelectorAll(".footer-contact-list").forEach(list => {
       const footerItems = [];
 
-      // Address
       if (defaultLoc.address) {
         footerItems.push(`
           <li class="footer-contact-item">
@@ -284,7 +275,6 @@ function hydrateLocationsUI(locations) {
         `);
       }
 
-      // Phone numbers
       if (Array.isArray(defaultLoc.phones) && defaultLoc.phones.length > 0) {
         const phoneLinks = defaultLoc.phones.map(p => `
           <a href="tel:${sanitizePhoneNumber(p)}" style="color: inherit; text-decoration: none;">${p}</a>
@@ -298,7 +288,6 @@ function hydrateLocationsUI(locations) {
         `);
       }
 
-      // WhatsApp
       if (settings.showWhatsapp && settings.whatsapp) {
         const waNumber = sanitizePhoneNumber(settings.whatsapp);
         footerItems.push(`
@@ -309,7 +298,6 @@ function hydrateLocationsUI(locations) {
         `);
       }
 
-      // Email
       if (settings.showEmail && settings.email) {
         footerItems.push(`
           <li class="footer-contact-item">
@@ -326,36 +314,17 @@ function hydrateLocationsUI(locations) {
   }
 }
 
-/**
- * Synchronous getter returning current cached settings.
- */
-export function getSettings() {
-  return cachedSettings;
-}
-
-/**
- * Synchronous getter returning current cached business locations.
- */
-export function getLocations() {
-  return cachedLocations;
-}
-
-/**
- * Dynamically updates contact details, company brand names, titles, and meta tags on the current HTML page based on stored settings.
- */
 export function hydratePageContacts() {
   const settings = getSettings();
-  
-  // 1. Update Document Title
+
   if (document.title && settings.companyName && settings.companyName !== DEFAULT_SETTINGS.companyName) {
     document.title = document.title.replace(/Roadlink Automobiles/g, settings.companyName);
   }
 
-  // 2. Update Meta Tags
   document.querySelectorAll("meta[name='author'], meta[property='og:site_name']").forEach(meta => {
     meta.setAttribute("content", settings.companyName);
   });
-  
+
   document.querySelectorAll("meta[name='description'], meta[property='og:description'], meta[name='twitter:description']").forEach(meta => {
     let content = meta.getAttribute("content") || "";
     if (content.includes("Roadlink Automobiles")) {
@@ -363,22 +332,19 @@ export function hydratePageContacts() {
     }
   });
 
-  // 3. Update Copyright Notices
   document.querySelectorAll(".copyright-text").forEach(el => {
     const year = new Date().getFullYear();
     el.innerHTML = `&copy; ${year} ${settings.companyName}. All Rights Reserved.`;
   });
 
-  // 4. Hydrate Stock Page Hero Banner Image if configured
   const stockBannerImg = document.getElementById("stock-banner-img");
   if (stockBannerImg && settings.stockBannerUrl) {
     stockBannerImg.src = getPublicFileUrl(settings.stockBannerUrl);
   }
 
-  // 5. Hydrate Anchor Tags (tel, mailto, wa.me, facebook, youtube)
   document.querySelectorAll("a").forEach(link => {
     const href = link.getAttribute("href") || "";
-    
+
     if (href.startsWith("tel:") || link.classList.contains("btn-call-action")) {
       const targetPhone = settings.phone;
       if (targetPhone) {
@@ -419,7 +385,6 @@ export function hydratePageContacts() {
     }
   });
 
-  // 6. Hydrate JSON-LD Structured Data
   document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
     try {
       const json = JSON.parse(script.textContent);
@@ -433,12 +398,11 @@ export function hydratePageContacts() {
         script.textContent = JSON.stringify(json, null, 2);
       }
     } catch (e) {
-      // Ignore JSON parse errors for non-matching scripts
+      // Ignore JSON parse errors
     }
   });
 }
 
-// Automatically run on page load
 if (typeof window !== "undefined") {
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
