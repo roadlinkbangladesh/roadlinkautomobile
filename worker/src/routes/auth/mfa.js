@@ -3,6 +3,7 @@ import {
     badRequest,
     unauthorized,
     forbidden,
+    tooManyRequests,
     notFound,
     serverError
 } from "../../utils/response.js";
@@ -11,6 +12,7 @@ import { verifyPassword } from "../../utils/password.js";
 import { createToken, verifyToken } from "../../utils/jwt.js";
 import { JWT } from "../../config/constants.js";
 import { logAudit, getRequestMeta } from "../../utils/audit.js";
+import { platformConfig } from "../../services/platform-config.js";
 import {
     generateMfaSecret,
     verifyTotpCode,
@@ -44,17 +46,17 @@ export async function verifyMfaLogin(request, env) {
         const recoveryCode = body.recovery_code ? String(body.recovery_code).trim() : null;
 
         if (!mfaToken) {
-            return badRequest("MFA pending token (mfa_token) is required.");
+            return badRequest("MFA pending token (mfa_token) is required.", { code: "BAD_REQUEST" });
         }
 
         if (!code && !recoveryCode) {
-            return badRequest("Verification code or recovery code is required.");
+            return badRequest("Verification code or recovery code is required.", { code: "BAD_REQUEST" });
         }
 
         // Verify pre-auth token
         const tokenPayload = await verifyToken(mfaToken, env.JWT_SECRET);
         if (!tokenPayload || tokenPayload.scope !== "mfa_pending") {
-            return unauthorized("Invalid or expired MFA session token. Please log in again.");
+            return unauthorized("Your MFA verification session has expired. Please sign in again.", { code: "MFA_CHALLENGE_EXPIRED" });
         }
 
         // Fetch user record
@@ -63,7 +65,7 @@ export async function verifyMfaLogin(request, env) {
                 SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name,
                        r.is_system_role, r.system_role_key, u.is_active, u.mfa_enabled,
                        u.mfa_secret_encrypted, u.must_change_password, u.token_version,
-                       u.locked_until
+                       u.failed_login_attempts, u.locked_until
                 FROM users u
                 LEFT JOIN roles r ON u.role_id = r.id
                 WHERE u.id = ?
@@ -73,23 +75,23 @@ export async function verifyMfaLogin(request, env) {
             .first();
 
         if (!user || user.is_active !== 1) {
-            return unauthorized("User account is inactive or disabled.");
+            return unauthorized("User account is inactive or disabled.", { code: "ACCOUNT_DISABLED" });
         }
 
         // Check token version
         const userTokenVersion = user.token_version ?? 1;
         const tokenVersion = tokenPayload.token_version ?? 1;
         if (tokenVersion !== userTokenVersion) {
-            return unauthorized("Session token has been invalidated. Please log in again.");
+            return unauthorized("Session token has been invalidated. Please log in again.", { code: "SESSION_INVALIDATED" });
         }
 
         // Check locked until
         if (user.locked_until && new Date(user.locked_until).getTime() > Date.now()) {
-            return forbidden("Account is temporarily locked. Please try again later.");
+            return forbidden("Account is temporarily locked due to too many failed attempts. Please try again later.", { code: "ACCOUNT_LOCKED" });
         }
 
         if (user.mfa_enabled !== 1 || !user.mfa_secret_encrypted) {
-            return badRequest("Multi-Factor Authentication is not enabled for this account.");
+            return badRequest("Multi-Factor Authentication is not enabled for this account.", { code: "MFA_NOT_ENABLED" });
         }
 
         let isVerified = false;
@@ -125,24 +127,66 @@ export async function verifyMfaLogin(request, env) {
         }
 
         if (!isVerified) {
+            const nowMs = Date.now();
+            const nowIso = new Date(nowMs).toISOString();
+
+            // Fetch lockout rules from platform config
+            const config = await platformConfig.getConfig(env);
+            const maxAccountAttempts = config.max_failed_login_attempts || 5;
+            const accountLockoutMinutes = config.account_lockout_duration_minutes || config.lockout_duration_minutes || 15;
+            const accountLockoutMs = accountLockoutMinutes * 60 * 1000;
+
+            const currentAccountAttempts = user.failed_login_attempts || 0;
+            const newAccountAttempts = currentAccountAttempts + 1;
+            const accountWillLock = newAccountAttempts >= maxAccountAttempts;
+            const accountLockedUntilIso = accountWillLock ? new Date(nowMs + accountLockoutMs).toISOString() : null;
+
+            await env.DB.prepare(`
+                UPDATE users
+                SET failed_login_attempts = ?,
+                    last_failed_login_at = ?,
+                    locked_until = ?,
+                    updated_at = ?
+                WHERE id = ?
+            `).bind(newAccountAttempts, nowIso, accountLockedUntilIso, nowIso, user.id).run();
+
+            if (accountWillLock) {
+                await logAudit(env, {
+                    actingUserId: user.id,
+                    actingUsername: user.username,
+                    action: "login.lockout.account",
+                    resourceType: "auth",
+                    status: "FAILURE",
+                    reason: `Account locked for ${accountLockoutMinutes} minutes after ${newAccountAttempts} failed attempts (MFA)`,
+                    ipAddress: clientIp,
+                    userAgent
+                });
+
+                return forbidden("Account is temporarily locked due to too many failed attempts. Please try again later.", { code: "ACCOUNT_LOCKED" });
+            }
+
             await logAudit(env, {
                 actingUserId: user.id,
                 actingUsername: user.username,
                 action: "auth.mfa.verify.failed",
                 resourceType: "auth",
                 status: "FAILURE",
-                reason: "Invalid TOTP code or recovery code",
+                reason: `Invalid TOTP code or recovery code (attempt ${newAccountAttempts}/${maxAccountAttempts})`,
                 ipAddress: clientIp,
                 userAgent
             });
-            return unauthorized("Invalid MFA code or recovery code.");
+
+            return badRequest("Invalid verification code or recovery code.", {
+                code: "INVALID_MFA_CODE",
+                attempts_remaining: Math.max(0, maxAccountAttempts - newAccountAttempts)
+            });
         }
 
-        // MFA verification succeeded -> update last used and increment token_version to consume pre-auth token
+        // MFA verification succeeded -> update last used, reset failed attempts, and increment token_version to consume pre-auth token
         const nextTokenVersion = (user.token_version ?? 1) + 1;
         const nowIso = new Date().toISOString();
         await env.DB
-            .prepare(`UPDATE users SET mfa_last_used_at = ?, last_login_at = ?, token_version = ?, updated_at = ? WHERE id = ?`)
+            .prepare(`UPDATE users SET mfa_last_used_at = ?, last_login_at = ?, token_version = ?, failed_login_attempts = 0, locked_until = NULL, updated_at = ? WHERE id = ?`)
             .bind(nowIso, nowIso, nextTokenVersion, nowIso, user.id)
             .run();
 
