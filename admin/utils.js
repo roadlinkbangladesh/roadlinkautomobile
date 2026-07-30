@@ -39,7 +39,12 @@ export async function apiFetch(endpoint, options = {}) {
     headers
   });
 
-  if (response.status === 401 && !endpoint.includes("/auth/login")) {
+  const isAuthEndpoint =
+    endpoint.includes("/auth/login") ||
+    endpoint.includes("/auth/mfa/verify") ||
+    endpoint.includes("/auth/mfa/enable");
+
+  if (response.status === 401 && !isAuthEndpoint) {
     handleUnauthorized();
   }
 

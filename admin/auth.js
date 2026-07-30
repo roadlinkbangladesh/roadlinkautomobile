@@ -4,6 +4,7 @@
  */
 
 import { $, apiFetch } from "./utils.js";
+import { showLoginView } from "./ui.js";
 
 /**
  * Returns the token from sessionStorage if available.
@@ -334,7 +335,18 @@ export function bindLoginEvents(onLoginSuccess) {
           sessionStorage.removeItem("active_admin_module");
           if (onLoginSuccess) onLoginSuccess();
         } else {
-          showMfaError(res.message || "Invalid verification code or recovery code.");
+          const errCode = res.code || (res.data && res.data.code);
+
+          if (errCode === "MFA_CHALLENGE_EXPIRED" || errCode === "SESSION_INVALIDATED" || errCode === "ACCOUNT_DISABLED") {
+            clearToken();
+            showLoginView(res.message || "Your MFA verification session has expired. Please sign in again.");
+          } else if (errCode === "ACCOUNT_LOCKED" || response.status === 403 || response.status === 429) {
+            clearToken();
+            showLoginView(res.message || "Account is temporarily locked due to too many failed attempts. Please try again later.");
+          } else {
+            // Normal incorrect OTP: Keep user on MFA page and display error
+            showMfaError(res.message || "Invalid verification code or recovery code. Please try again.");
+          }
         }
       } catch (err) {
         showMfaError("MFA verification failed. Please try again.");
