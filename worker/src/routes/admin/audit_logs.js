@@ -89,23 +89,61 @@ export async function listAuditLogs(request, env) {
 }
 
 /**
+ * Helper to escape CSV field values safely
+ */
+function escapeCsvField(val) {
+    if (val === null || val === undefined) return '""';
+    const str = String(val);
+    if (/[",\n\r]/.test(str)) {
+        return `"${str.replace(/"/g, '""')}"`;
+    }
+    return `"${str}"`;
+}
+
+/**
  * GET /api/v1/admin/audit-logs/export
- * Export audit logs in JSON format for security reports or SIEM integration.
+ * Streamed export of audit logs in CSV format for security reports or SIEM integration.
  */
 export async function exportAuditLogs(request, env) {
     const auth = await authenticate(request, env, "audit.view");
     if (auth.errorResponse) return auth.errorResponse;
 
     try {
-        const query = await env.DB.prepare(`SELECT * FROM audit_logs ORDER BY id DESC LIMIT 1000`).all();
-        const items = query.results || [];
+        const { readable, writable } = new TransformStream();
+        const writer = writable.getWriter();
+        const encoder = new TextEncoder();
+
+        // Asynchronously query and stream CSV rows chunk-by-chunk
+        (async () => {
+            try {
+                const headers = [
+                    "id", "timestamp", "acting_user_id", "acting_username",
+                    "target_user_id", "target_role_id", "action", "resource_type",
+                    "resource_id", "status", "reason", "ip_address", "user_agent",
+                    "details", "created_at"
+                ];
+                await writer.write(encoder.encode(headers.join(",") + "\n"));
+
+                const query = await env.DB.prepare(`SELECT * FROM audit_logs ORDER BY id DESC LIMIT 1000`).all();
+                const items = query.results || [];
+
+                for (const row of items) {
+                    const line = headers.map(h => escapeCsvField(row[h])).join(",") + "\n";
+                    await writer.write(encoder.encode(line));
+                }
+            } catch (err) {
+                console.error("Audit log streaming error:", err);
+            } finally {
+                await writer.close();
+            }
+        })();
 
         const responseHeaders = applySecurityHeaders({
-            "Content-Type": "application/json",
-            "Content-Disposition": 'attachment; filename="audit-logs.json"'
+            "Content-Type": "text/csv; charset=utf-8",
+            "Content-Disposition": 'attachment; filename="audit-logs.csv"'
         }, request);
 
-        return new Response(JSON.stringify(items, null, 2), {
+        return new Response(readable, {
             status: 200,
             headers: responseHeaders
         });
