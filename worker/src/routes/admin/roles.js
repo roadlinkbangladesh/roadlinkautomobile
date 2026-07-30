@@ -25,20 +25,11 @@ export async function listPermissions(request, env) {
     return success(SYSTEM_PERMISSIONS);
 }
 
-export async function ensureRolesMfaColumn(env) {
-    try {
-        await env.DB.prepare(`ALTER TABLE roles ADD COLUMN mfa_required INTEGER DEFAULT 0`).run();
-    } catch (e) {
-        // Column already exists or schema updated
-    }
-}
-
 export async function listRoles(request, env) {
     const auth = await authenticate(request, env, ["roles.manage", "users.manage"]);
     if (auth.errorResponse) return auth.errorResponse;
 
     try {
-        await ensureRolesMfaColumn(env);
         const roles = await env.DB
             .prepare(`SELECT * FROM roles ORDER BY id ASC`)
             .all();
@@ -99,7 +90,6 @@ export async function getRole(request, env, ctx, params) {
     }
 
     try {
-        await ensureRolesMfaColumn(env);
         const role = await env.DB
             .prepare(`SELECT * FROM roles WHERE id = ? LIMIT 1`)
             .bind(id)
@@ -174,7 +164,6 @@ export async function createRole(request, env) {
         }
 
         const now = new Date().toISOString();
-        await ensureRolesMfaColumn(env);
 
         // Insert role
         await env.DB
@@ -274,7 +263,6 @@ export async function updateRole(request, env, ctx, params) {
     }
 
     try {
-        await ensureRolesMfaColumn(env);
         const role = await env.DB
             .prepare(`SELECT * FROM roles WHERE id = ? LIMIT 1`)
             .bind(id)
