@@ -12,7 +12,8 @@ import {
   validateVehicleStateTransition,
   validateFileUpload,
   validateNumber,
-  validateString
+  validateString,
+  escapeSqlWildcards
 } from "../utils/validator.js";
 
 export class VehicleServiceError extends Error {
@@ -96,14 +97,14 @@ export class VehicleService {
 
     if (cleanSearch) {
       sqlWhere.push(`(
-        LOWER(stock_number) LIKE ? OR
-        LOWER(make) LIKE ? OR
-        LOWER(model) LIKE ? OR
-        LOWER(chassis_number) LIKE ? OR
-        LOWER(registration) LIKE ? OR
-        CAST(year AS TEXT) LIKE ?
+        LOWER(stock_number) LIKE ? ESCAPE '\\' OR
+        LOWER(make) LIKE ? ESCAPE '\\' OR
+        LOWER(model) LIKE ? ESCAPE '\\' OR
+        LOWER(chassis_number) LIKE ? ESCAPE '\\' OR
+        LOWER(registration) LIKE ? ESCAPE '\\' OR
+        CAST(year AS TEXT) LIKE ? ESCAPE '\\'
       )`);
-      const term = `%${cleanSearch.toLowerCase()}%`;
+      const term = `%${escapeSqlWildcards(cleanSearch.toLowerCase())}%`;
       params.push(term, term, term, term, term, term);
     }
 
@@ -191,17 +192,17 @@ export class VehicleService {
 
     if (search) {
       sqlWhere.push(`(
-        LOWER(stock_number) LIKE ? OR
-        LOWER(make) LIKE ? OR
-        LOWER(model) LIKE ? OR
-        LOWER(grade) LIKE ? OR
-        LOWER(exterior_color) LIKE ? OR
-        LOWER(transmission) LIKE ? OR
-        LOWER(fuel) LIKE ? OR
-        LOWER(short_description) LIKE ? OR
-        CAST(year AS TEXT) LIKE ?
+        LOWER(stock_number) LIKE ? ESCAPE '\\' OR
+        LOWER(make) LIKE ? ESCAPE '\\' OR
+        LOWER(model) LIKE ? ESCAPE '\\' OR
+        LOWER(grade) LIKE ? ESCAPE '\\' OR
+        LOWER(exterior_color) LIKE ? ESCAPE '\\' OR
+        LOWER(transmission) LIKE ? ESCAPE '\\' OR
+        LOWER(fuel) LIKE ? ESCAPE '\\' OR
+        LOWER(short_description) LIKE ? ESCAPE '\\' OR
+        CAST(year AS TEXT) LIKE ? ESCAPE '\\'
       )`);
-      const term = `%${search.toLowerCase()}%`;
+      const term = `%${escapeSqlWildcards(search.toLowerCase())}%`;
       params.push(term, term, term, term, term, term, term, term, term);
     }
 
