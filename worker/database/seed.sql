@@ -46,6 +46,16 @@ INSERT OR IGNORE INTO settings (
     show_primary_contact,
     show_whatsapp,
     show_email,
+    why_choose_us,
+    website_title,
+    website_description,
+    og_title,
+    og_description,
+    og_image_url,
+    twitter_title,
+    twitter_description,
+    twitter_image_url,
+    public_website_url,
     created_at,
     updated_at
 )
@@ -77,6 +87,16 @@ VALUES (
     0,
     1,
     1,
+    '[{"title":"Genuine Japanese Imports","description":"Every vehicle in our stock is sourced directly from premier Japanese auction houses with authentic, un-doctored auction sheets."},{"title":"Rigorous Quality Inspection","description":"All cars undergo a comprehensive multi-point mechanical, electrical, and structural diagnostics test in Japan and upon port arrival in Bangladesh."},{"title":"Competitive Pricing","description":"We offer direct-to-buyer pricing with zero middleman markups. We assist with custom bank loan configurations and streamlined paperwork processing."},{"title":"Trusted Importer","description":"Years of dedicated, transparent service has made us a landmark for quality reconditioned automobiles in the Fakirerpool and Dhaka circles."}]',
+    'Roadlink Automobiles',
+    'Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock.',
+    'Roadlink Automobiles | Premium Japanese Reconditioned Vehicles Importer',
+    'Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock.',
+    'assets/logo.png',
+    'Roadlink Automobiles | Premium Japanese Reconditioned Vehicles Importer',
+    'Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock.',
+    'assets/logo.png',
+    '../',
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
 );
