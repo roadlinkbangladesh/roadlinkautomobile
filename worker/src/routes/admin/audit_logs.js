@@ -1,5 +1,6 @@
-import { success, badRequest, serverError } from "../../utils/response.js";
+import { success, badRequest, serverError, applySecurityHeaders } from "../../utils/response.js";
 import { authenticate } from "../../utils/auth.js";
+import { escapeSqlWildcards } from "../../utils/validator.js";
 
 /**
  * GET /api/v1/admin/audit-logs
@@ -7,17 +8,8 @@ import { authenticate } from "../../utils/auth.js";
  */
 export async function listAuditLogs(request, env) {
     // Audit logs require audit.view permission or Super Administrator role
-    const auth = await authenticate(request, env);
+    const auth = await authenticate(request, env, "audit.view");
     if (auth.errorResponse) return auth.errorResponse;
-
-    const hasViewPerm = auth.permissions.includes("audit.view") || auth.user.is_super_admin;
-
-    if (!hasViewPerm) {
-        return Response.json({
-            success: false,
-            message: "Access denied. Insufficient permissions to view security audit logs."
-        }, { status: 403 });
-    }
 
     try {
         const url = new URL(request.url);
@@ -35,8 +27,8 @@ export async function listAuditLogs(request, env) {
         const bindings = [];
 
         if (search) {
-            whereClauses.push("(acting_username LIKE ? OR action LIKE ? OR resource_type LIKE ? OR reason LIKE ? OR details LIKE ?)");
-            const term = `%${search}%`;
+            whereClauses.push("(acting_username LIKE ? ESCAPE '\\' OR action LIKE ? ESCAPE '\\' OR resource_type LIKE ? ESCAPE '\\' OR reason LIKE ? ESCAPE '\\' OR details LIKE ? ESCAPE '\\')");
+            const term = `%${escapeSqlWildcards(search)}%`;
             bindings.push(term, term, term, term, term);
         }
 
@@ -101,29 +93,21 @@ export async function listAuditLogs(request, env) {
  * Export audit logs in JSON format for security reports or SIEM integration.
  */
 export async function exportAuditLogs(request, env) {
-    const auth = await authenticate(request, env);
+    const auth = await authenticate(request, env, "audit.view");
     if (auth.errorResponse) return auth.errorResponse;
-
-    const hasViewPerm = auth.permissions.includes("audit.view") || auth.user.is_super_admin;
-
-    if (!hasViewPerm) {
-        return Response.json({
-            success: false,
-            message: "Access denied. Insufficient permissions to export audit logs."
-        }, { status: 403 });
-    }
 
     try {
         const query = await env.DB.prepare(`SELECT * FROM audit_logs ORDER BY id DESC LIMIT 1000`).all();
         const items = query.results || [];
 
+        const responseHeaders = applySecurityHeaders({
+            "Content-Type": "application/json",
+            "Content-Disposition": 'attachment; filename="audit-logs.json"'
+        }, request);
+
         return new Response(JSON.stringify(items, null, 2), {
             status: 200,
-            headers: {
-                "Content-Type": "application/json",
-                "Content-Disposition": "attachment; filename=\"audit-logs.json\"",
-                "Access-Control-Allow-Origin": "https://roadlinkautomobile.pages.dev"
-            }
+            headers: responseHeaders
         });
     } catch (error) {
         console.error("Export audit logs error:", error);
