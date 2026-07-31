@@ -24,7 +24,11 @@ export class SettingsRepository {
         seo_default_keywords, seo_default_description, 
         contact_name, contact_phone, show_primary_contact, show_whatsapp, show_email, 
         company_logo_url, favicon_url, stock_banner_url, 
-        featured_vehicles_limit, show_sold_vehicles 
+        featured_vehicles_limit, show_sold_vehicles,
+        why_choose_us, website_title, website_description,
+        og_title, og_description, og_image_url,
+        twitter_title, twitter_description, twitter_image_url,
+        public_website_url
       FROM settings 
       WHERE id = 1
     `).first() || null;
@@ -49,6 +53,10 @@ export class SettingsRepository {
             contact_name = ?, contact_phone = ?, show_primary_contact = ?,
             show_whatsapp = ?, show_email = ?,
             company_logo_url = ?, favicon_url = ?, stock_banner_url = ?, featured_vehicles_limit = ?, show_sold_vehicles = ?,
+            why_choose_us = ?, website_title = ?, website_description = ?,
+            og_title = ?, og_description = ?, og_image_url = ?,
+            twitter_title = ?, twitter_description = ?, twitter_image_url = ?,
+            public_website_url = ?,
             updated_at = ?
         WHERE id = 1
       `)
@@ -62,6 +70,10 @@ export class SettingsRepository {
         params.contactName, params.contactPhone, params.showPrimaryContact,
         params.showWhatsapp, params.showEmail,
         params.companyLogoUrl, params.faviconUrl, params.stockBannerUrl, params.featuredVehiclesLimit, params.showSoldVehicles,
+        params.whyChooseUs, params.websiteTitle, params.websiteDescription,
+        params.ogTitle, params.ogDescription, params.ogImageUrl,
+        params.twitterTitle, params.twitterDescription, params.twitterImageUrl,
+        params.publicWebsiteUrl,
         now
       )
       .run();
