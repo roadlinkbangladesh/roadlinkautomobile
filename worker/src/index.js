@@ -54,7 +54,11 @@ import {
     getPublicImage
 } from "./routes/public/vehicles.js";
 import { getPublicSettings } from "./routes/public/settings.js";
-import { handleHtmlRequest } from "./routes/public/html.js";
+import {
+    getPublicHomeMetadata,
+    getPublicVehicleMetadata,
+    getPublicStockMetadata
+} from "./routes/public/metadata.js";
 import {
     getPublicLocations,
     getPublicLocationBySlug
@@ -94,6 +98,11 @@ const routes = {
     [`GET:${API.PUBLIC}/settings`]: getPublicSettings,
     [`GET:${API.PUBLIC}/files/:key`]: getPublicFile,
     [`GET:${API.PUBLIC}/images/:key`]: getPublicImage,
+
+    // Public Metadata API
+    [`GET:${API.PUBLIC}/metadata/home`]: getPublicHomeMetadata,
+    [`GET:${API.PUBLIC}/metadata/vehicle/:identifier`]: getPublicVehicleMetadata,
+    [`GET:${API.PUBLIC}/metadata/stock`]: getPublicStockMetadata,
 
     // Public Locations
     [`GET:${API.PUBLIC}/locations`]: getPublicLocations,
@@ -242,15 +251,6 @@ export default {
             logger.request(request, "Incoming request");
             
             if (!handler) {
-                if (method === "GET" && !pathname.startsWith("/api/")) {
-                    const htmlResponse = await handleHtmlRequest(request, env, ctx);
-                    if (htmlResponse) {
-                        return htmlResponse;
-                    }
-                    if (env && env.ASSETS) {
-                        return await env.ASSETS.fetch(request);
-                    }
-                }
                 return notFound();
             }
 
