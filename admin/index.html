@@ -316,7 +316,7 @@
                   <h1 class="welcome-title">Welcome back.</h1>
                   <p class="welcome-lead">Manage your vehicle inventory and website content from one place.</p>
                   <div class="welcome-actions">
-                    <a href="../" target="_blank" class="btn btn-view-site">
+                    <a href="../" target="_blank" id="link-view-public-site" class="btn btn-view-site">
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-external-link"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
                       View Public Site
                     </a>
@@ -501,6 +501,11 @@
                         <label for="set-default-currency">Default Currency *</label>
                         <input type="text" id="set-default-currency" placeholder="e.g. BDT" required>
                       </div>
+                      <div class="form-group">
+                        <label for="set-public-website-url">Public Website Target URL</label>
+                        <input type="text" id="set-public-website-url" placeholder="e.g. ../ or https://roadlinkautomobiles.com">
+                        <small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">Target URL for the "View Public Site" button on the Admin Dashboard.</small>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -622,6 +627,65 @@
                         </small>
                       </div>
                     </div>
+
+                    <div class="settings-section-card" style="grid-column: span 2; margin-top: 20px;">
+                      <h3 class="settings-section-title">"Why Choose Us" Homepage Cards</h3>
+                      <p style="margin: -8px 0 16px 0; font-size: 0.85rem; color: var(--text-muted);">
+                        Customize titles and descriptions for the 4 core pillar cards displayed on the public website homepage.
+                      </p>
+                      
+                      <!-- Card 1 -->
+                      <div style="background-color: var(--bg-neutral); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 16px;">
+                        <h4 style="margin: 0 0 12px 0; font-size: 0.95rem; font-weight: 700; color: var(--text-heading);">Card 1: Genuine Imports</h4>
+                        <div class="form-group">
+                          <label for="set-why-1-title">Card Title *</label>
+                          <input type="text" id="set-why-1-title" required placeholder="e.g. Genuine Japanese Imports">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                          <label for="set-why-1-desc">Card Description *</label>
+                          <textarea id="set-why-1-desc" rows="2" required placeholder="Card description..."></textarea>
+                        </div>
+                      </div>
+
+                      <!-- Card 2 -->
+                      <div style="background-color: var(--bg-neutral); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 16px;">
+                        <h4 style="margin: 0 0 12px 0; font-size: 0.95rem; font-weight: 700; color: var(--text-heading);">Card 2: Quality Inspection</h4>
+                        <div class="form-group">
+                          <label for="set-why-2-title">Card Title *</label>
+                          <input type="text" id="set-why-2-title" required placeholder="e.g. Rigorous Quality Inspection">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                          <label for="set-why-2-desc">Card Description *</label>
+                          <textarea id="set-why-2-desc" rows="2" required placeholder="Card description..."></textarea>
+                        </div>
+                      </div>
+
+                      <!-- Card 3 -->
+                      <div style="background-color: var(--bg-neutral); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 16px;">
+                        <h4 style="margin: 0 0 12px 0; font-size: 0.95rem; font-weight: 700; color: var(--text-heading);">Card 3: Competitive Pricing</h4>
+                        <div class="form-group">
+                          <label for="set-why-3-title">Card Title *</label>
+                          <input type="text" id="set-why-3-title" required placeholder="e.g. Competitive Pricing">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                          <label for="set-why-3-desc">Card Description *</label>
+                          <textarea id="set-why-3-desc" rows="2" required placeholder="Card description..."></textarea>
+                        </div>
+                      </div>
+
+                      <!-- Card 4 -->
+                      <div style="background-color: var(--bg-neutral); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 0;">
+                        <h4 style="margin: 0 0 12px 0; font-size: 0.95rem; font-weight: 700; color: var(--text-heading);">Card 4: Trusted Importer</h4>
+                        <div class="form-group">
+                          <label for="set-why-4-title">Card Title *</label>
+                          <input type="text" id="set-why-4-title" required placeholder="e.g. Trusted Importer">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                          <label for="set-why-4-desc">Card Description *</label>
+                          <textarea id="set-why-4-desc" rows="2" required placeholder="Card description..."></textarea>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -656,11 +720,19 @@
                   </div>
                 </div>
 
-                <!-- SECTION 7: SEO -->
+                <!-- SECTION 7: SEO & METADATA -->
                 <div id="settings-seo-tab-content" style="display: none;">
                   <div class="settings-grid">
                     <div class="settings-section-card" style="grid-column: span 2;">
-                      <h3 class="settings-section-title">Search Engine Optimization (SEO)</h3>
+                      <h3 class="settings-section-title">Search Engine Optimization (SEO) & Website Metadata</h3>
+                      <div class="form-group">
+                        <label for="set-website-title">Website Main Title</label>
+                        <input type="text" id="set-website-title" placeholder="e.g. Roadlink Automobiles">
+                      </div>
+                      <div class="form-group">
+                        <label for="set-website-description">Website Main Description</label>
+                        <textarea id="set-website-description" rows="2" placeholder="e.g. Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles..."></textarea>
+                      </div>
                       <div class="form-group">
                         <label for="set-seo-suffix">SEO Meta Title Brand Suffix</label>
                         <input type="text" id="set-seo-suffix" placeholder="e.g. Roadlink Automobiles">
@@ -672,6 +744,62 @@
                       <div class="form-group">
                         <label for="set-seo-desc">Default Site Meta Description</label>
                         <textarea id="set-seo-desc" rows="3" placeholder="Meta description for search engine results..."></textarea>
+                      </div>
+                    </div>
+
+                    <!-- Open Graph Metadata Card -->
+                    <div class="settings-section-card" style="grid-column: span 2; margin-top: 20px;">
+                      <h3 class="settings-section-title">Open Graph Social Sharing (Facebook, LinkedIn, WhatsApp)</h3>
+                      <div class="form-group">
+                        <label for="set-og-title">Open Graph Title (og:title)</label>
+                        <input type="text" id="set-og-title" placeholder="e.g. Roadlink Automobiles | Premium Japanese Reconditioned Vehicles Importer">
+                      </div>
+                      <div class="form-group">
+                        <label for="set-og-description">Open Graph Description (og:description)</label>
+                        <textarea id="set-og-description" rows="2" placeholder="e.g. Explore our verified auction stock of reconditioned Japanese cars in Dhaka..."></textarea>
+                      </div>
+                      <div class="form-group">
+                        <label for="set-og-image-url">Open Graph Image (og:image) URL / Key</label>
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                          <input type="text" id="set-og-image-url" placeholder="e.g. uploads/.../branding/og-image.png" style="flex: 1; min-width: 200px;">
+                          <input type="file" id="set-og-image-file-input" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" style="display: none;" aria-label="Upload Open Graph image">
+                          <button type="button" id="btn-upload-og-image" class="btn btn-view-site" style="width: auto; margin: 0; padding: 10px 14px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                            <span>Upload OG Image</span>
+                          </button>
+                        </div>
+                        <small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">Recommended size: 1200x630 pixels (PNG, JPG, WebP max 5MB).</small>
+                        <div id="og-image-preview-container" style="margin-top: 8px; display: none;">
+                          <img id="og-image-preview-img" src="" alt="OG Image Preview" style="max-height: 100px; max-width: 200px; object-fit: cover; background: #f1f5f9; padding: 4px; border-radius: 4px; border: 1px solid var(--border-color);">
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Twitter Card Metadata Card -->
+                    <div class="settings-section-card" style="grid-column: span 2; margin-top: 20px;">
+                      <h3 class="settings-section-title">Twitter / X Sharing Card</h3>
+                      <div class="form-group">
+                        <label for="set-twitter-title">Twitter Card Title (twitter:title)</label>
+                        <input type="text" id="set-twitter-title" placeholder="Leave empty to use Open Graph title">
+                      </div>
+                      <div class="form-group">
+                        <label for="set-twitter-description">Twitter Card Description (twitter:description)</label>
+                        <textarea id="set-twitter-description" rows="2" placeholder="Leave empty to use Open Graph description"></textarea>
+                      </div>
+                      <div class="form-group">
+                        <label for="set-twitter-image-url">Twitter Card Image (twitter:image) URL / Key</label>
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                          <input type="text" id="set-twitter-image-url" placeholder="e.g. uploads/.../branding/twitter-image.png" style="flex: 1; min-width: 200px;">
+                          <input type="file" id="set-twitter-image-file-input" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp" style="display: none;" aria-label="Upload Twitter image">
+                          <button type="button" id="btn-upload-twitter-image" class="btn btn-view-site" style="width: auto; margin: 0; padding: 10px 14px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-upload"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                            <span>Upload Twitter Image</span>
+                          </button>
+                        </div>
+                        <small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">Leave empty to use Open Graph image.</small>
+                        <div id="twitter-image-preview-container" style="margin-top: 8px; display: none;">
+                          <img id="twitter-image-preview-img" src="" alt="Twitter Image Preview" style="max-height: 100px; max-width: 200px; object-fit: cover; background: #f1f5f9; padding: 4px; border-radius: 4px; border: 1px solid var(--border-color);">
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1489,144 +1617,145 @@
 
   <!-- VEHICLE READ-ONLY DETAILS MODAL -->
   <div id="vehicle-details-modal" class="modal-overlay" style="display: none; z-index: 2100;">
-    <div class="modal-card modal-large" style="max-width: 900px !important; padding: 28px; display: flex; flex-direction: column; max-height: 90vh; overflow-y: auto;">
-      <div class="modal-header-row" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
-        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-          <h3 id="details-modal-title" class="modal-title-left" style="font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; margin: 0; color: var(--primary-blue);">Vehicle Details</h3>
-          <div id="details-modal-badges" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+    <div class="modal-card modal-large vehicle-details-modal-card">
+      <div class="modal-header-row vehicle-details-header">
+        <div class="vehicle-details-title-group">
+          <h3 id="details-modal-title" class="modal-title-left">Vehicle Details</h3>
+          <div id="details-modal-badges" class="vehicle-details-badges">
             <!-- Dynamic badges -->
           </div>
         </div>
-        <button id="btn-close-details-modal" class="btn-modal-close" aria-label="Close Modal" type="button" style="background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; padding: 4px; transition: color 0.2s;">
+        <button id="btn-close-details-modal" class="btn-modal-close" aria-label="Close Modal" type="button">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
         </button>
       </div>
 
       <!-- Scrollable content -->
-      <div style="flex: 1; overflow-y: auto; padding-right: 4px; margin-bottom: 20px;">
-        <div style="display: grid; grid-template-columns: 1fr; gap: 24px; width: 100%;" class="details-grid-responsive">
+      <div class="vehicle-details-modal-body">
+        <div class="details-grid-responsive">
           
           <!-- IMAGE GALLERY SECTION -->
-          <div style="display: flex; flex-direction: column; gap: 12px;">
-            <div style="width: 100%; height: 380px; background: #f8fafc; border: 1.5px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;">
-              <img id="details-modal-main-img" src="" alt="Vehicle Image" style="width: 100%; height: 100%; object-fit: cover;" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800';">
+          <div class="vehicle-details-gallery">
+            <div class="vehicle-details-main-img-wrap">
+              <img id="details-modal-main-img" src="" alt="Vehicle Image" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800';">
             </div>
             <!-- Thumbnails strip -->
-            <div id="details-modal-thumbnails" style="display: flex; gap: 8px; overflow-x: auto; padding: 4px 0; max-width: 100%;">
+            <div id="details-modal-thumbnails" class="vehicle-details-thumbnails-strip">
               <!-- Dynamic thumbnails -->
             </div>
           </div>
 
           <!-- DETAILS GRID SECTION -->
-          <div style="display: flex; flex-direction: column; gap: 24px;">
+          <div class="vehicle-details-info">
             
             <!-- Specs Grid -->
-            <div style="background: var(--bg-light); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 18px;">
-              <h4 style="font-family: var(--font-display); font-weight: 700; font-size: 1rem; color: var(--primary-blue); margin-top: 0; margin-bottom: 14px; border-bottom: 1px solid rgba(27, 54, 93, 0.1); padding-bottom: 8px;">Specifications</h4>
-              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 16px;" id="details-specs-container">
+            <div class="vehicle-details-specs-card">
+              <h4 class="vehicle-details-section-heading">Specifications</h4>
+              <div id="details-specs-container" class="vehicle-details-specs-grid">
                 <!-- Dynamic specifications rows -->
               </div>
             </div>
 
             <!-- Features Chips -->
             <div id="details-features-section" style="display: none;">
-              <h4 style="font-family: var(--font-display); font-weight: 700; font-size: 1rem; color: var(--primary-blue); margin-top: 0; margin-bottom: 12px;">Features & Equipment</h4>
-              <div id="details-features-container" style="display: flex; flex-wrap: wrap; gap: 6px;">
+              <h4 class="vehicle-details-section-heading">Features & Equipment</h4>
+              <div id="details-features-container" class="vehicle-details-features-list">
                 <!-- Dynamic feature chips -->
               </div>
             </div>
 
             <!-- Descriptions -->
-            <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="vehicle-details-descriptions">
               <div id="details-short-desc-container" style="display: none;">
-                <h5 style="font-weight: 700; font-size: 0.9rem; color: var(--primary-blue); margin: 0 0 4px 0;">Short Highlight</h5>
-                <p id="details-modal-short-desc" style="font-size: 0.85rem; color: var(--text-dark); margin: 0; line-height: 1.5; font-style: italic;"></p>
+                <h5 class="vehicle-details-subheading">Short Highlight</h5>
+                <p id="details-modal-short-desc" class="vehicle-details-short-text"></p>
               </div>
               <div id="details-desc-container" style="display: none;">
-                <h5 style="font-weight: 700; font-size: 0.9rem; color: var(--primary-blue); margin: 0 0 4px 0;">Description</h5>
-                <p id="details-modal-desc" style="font-size: 0.85rem; color: var(--text-dark); margin: 0; line-height: 1.6; white-space: pre-wrap;"></p>
+                <h5 class="vehicle-details-subheading">Description</h5>
+                <p id="details-modal-desc" class="vehicle-details-full-text"></p>
               </div>
             </div>
 
           </div>
 
         </div>
-      </div>
 
-      <!-- ADMINISTRATION PANEL IN VIEW MODAL -->
-      <div id="details-admin-panel" style="background: #f8fafc; border: 1.5px solid var(--border-color); border-radius: var(--radius-md); padding: 18px; margin-bottom: 20px; display: none; flex-direction: column; gap: 14px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(27, 54, 93, 0.1); padding-bottom: 8px;">
-          <h4 style="font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--primary-blue); margin: 0; display: flex; align-items: center; gap: 6px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            Administration Quick Controls
-          </h4>
-          <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">Quickly manage vehicle status & display parameters</span>
-        </div>
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; align-items: flex-end;">
-          <!-- Vehicle Status -->
-          <div style="display: flex; flex-direction: column; gap: 5px;">
-            <label for="admin-panel-status" style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Vehicle Status</label>
-            <select id="admin-panel-status" style="padding: 8px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); background: var(--bg-white); font-size: 0.85rem; font-weight: 600; cursor: pointer;">
-              <option value="available">Available</option>
-              <option value="incoming">Incoming</option>
-              <option value="reserved">Reserved</option>
-              <option value="sold">Sold</option>
-            </select>
+        <!-- ADMINISTRATION PANEL IN VIEW MODAL -->
+        <div id="details-admin-panel" class="vehicle-details-admin-panel" style="display: none;">
+          <div class="vehicle-details-admin-header">
+            <h4 class="vehicle-details-admin-title">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Administration Quick Controls
+            </h4>
+            <span class="vehicle-details-admin-subtext">Quickly manage vehicle status & display parameters</span>
           </div>
 
-          <!-- Publication Status -->
-          <div style="display: flex; flex-direction: column; gap: 5px;">
-            <label for="admin-panel-publish" style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Publication Status</label>
-            <select id="admin-panel-publish" style="padding: 8px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); background: var(--bg-white); font-size: 0.85rem; font-weight: 600; cursor: pointer;">
-              <option value="published">Published</option>
-              <option value="draft">Draft (Unpublished)</option>
-            </select>
+          <div class="vehicle-details-admin-grid">
+            <!-- Vehicle Status -->
+            <div class="vehicle-details-admin-field">
+              <label for="admin-panel-status">Vehicle Status</label>
+              <select id="admin-panel-status">
+                <option value="available">Available</option>
+                <option value="incoming">Incoming</option>
+                <option value="reserved">Reserved</option>
+                <option value="sold">Sold</option>
+              </select>
+            </div>
+
+            <!-- Publication Status -->
+            <div class="vehicle-details-admin-field">
+              <label for="admin-panel-publish">Publication Status</label>
+              <select id="admin-panel-publish">
+                <option value="published">Published</option>
+                <option value="draft">Draft (Unpublished)</option>
+              </select>
+            </div>
+
+            <!-- Featured Toggle -->
+            <div class="vehicle-details-admin-field vehicle-details-admin-field-checkbox">
+              <span class="field-label-text">Featured Vehicle</span>
+              <label class="checkbox-label">
+                <input type="checkbox" id="admin-panel-featured">
+                <span>⭐ Featured</span>
+              </label>
+            </div>
+
+            <!-- Featured Order -->
+            <div class="vehicle-details-admin-field" id="admin-panel-order-container">
+              <label for="admin-panel-featured-order">Featured Order</label>
+              <input type="number" id="admin-panel-featured-order" min="1" max="9" placeholder="e.g. 1">
+            </div>
+
+            <!-- Save Changes Button -->
+            <div class="vehicle-details-admin-field vehicle-details-admin-field-btn">
+              <button type="button" id="btn-admin-panel-save" class="btn btn-login-submit" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Save Changes
+              </button>
+            </div>
           </div>
 
-          <!-- Featured Toggle -->
-          <div style="display: flex; flex-direction: column; gap: 5px; justify-content: center;">
-            <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Featured Vehicle</span>
-            <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; height: 38px; font-weight: 600; font-size: 0.85rem; color: var(--text-dark);">
-              <input type="checkbox" id="admin-panel-featured" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary-blue);">
-              <span>⭐ Featured</span>
-            </label>
-          </div>
-
-          <!-- Featured Order -->
-          <div style="display: flex; flex-direction: column; gap: 5px;" id="admin-panel-order-container">
-            <label for="admin-panel-featured-order" style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Featured Order</label>
-            <input type="number" id="admin-panel-featured-order" min="1" max="9" placeholder="e.g. 1" style="padding: 8px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); background: var(--bg-white); font-size: 0.85rem; font-weight: 600; width: 100%;">
-          </div>
-
-          <!-- Save Changes Button -->
-          <div style="display: flex; flex-direction: column; gap: 5px; justify-content: flex-end;">
-            <button type="button" id="btn-admin-panel-save" class="btn btn-login-submit" disabled style="width: 100%; margin: 0; padding: 9px 18px; font-size: 0.85rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px; opacity: 0.5; cursor: not-allowed; transition: all 0.2s;">
+          <div class="vehicle-details-admin-footer">
+            <small class="admin-note-text">Note: Updating Featured Order automatically reorders other featured vehicles sequentially.</small>
+            <span id="details-quick-save-feedback" class="admin-feedback-text" style="display: none;">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              Save Changes
-            </button>
+              Saved!
+            </span>
           </div>
         </div>
 
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 2px;">
-          <small style="color: var(--text-muted); font-size: 0.75rem; font-style: italic;">Note: Updating Featured Order automatically reorders other featured vehicles sequentially.</small>
-          <span id="details-quick-save-feedback" style="font-size: 0.8rem; font-weight: 600; color: #25d366; display: none; align-items: center; gap: 4px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            Saved!
-          </span>
-        </div>
       </div>
 
       <!-- MODAL FOOTER BUTTONS -->
-      <div class="modal-footer-row" style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: auto; display: flex; justify-content: flex-end; gap: 10px;">
-        <button type="button" id="btn-close-details" class="btn btn-view-site" style="margin-bottom: 0;">Close</button>
+      <div class="modal-footer-row vehicle-details-footer">
+        <button type="button" id="btn-close-details" class="btn btn-view-site">Close</button>
         <!-- EDIT BUTTON (If vehicles.edit) -->
-        <button type="button" id="btn-details-edit" class="btn btn-login-submit" style="width: auto; background: var(--primary-blue); border-color: var(--primary-blue); color: var(--bg-white); margin-top: 0; padding: 10px 24px; display: none;">
+        <button type="button" id="btn-details-edit" class="btn btn-login-submit">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-edit-2" style="margin-right: 4px;"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
           Edit Vehicle
         </button>
         <!-- DELETE BUTTON (If vehicles.delete) -->
-        <button type="button" id="btn-details-delete" class="btn-danger" style="border-radius: var(--radius-sm); padding: 10px 24px; font-weight: 600; font-size: 0.9rem; display: none;">
+        <button type="button" id="btn-details-delete" class="btn-danger">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-2" style="margin-right: 4px; display: inline-block; vertical-align: middle;"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
           Delete
         </button>

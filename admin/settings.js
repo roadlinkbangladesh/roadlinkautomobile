@@ -33,7 +33,22 @@ const SYSTEM_DEFAULTS = {
   stockBannerUrl: "",
   seoTitleSuffix: "Roadlink Automobiles",
   seoDefaultKeywords: "Japanese cars, reconditioned cars, Dhaka car importer, Toyota Axio, Honda Vezel, Nissan X-Trail, Roadlink Automobiles Bangladesh",
-  seoDefaultDescription: "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock."
+  seoDefaultDescription: "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock.",
+  websiteTitle: "Roadlink Automobiles",
+  websiteDescription: "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock.",
+  ogTitle: "Roadlink Automobiles | Premium Japanese Reconditioned Vehicles Importer",
+  ogDescription: "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock.",
+  ogImageUrl: "assets/logo.png",
+  twitterTitle: "Roadlink Automobiles | Premium Japanese Reconditioned Vehicles Importer",
+  twitterDescription: "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock.",
+  twitterImageUrl: "assets/logo.png",
+  publicWebsiteUrl: "../",
+  whyChooseUs: [
+    { title: "Genuine Japanese Imports", description: "Every vehicle in our stock is sourced directly from premier Japanese auction houses with authentic, un-doctored auction sheets." },
+    { title: "Rigorous Quality Inspection", description: "All cars undergo a comprehensive multi-point mechanical, electrical, and structural diagnostics test in Japan and upon port arrival in Bangladesh." },
+    { title: "Competitive Pricing", description: "We offer direct-to-buyer pricing with zero middleman markups. We assist with custom bank loan configurations and streamlined paperwork processing." },
+    { title: "Trusted Importer", description: "Years of dedicated, transparent service has made us a landmark for quality reconditioned automobiles in the Fakirerpool and Dhaka circles." }
+  ]
 };
 
 /**
@@ -318,6 +333,54 @@ function populateForm(data) {
   if (displayTimezoneField) displayTimezoneField.value = data.displayTimezone || data.display_timezone || "Asia/Dhaka";
   if (displayLocaleField) displayLocaleField.value = data.displayLocale || data.display_locale || "en-BD";
   if (defaultCurrencyField) defaultCurrencyField.value = data.defaultCurrency || data.default_currency || "BDT";
+
+  // Public Website URL
+  const publicWebsiteUrlField = $("set-public-website-url");
+  const targetPublicUrl = data.publicWebsiteUrl || data.public_website_url || "../";
+  if (publicWebsiteUrlField) publicWebsiteUrlField.value = targetPublicUrl;
+  const publicSiteLink = $("link-view-public-site");
+  if (publicSiteLink) publicSiteLink.href = targetPublicUrl;
+
+  // Website Metadata
+  const websiteTitleField = $("set-website-title");
+  const websiteDescField = $("set-website-description");
+  const ogTitleField = $("set-og-title");
+  const ogDescField = $("set-og-description");
+  const ogImageUrlField = $("set-og-image-url");
+  const twitterTitleField = $("set-twitter-title");
+  const twitterDescField = $("set-twitter-description");
+  const twitterImageUrlField = $("set-twitter-image-url");
+
+  if (websiteTitleField) websiteTitleField.value = data.websiteTitle || data.website_title || "";
+  if (websiteDescField) websiteDescField.value = data.websiteDescription || data.website_description || "";
+  if (ogTitleField) ogTitleField.value = data.ogTitle || data.og_title || "";
+  if (ogDescField) ogDescField.value = data.ogDescription || data.og_description || "";
+  if (ogImageUrlField) {
+    ogImageUrlField.value = data.ogImageUrl || data.og_image_url || "";
+    updateBrandingPreview("og-image", ogImageUrlField.value);
+  }
+  if (twitterTitleField) twitterTitleField.value = data.twitterTitle || data.twitter_title || "";
+  if (twitterDescField) twitterDescField.value = data.twitterDescription || data.twitter_description || "";
+  if (twitterImageUrlField) {
+    twitterImageUrlField.value = data.twitterImageUrl || data.twitter_image_url || "";
+    updateBrandingPreview("twitter-image", twitterImageUrlField.value);
+  }
+
+  // Why Choose Us Section Cards
+  let whyCards = data.whyChooseUs || data.why_choose_us || SYSTEM_DEFAULTS.whyChooseUs;
+  if (typeof whyCards === "string") {
+    try { whyCards = JSON.parse(whyCards); } catch (e) { whyCards = SYSTEM_DEFAULTS.whyChooseUs; }
+  }
+  if (!Array.isArray(whyCards) || whyCards.length < 4) {
+    whyCards = SYSTEM_DEFAULTS.whyChooseUs;
+  }
+  for (let i = 1; i <= 4; i++) {
+    const card = whyCards[i - 1] || SYSTEM_DEFAULTS.whyChooseUs[i - 1];
+    const tInput = $(`set-why-${i}-title`);
+    const dInput = $(`set-why-${i}-desc`);
+    if (tInput) tInput.value = card.title || "";
+    if (dInput) dInput.value = card.description || "";
+  }
 }
 
 function updateBrandingPreview(type, key) {
@@ -329,6 +392,12 @@ function updateBrandingPreview(type, key) {
   } else if (type === "stock-banner") {
     containerId = "stock-banner-preview-container";
     imgId = "stock-banner-preview-img";
+  } else if (type === "og-image") {
+    containerId = "og-image-preview-container";
+    imgId = "og-image-preview-img";
+  } else if (type === "twitter-image") {
+    containerId = "twitter-image-preview-container";
+    imgId = "twitter-image-preview-img";
   }
   const container = $(containerId);
   const img = $(imgId);
@@ -431,6 +500,23 @@ async function handleSettingsSubmit(e) {
   const faviconUrl = $("set-favicon-url")?.value || "";
   const stockBannerUrl = $("set-stock-banner-url")?.value || "";
 
+  const publicWebsiteUrl = $("set-public-website-url")?.value || "../";
+  const websiteTitle = $("set-website-title")?.value || "";
+  const websiteDescription = $("set-website-description")?.value || "";
+  const ogTitle = $("set-og-title")?.value || "";
+  const ogDescription = $("set-og-description")?.value || "";
+  const ogImageUrl = $("set-og-image-url")?.value || "";
+  const twitterTitle = $("set-twitter-title")?.value || "";
+  const twitterDescription = $("set-twitter-description")?.value || "";
+  const twitterImageUrl = $("set-twitter-image-url")?.value || "";
+
+  const whyChooseUs = [
+    { title: $("set-why-1-title")?.value || "", description: $("set-why-1-desc")?.value || "" },
+    { title: $("set-why-2-title")?.value || "", description: $("set-why-2-desc")?.value || "" },
+    { title: $("set-why-3-title")?.value || "", description: $("set-why-3-desc")?.value || "" },
+    { title: $("set-why-4-title")?.value || "", description: $("set-why-4-desc")?.value || "" }
+  ];
+
   if (!companyName) {
     if (errorAlert) {
       errorAlert.textContent = "Please fill in all required fields marked with *.";
@@ -458,7 +544,11 @@ async function handleSettingsSubmit(e) {
         defaultCurrency,
         seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription,
         featuredVehiclesLimit, showSoldVehicles,
-        companyLogoUrl, faviconUrl, stockBannerUrl
+        companyLogoUrl, faviconUrl, stockBannerUrl,
+        publicWebsiteUrl, websiteTitle, websiteDescription,
+        ogTitle, ogDescription, ogImageUrl,
+        twitterTitle, twitterDescription, twitterImageUrl,
+        whyChooseUs
       })
     });
 
@@ -479,9 +569,19 @@ async function handleSettingsSubmit(e) {
           defaultCurrency,
           seoTitleSuffix, seoDefaultKeywords, seoDefaultDescription,
           featuredVehiclesLimit, showSoldVehicles,
-          companyLogoUrl, faviconUrl
+          companyLogoUrl, faviconUrl, stockBannerUrl,
+          publicWebsiteUrl, websiteTitle, websiteDescription,
+          ogTitle, ogDescription, ogImageUrl,
+          twitterTitle, twitterDescription, twitterImageUrl,
+          whyChooseUs
         };
       }
+
+      const publicSiteLink = $("link-view-public-site");
+      if (publicSiteLink && publicWebsiteUrl) {
+        publicSiteLink.href = publicWebsiteUrl;
+      }
+
       if (successAlert) {
         successAlert.style.display = "flex";
         setTimeout(() => {
@@ -519,6 +619,12 @@ async function handleBrandingFileUpload(type, fileInput) {
   const file = fileInput.files && fileInput.files[0];
   if (!file) return;
 
+  if (file.size > 5 * 1024 * 1024) {
+    alert("Image file size must not exceed 5MB.");
+    fileInput.value = "";
+    return;
+  }
+
   if (type === "logo") {
     const ext = (file.name || "").split(".").pop().toLowerCase();
     if (ext !== "png" && file.type !== "image/png") {
@@ -539,6 +645,14 @@ async function handleBrandingFileUpload(type, fileInput) {
     btnId = "btn-upload-stock-banner";
     urlInputId = "set-stock-banner-url";
     uploadLabel = "Stock Banner";
+  } else if (type === "og-image") {
+    btnId = "btn-upload-og-image";
+    urlInputId = "set-og-image-url";
+    uploadLabel = "OG Image";
+  } else if (type === "twitter-image") {
+    btnId = "btn-upload-twitter-image";
+    urlInputId = "set-twitter-image-url";
+    uploadLabel = "Twitter Image";
   }
 
   const btnUpload = $(btnId);
@@ -548,7 +662,7 @@ async function handleBrandingFileUpload(type, fileInput) {
   }
 
   try {
-    const uploaded = await uploadFileAsync(file, type === "logo" ? "logo" : "branding");
+    const uploaded = await uploadFileAsync(file, (type === "logo") ? "logo" : "branding");
     const key = (typeof uploaded === "string") ? uploaded : (uploaded?.key || uploaded?.url || "");
     const urlInput = $(urlInputId);
     if (urlInput) {
@@ -612,6 +726,20 @@ function bindSettingsEvents() {
   if (btnUploadStockBanner && stockBannerFileInput) {
     btnUploadStockBanner.onclick = () => stockBannerFileInput.click();
     stockBannerFileInput.onchange = () => handleBrandingFileUpload("stock-banner", stockBannerFileInput);
+  }
+
+  const btnUploadOgImage = $("btn-upload-og-image");
+  const ogImageFileInput = $("set-og-image-file-input");
+  if (btnUploadOgImage && ogImageFileInput) {
+    btnUploadOgImage.onclick = () => ogImageFileInput.click();
+    ogImageFileInput.onchange = () => handleBrandingFileUpload("og-image", ogImageFileInput);
+  }
+
+  const btnUploadTwitterImage = $("btn-upload-twitter-image");
+  const twitterImageFileInput = $("set-twitter-image-file-input");
+  if (btnUploadTwitterImage && twitterImageFileInput) {
+    btnUploadTwitterImage.onclick = () => twitterImageFileInput.click();
+    twitterImageFileInput.onchange = () => handleBrandingFileUpload("twitter-image", twitterImageFileInput);
   }
 
   if (form) {
