@@ -82,6 +82,42 @@ export class SettingsService {
     const faviconUrl = body.favicon_url ?? body.faviconUrl ?? null;
     const stockBannerUrl = body.stock_banner_url ?? body.stockBannerUrl ?? null;
 
+    // Website Metadata & OG assets
+    const websiteTitle = body.website_title ?? body.websiteTitle ?? currentSettings?.website_title ?? companyName;
+    const websiteDescription = body.website_description ?? body.websiteDescription ?? currentSettings?.website_description ?? seoDefaultDescription;
+    const ogTitle = body.og_title ?? body.ogTitle ?? currentSettings?.og_title ?? "";
+    const ogDescription = body.og_description ?? body.ogDescription ?? currentSettings?.og_description ?? "";
+    const ogImageUrl = body.og_image_url ?? body.ogImageUrl ?? null;
+
+    const twitterTitle = body.twitter_title ?? body.twitterTitle ?? currentSettings?.twitter_title ?? "";
+    const twitterDescription = body.twitter_description ?? body.twitterDescription ?? currentSettings?.twitter_description ?? "";
+    const twitterImageUrl = body.twitter_image_url ?? body.twitterImageUrl ?? null;
+
+    // Why Choose Us cards (JSON string array)
+    let whyChooseUs = body.why_choose_us ?? body.whyChooseUs;
+    if (Array.isArray(whyChooseUs) || typeof whyChooseUs === "object") {
+      whyChooseUs = JSON.stringify(whyChooseUs);
+    } else if (typeof whyChooseUs !== "string") {
+      whyChooseUs = currentSettings?.why_choose_us || "";
+    }
+
+    // Configurable Public Website URL
+    let publicWebsiteUrl = body.public_website_url ?? body.publicWebsiteUrl ?? currentSettings?.public_website_url ?? "../";
+    if (publicWebsiteUrl && publicWebsiteUrl.trim()) {
+      const trimmedUrl = publicWebsiteUrl.trim();
+      if (trimmedUrl !== "../" && !trimmedUrl.startsWith("./") && !trimmedUrl.startsWith("/")) {
+        try {
+          const parsed = new URL(trimmedUrl);
+          if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+            throw new Error("Invalid protocol");
+          }
+        } catch (e) {
+          throw new SettingsDomainError("Public Website URL must be a valid HTTPS or HTTP URL.", 422);
+        }
+      }
+      publicWebsiteUrl = trimmedUrl;
+    }
+
     // Cleanup old media assets if replaced
     if (currentSettings) {
       if (companyLogoUrl && companyLogoUrl !== currentSettings.company_logo_url) {
@@ -92,6 +128,12 @@ export class SettingsService {
       }
       if (stockBannerUrl && stockBannerUrl !== currentSettings.stock_banner_url) {
         await deleteSupersededMedia(env, currentSettings.stock_banner_url, stockBannerUrl);
+      }
+      if (ogImageUrl && ogImageUrl !== currentSettings.og_image_url) {
+        await deleteSupersededMedia(env, currentSettings.og_image_url, ogImageUrl);
+      }
+      if (twitterImageUrl && twitterImageUrl !== currentSettings.twitter_image_url) {
+        await deleteSupersededMedia(env, currentSettings.twitter_image_url, twitterImageUrl);
       }
     }
 
@@ -121,7 +163,11 @@ export class SettingsService {
       corporateAddress, corporatePhone, showCorporate,
       contactName, contactPhone, showPrimaryContact,
       showWhatsapp, showEmail,
-      companyLogoUrl, faviconUrl, stockBannerUrl, featuredVehiclesLimit, showSoldVehicles
+      companyLogoUrl, faviconUrl, stockBannerUrl, featuredVehiclesLimit, showSoldVehicles,
+      whyChooseUs, websiteTitle, websiteDescription,
+      ogTitle, ogDescription, ogImageUrl,
+      twitterTitle, twitterDescription, twitterImageUrl,
+      publicWebsiteUrl
     });
 
     // Invalidate Platform Config in-memory cache upon settings update
