@@ -70,7 +70,17 @@ export async function fetchPublicSettings() {
           companyLogoUrl: data.company_logo_url || data.companyLogoUrl || null,
           faviconUrl: data.favicon_url || data.faviconUrl || null,
           showSoldVehicles: (data.show_sold_vehicles ?? data.showSoldVehicles ?? 1) == 1,
-          show_sold_vehicles: (data.show_sold_vehicles ?? data.showSoldVehicles ?? 1) == 1
+          show_sold_vehicles: (data.show_sold_vehicles ?? data.showSoldVehicles ?? 1) == 1,
+          publicWebsiteUrl: data.public_website_url || data.publicWebsiteUrl || "../",
+          websiteTitle: data.website_title || data.websiteTitle || null,
+          websiteDescription: data.website_description || data.websiteDescription || null,
+          ogTitle: data.og_title || data.ogTitle || null,
+          ogDescription: data.og_description || data.ogDescription || null,
+          ogImageUrl: data.og_image_url || data.ogImageUrl || null,
+          twitterTitle: data.twitter_title || data.twitterTitle || null,
+          twitterDescription: data.twitter_description || data.twitterDescription || null,
+          twitterImageUrl: data.twitter_image_url || data.twitterImageUrl || null,
+          whyChooseUs: data.why_choose_us || data.whyChooseUs || null
         };
         hydratePageContacts();
         await fetchPublicLocations();
@@ -317,20 +327,116 @@ function hydrateLocationsUI(locations) {
 export function hydratePageContacts() {
   const settings = getSettings();
 
-  if (document.title && settings.companyName && settings.companyName !== DEFAULT_SETTINGS.companyName) {
+  // Web Title Hydration
+  if (settings.websiteTitle) {
+    const brandSuffix = settings.seoTitleSuffix || settings.companyName || "Roadlink Automobiles";
+    document.title = `${settings.websiteTitle} | ${brandSuffix}`;
+  } else if (document.title && settings.companyName && settings.companyName !== DEFAULT_SETTINGS.companyName) {
     document.title = document.title.replace(/Roadlink Automobiles/g, settings.companyName);
   }
 
+  // Author & Site Name
   document.querySelectorAll("meta[name='author'], meta[property='og:site_name']").forEach(meta => {
     meta.setAttribute("content", settings.companyName);
   });
 
-  document.querySelectorAll("meta[name='description'], meta[property='og:description'], meta[name='twitter:description']").forEach(meta => {
-    let content = meta.getAttribute("content") || "";
-    if (content.includes("Roadlink Automobiles")) {
-      meta.setAttribute("content", content.replace(/Roadlink Automobiles/g, settings.companyName));
+  // Meta Description
+  const mainDesc = settings.websiteDescription || settings.seoDefaultDescription;
+  if (mainDesc) {
+    document.querySelectorAll("meta[name='description']").forEach(meta => {
+      meta.setAttribute("content", mainDesc);
+    });
+  }
+
+  // Meta Keywords
+  if (settings.seoDefaultKeywords) {
+    document.querySelectorAll("meta[name='keywords']").forEach(meta => {
+      meta.setAttribute("content", settings.seoDefaultKeywords);
+    });
+  }
+
+  // Open Graph Social Tags
+  const ogTitle = settings.ogTitle || settings.websiteTitle || settings.companyName;
+  if (ogTitle) {
+    document.querySelectorAll("meta[property='og:title']").forEach(meta => {
+      meta.setAttribute("content", ogTitle);
+    });
+  }
+
+  const ogDesc = settings.ogDescription || mainDesc;
+  if (ogDesc) {
+    document.querySelectorAll("meta[property='og:description']").forEach(meta => {
+      meta.setAttribute("content", ogDesc);
+    });
+  }
+
+  if (settings.ogImageUrl) {
+    const ogImgUrl = settings.ogImageUrl.startsWith("http") ? settings.ogImageUrl : getPublicFileUrl(settings.ogImageUrl);
+    document.querySelectorAll("meta[property='og:image']").forEach(meta => {
+      meta.setAttribute("content", ogImgUrl);
+    });
+  }
+
+  // Twitter Social Tags
+  const twTitle = settings.twitterTitle || ogTitle;
+  if (twTitle) {
+    document.querySelectorAll("meta[name='twitter:title']").forEach(meta => {
+      meta.setAttribute("content", twTitle);
+    });
+  }
+
+  const twDesc = settings.twitterDescription || ogDesc;
+  if (twDesc) {
+    document.querySelectorAll("meta[name='twitter:description']").forEach(meta => {
+      meta.setAttribute("content", twDesc);
+    });
+  }
+
+  const twImg = settings.twitterImageUrl || settings.ogImageUrl;
+  if (twImg) {
+    const twImgUrl = twImg.startsWith("http") ? twImg : getPublicFileUrl(twImg);
+    document.querySelectorAll("meta[name='twitter:image']").forEach(meta => {
+      meta.setAttribute("content", twImgUrl);
+    });
+  }
+
+  // Favicon Hydration
+  if (settings.faviconUrl) {
+    let faviconLink = document.querySelector("link[rel*='icon']");
+    if (!faviconLink) {
+      faviconLink = document.createElement("link");
+      faviconLink.rel = "shortcut icon";
+      document.head.appendChild(faviconLink);
     }
-  });
+    faviconLink.href = getPublicFileUrl(settings.faviconUrl);
+  }
+
+  // Logo Hydration
+  if (settings.companyLogoUrl) {
+    document.querySelectorAll(".brand-logo-img, .logo img, #header-logo-img").forEach(img => {
+      img.src = getPublicFileUrl(settings.companyLogoUrl);
+    });
+  }
+
+  // Why Choose Us Cards Hydration
+  const whyGrid = document.querySelector("#why-choose-us-section .why-grid");
+  if (whyGrid && settings.whyChooseUs) {
+    let cards = settings.whyChooseUs;
+    if (typeof cards === "string") {
+      try { cards = JSON.parse(cards); } catch (e) { cards = null; }
+    }
+    if (Array.isArray(cards) && cards.length >= 4) {
+      const cardEls = whyGrid.querySelectorAll(".why-card");
+      cardEls.forEach((cardEl, idx) => {
+        if (cards[idx]) {
+          const titleEl = cardEl.querySelector(".why-title");
+          const descEl = cardEl.querySelector(".why-desc");
+          if (titleEl && cards[idx].title) titleEl.textContent = cards[idx].title;
+          if (descEl && cards[idx].description) descEl.textContent = cards[idx].description;
+        }
+      });
+    }
+  }
 
   document.querySelectorAll(".copyright-text").forEach(el => {
     const year = new Date().getFullYear();
