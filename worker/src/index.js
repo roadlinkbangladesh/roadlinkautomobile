@@ -54,6 +54,7 @@ import {
     getPublicImage
 } from "./routes/public/vehicles.js";
 import { getPublicSettings } from "./routes/public/settings.js";
+import { handleHtmlRequest } from "./routes/public/html.js";
 import {
     getPublicLocations,
     getPublicLocationBySlug
@@ -241,6 +242,15 @@ export default {
             logger.request(request, "Incoming request");
             
             if (!handler) {
+                if (method === "GET" && !pathname.startsWith("/api/")) {
+                    const htmlResponse = await handleHtmlRequest(request, env, ctx);
+                    if (htmlResponse) {
+                        return htmlResponse;
+                    }
+                    if (env && env.ASSETS) {
+                        return await env.ASSETS.fetch(request);
+                    }
+                }
                 return notFound();
             }
 
