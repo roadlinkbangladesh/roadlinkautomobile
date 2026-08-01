@@ -17,8 +17,9 @@ function escapeHtml(str) {
 
 /**
  * Converts a relative or absolute URL/path into a fully qualified absolute HTTP/HTTPS URL.
+ * Uses apiBaseUrl for media/API file routes and publicBaseUrl for static web pages/assets.
  */
-function toAbsoluteUrl(urlOrPath, baseUrl) {
+function toAbsoluteUrl(urlOrPath, publicBaseUrl, apiBaseUrl) {
   if (!urlOrPath) return "";
   const trimmed = String(urlOrPath).trim();
   if (!trimmed) return "";
@@ -27,14 +28,16 @@ function toAbsoluteUrl(urlOrPath, baseUrl) {
     return trimmed;
   }
 
-  const cleanBase = (baseUrl || "").replace(/\/+$/, "");
   let resolvedPath = trimmed;
+  let targetBase = publicBaseUrl || "";
 
   // If path is a media storage key or relative API file route
-  if (resolvedPath.startsWith("uploads/")) {
+  if (resolvedPath.startsWith("uploads/") || resolvedPath.includes("/api/v1/public/files/")) {
     resolvedPath = resolveFileUrl(resolvedPath);
+    targetBase = apiBaseUrl || publicBaseUrl || "";
   }
 
+  const cleanBase = (targetBase || "").replace(/\/+$/, "");
   const cleanPath = resolvedPath.startsWith("/") ? resolvedPath : "/" + resolvedPath.replace(/^\.\//, "");
   return `${cleanBase}${cleanPath}`;
 }
@@ -59,9 +62,10 @@ export class MetadataService {
    * Compiles complete page metadata object sourced from Settings & Vehicle DB records.
    */
   static async buildPageMetadata(env, options = {}) {
-    const { requestUrl = "", baseUrl = "", pageType = "home", vehicleIdentifier = null } = options;
+    const { requestUrl = "", baseUrl = "", workerOrigin = "", apiBaseUrl = "", pageType = "home", vehicleIdentifier = null } = options;
 
-    const parsedBaseUrl = baseUrl || (requestUrl ? new URL(requestUrl).origin : "");
+    const publicBaseUrl = baseUrl || (requestUrl ? new URL(requestUrl).origin : "");
+    const effectiveApiBaseUrl = env?.WORKER_API_URL || apiBaseUrl || workerOrigin || publicBaseUrl;
 
     let settings = null;
     try {
@@ -89,7 +93,7 @@ export class MetadataService {
     let title = "";
     let description = "";
     let keywords = defaultSeoKeywords;
-    let canonicalUrl = requestUrl || parsedBaseUrl;
+    let canonicalUrl = requestUrl || publicBaseUrl;
     let ogImageRaw = settings?.og_image_url || settings?.company_logo_url || "";
 
     if (pageType === "vehicle" && vehicle) {
@@ -120,22 +124,22 @@ export class MetadataService {
       }
 
       // Canonical URL for Vehicle Page
-      canonicalUrl = `${parsedBaseUrl}/vehicle.html?stock=${encodeURIComponent(vehicle.stockNumber || vehicle.id)}`;
+      canonicalUrl = `${publicBaseUrl}/vehicle.html?stock=${encodeURIComponent(vehicle.stockNumber || vehicle.id)}`;
     } else if (pageType === "stock") {
       title = `Stock Inventory | ${settings?.website_title || companyName}`;
       description = `Explore our complete inventory of verified Japanese reconditioned vehicles at ${companyName}. ${defaultSeoDesc}`;
-      canonicalUrl = `${parsedBaseUrl}/stock.html`;
+      canonicalUrl = `${publicBaseUrl}/stock.html`;
     } else {
       // Homepage / Generic
       title = defaultSeoTitle;
       description = defaultSeoDesc;
-      canonicalUrl = requestUrl || parsedBaseUrl || `${parsedBaseUrl}/`;
+      canonicalUrl = requestUrl || publicBaseUrl || `${publicBaseUrl}/`;
     }
 
     const ogTitle = (pageType === "vehicle" && vehicle) ? title : (settings?.og_title || settings?.website_title || title);
     const ogDescription = (pageType === "vehicle" && vehicle) ? description : (settings?.og_description || settings?.website_description || description);
 
-    const ogImage = toAbsoluteUrl(ogImageRaw || "/assets/og-image.jpg", parsedBaseUrl);
+    const ogImage = toAbsoluteUrl(ogImageRaw || "/assets/og-image.jpg", publicBaseUrl, effectiveApiBaseUrl);
     const ogImageAlt = (pageType === "vehicle" && vehicle)
       ? `${vehicle.year} ${vehicle.make} ${vehicle.model} - ${companyName}`
       : `${companyName} - Premium Japanese Reconditioned Vehicles Importer`;
@@ -143,9 +147,9 @@ export class MetadataService {
     const twitterTitle = (pageType === "vehicle" && vehicle) ? title : (settings?.twitter_title || ogTitle);
     const twitterDescription = (pageType === "vehicle" && vehicle) ? description : (settings?.twitter_description || ogDescription);
     const twitterImageRaw = (pageType === "vehicle" && vehicle) ? ogImageRaw : (settings?.twitter_image_url || ogImageRaw);
-    const twitterImage = toAbsoluteUrl(twitterImageRaw || ogImage, parsedBaseUrl);
+    const twitterImage = toAbsoluteUrl(twitterImageRaw || ogImage, publicBaseUrl, effectiveApiBaseUrl);
 
-    const faviconUrl = settings?.favicon_url ? toAbsoluteUrl(settings.favicon_url, parsedBaseUrl) : "";
+    const faviconUrl = settings?.favicon_url ? toAbsoluteUrl(settings.favicon_url, publicBaseUrl, effectiveApiBaseUrl) : "";
 
     return {
       title,
