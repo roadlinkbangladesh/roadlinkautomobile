@@ -9,9 +9,11 @@ export async function getPublicHomeMetadata(request, env, ctx) {
     try {
         const url = new URL(request.url);
         const requestUrl = url.searchParams.get("url") || request.url;
+        const workerOrigin = url.origin;
 
         const metadata = await MetadataService.buildPageMetadata(env, {
             requestUrl,
+            workerOrigin,
             pageType: "home"
         });
 
@@ -31,9 +33,11 @@ export async function getPublicVehicleMetadata(request, env, ctx, params) {
         const identifier = params?.identifier || "";
         const url = new URL(request.url);
         const requestUrl = url.searchParams.get("url") || request.url;
+        const workerOrigin = url.origin;
 
         const metadata = await MetadataService.buildPageMetadata(env, {
             requestUrl,
+            workerOrigin,
             pageType: "vehicle",
             vehicleIdentifier: identifier
         });
@@ -53,9 +57,11 @@ export async function getPublicStockMetadata(request, env, ctx) {
     try {
         const url = new URL(request.url);
         const requestUrl = url.searchParams.get("url") || request.url;
+        const workerOrigin = url.origin;
 
         const metadata = await MetadataService.buildPageMetadata(env, {
             requestUrl,
+            workerOrigin,
             pageType: "stock"
         });
 
