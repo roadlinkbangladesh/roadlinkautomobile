@@ -65,7 +65,10 @@ export class MetadataService {
     const { requestUrl = "", baseUrl = "", workerOrigin = "", apiBaseUrl = "", pageType = "home", vehicleIdentifier = null } = options;
 
     const publicBaseUrl = baseUrl || (requestUrl ? new URL(requestUrl).origin : "");
-    const effectiveApiBaseUrl = env?.WORKER_API_URL || apiBaseUrl || workerOrigin || publicBaseUrl;
+    let effectiveApiBaseUrl = env?.WORKER_API_URL || apiBaseUrl || workerOrigin || publicBaseUrl;
+    if (!effectiveApiBaseUrl || effectiveApiBaseUrl.includes("worker.internal")) {
+      effectiveApiBaseUrl = env?.WORKER_API_URL || "https://api.roadlinkautomobiles.com";
+    }
 
     let settings = null;
     try {
