@@ -60,7 +60,7 @@ export async function fetchAndInjectMetadata(context, pageType = "home", vehicle
 
     // 4. Fallback to HTTPS fetch
     if (!metadata) {
-      const apiBaseUrl = context.env.WORKER_API_URL || "https://api.roadlinkautomobiles.com";
+      const apiBaseUrl = context.env.WORKER_API_URL || (url.origin.includes("api.") ? url.origin : "https://api.roadlinkautomobiles.com");
       const httpUrl = `${apiBaseUrl.replace(/\/+$/, "")}${fullApiPath}`;
       const res = await fetch(httpUrl, {
         headers: { "Accept": "application/json" },
@@ -75,9 +75,16 @@ export async function fetchAndInjectMetadata(context, pageType = "home", vehicle
       }
     }
 
-    // If metadata could not be retrieved, return untouched static HTML
+    // If metadata could not be retrieved, return untouched static HTML with debug header
     if (!metadata) {
-      return templateResponse;
+      const fallbackHeaders = new Headers(templateResponse.headers);
+      fallbackHeaders.set("X-Pages-Function", "active");
+      fallbackHeaders.set("X-Metadata-Injected", "false-fetch-failed");
+      return new Response(templateResponse.body, {
+        status: templateResponse.status,
+        statusText: templateResponse.statusText,
+        headers: fallbackHeaders
+      });
     }
 
     // 5. Read HTML template content
@@ -90,6 +97,8 @@ export async function fetchAndInjectMetadata(context, pageType = "home", vehicle
     const newHeaders = new Headers(templateResponse.headers);
     newHeaders.set("Content-Type", "text/html; charset=UTF-8");
     newHeaders.set("Cache-Control", "public, max-age=0, must-revalidate");
+    newHeaders.set("X-Pages-Function", "active");
+    newHeaders.set("X-Metadata-Injected", "true");
 
     return new Response(injectedHtml, {
       status: templateResponse.status,
@@ -99,7 +108,14 @@ export async function fetchAndInjectMetadata(context, pageType = "home", vehicle
 
   } catch (err) {
     console.error("Pages Function metadata injection error:", err);
-    // Return original template response on error
-    return templateResponse;
+    // Return original template response on error with debug header
+    const errHeaders = new Headers(templateResponse.headers);
+    errHeaders.set("X-Pages-Function", "active-error");
+    errHeaders.set("X-Metadata-Error", err.message || "Unknown error");
+    return new Response(templateResponse.body, {
+      status: templateResponse.status,
+      statusText: templateResponse.statusText,
+      headers: errHeaders
+    });
   }
 }
