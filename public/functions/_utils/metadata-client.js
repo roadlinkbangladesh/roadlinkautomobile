@@ -41,27 +41,10 @@ export async function fetchAndInjectMetadata(context, pageType = "home", vehicle
 
     let metadata = null;
 
-    // 3. Try Cloudflare Service Binding if bound in context.env
-    const workerBinding = context.env.WORKER || context.env.BACKEND || context.env.WORKER_API;
-    if (workerBinding && typeof workerBinding.fetch === "function") {
-      try {
-        const bindingUrl = `https://worker.internal${fullApiPath}`;
-        const res = await workerBinding.fetch(new Request(bindingUrl, {
-          headers: { "Accept": "application/json" }
-        }));
-        if (res.ok) {
-          const payload = await res.json();
-          metadata = payload.data || payload.metadata || payload;
-        }
-      } catch (e) {
-        console.warn("Pages Function: Service binding fetch failed, falling back to HTTP fetch:", e.message);
-      }
-    }
-
-    // 4. Fallback to HTTPS fetch
-    if (!metadata) {
-      const apiBaseUrl = context.env.WORKER_API_URL || (url.origin.includes("api.") ? url.origin : "https://api.roadlinkautomobiles.com");
-      const httpUrl = `${apiBaseUrl.replace(/\/+$/, "")}${fullApiPath}`;
+    // Fetch metadata from Worker API
+    const apiBaseUrl = context.env.WORKER_API_URL || (url.origin.includes("api.") ? url.origin : "https://api.roadlinkautomobiles.com");
+    const httpUrl = `${apiBaseUrl.replace(/\/+$/, "")}${fullApiPath}`;
+    try {
       const res = await fetch(httpUrl, {
         headers: { "Accept": "application/json" },
         cf: {
@@ -73,6 +56,8 @@ export async function fetchAndInjectMetadata(context, pageType = "home", vehicle
         const payload = await res.json();
         metadata = payload.data || payload.metadata || payload;
       }
+    } catch (e) {
+      console.warn("Pages Function: Metadata API fetch failed:", e.message);
     }
 
     // If metadata could not be retrieved, return untouched static HTML with debug header
