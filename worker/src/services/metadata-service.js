@@ -151,8 +151,11 @@ export class MetadataService {
     const twitterDescription = (pageType === "vehicle" && vehicle) ? description : (settings?.twitter_description || ogDescription);
     const twitterImageRaw = (pageType === "vehicle" && vehicle) ? ogImageRaw : (settings?.twitter_image_url || ogImageRaw);
     const twitterImage = toAbsoluteUrl(twitterImageRaw || ogImage, publicBaseUrl, effectiveApiBaseUrl);
+    const twitterSite = settings?.twitter_username ? (settings.twitter_username.startsWith("@") ? settings.twitter_username : "@" + settings.twitter_username) : "";
 
     const faviconUrl = settings?.favicon_url ? toAbsoluteUrl(settings.favicon_url, publicBaseUrl, effectiveApiBaseUrl) : "";
+    const companyLogoUrl = settings?.company_logo_url ? toAbsoluteUrl(settings.company_logo_url, publicBaseUrl, effectiveApiBaseUrl) : "";
+    const ogLocale = settings?.display_locale ? settings.display_locale.replace("-", "_") : "en_US";
 
     return {
       title,
@@ -164,10 +167,13 @@ export class MetadataService {
       ogDescription,
       ogImage,
       ogImageAlt,
+      ogLocale,
       twitterTitle,
       twitterDescription,
       twitterImage,
+      twitterSite,
       faviconUrl,
+      companyLogoUrl,
       pageType,
       vehicle,
       settings
@@ -194,10 +200,13 @@ export class MetadataService {
       ogDescription,
       ogImage,
       ogImageAlt,
+      ogLocale,
       twitterTitle,
       twitterDescription,
       twitterImage,
+      twitterSite,
       faviconUrl,
+      companyLogoUrl,
       vehicle,
       settings
     } = metadata;
@@ -211,9 +220,13 @@ export class MetadataService {
     const safeOgDesc = escapeHtml(ogDescription);
     const safeOgImage = escapeHtml(ogImage);
     const safeOgAlt = escapeHtml(ogImageAlt);
+    const safeOgLocale = escapeHtml(ogLocale || "en_US");
     const safeTwTitle = escapeHtml(twitterTitle);
     const safeTwDesc = escapeHtml(twitterDescription);
     const safeTwImage = escapeHtml(twitterImage);
+    const safeTwSite = escapeHtml(twitterSite);
+    const safeFavicon = escapeHtml(faviconUrl);
+    const safeCompanyLogo = escapeHtml(companyLogoUrl);
 
     // 1. Title Tag Replacement
     if (/<title>[\s\S]*?<\/title>/i.test(html)) {
@@ -224,6 +237,7 @@ export class MetadataService {
 
     // Helper for replacing or inserting <meta> tags
     const setMetaName = (name, content) => {
+      if (!content) return;
       const pattern = new RegExp(`<meta\\s+name=["']${name}["'][\\s\\S]*?>`, "i");
       const tag = `<meta name="${name}" content="${content}">`;
       if (pattern.test(html)) {
@@ -234,6 +248,7 @@ export class MetadataService {
     };
 
     const setMetaProperty = (property, content) => {
+      if (!content) return;
       const pattern = new RegExp(`<meta\\s+property=["']${property}["'][\\s\\S]*?>`, "i");
       const tag = `<meta property="${property}" content="${content}">`;
       if (pattern.test(html)) {
@@ -247,6 +262,7 @@ export class MetadataService {
     setMetaName("description", safeDesc);
     setMetaName("keywords", safeKeywords);
     setMetaName("author", safeCompanyName);
+    setMetaName("robots", "index, follow, max-image-preview:large");
 
     // 3. Canonical Link Tag
     const canonicalTag = `<link rel="canonical" href="${safeCanonical}">`;
@@ -262,8 +278,11 @@ export class MetadataService {
     setMetaProperty("og:title", safeOgTitle);
     setMetaProperty("og:description", safeOgDesc);
     setMetaProperty("og:url", safeCanonical);
+    setMetaProperty("og:locale", safeOgLocale);
     if (safeOgImage) {
       setMetaProperty("og:image", safeOgImage);
+      setMetaProperty("og:image:width", "1200");
+      setMetaProperty("og:image:height", "630");
       setMetaProperty("og:image:alt", safeOgAlt);
     }
 
@@ -274,10 +293,12 @@ export class MetadataService {
     if (safeTwImage) {
       setMetaName("twitter:image", safeTwImage);
     }
+    if (safeTwSite) {
+      setMetaName("twitter:site", safeTwSite);
+    }
 
-    // 6. Favicon Link Tag (if custom favicon is set)
-    if (faviconUrl) {
-      const safeFavicon = escapeHtml(faviconUrl);
+    // 6. Favicon, Apple Touch Icon, and WebManifest Tags
+    if (safeFavicon) {
       const faviconTag = `<link rel="icon" href="${safeFavicon}">`;
       if (/<link\s+rel=["'](?:shortcut\s+)?icon["'][\s\S]*?>/i.test(html)) {
         html = html.replace(/<link\s+rel=["'](?:shortcut\s+)?icon["'][\s\S]*?>/i, () => faviconTag);
@@ -286,14 +307,34 @@ export class MetadataService {
       }
     }
 
-    // 7. Inject Structured Data (JSON-LD) for Vehicles
+    if (safeFavicon || safeCompanyLogo) {
+      const appleIcon = safeCompanyLogo || safeFavicon;
+      const appleTag = `<link rel="apple-touch-icon" sizes="180x180" href="${appleIcon}">`;
+      if (/<link\s+rel=["']apple-touch-icon["'][\s\S]*?>/i.test(html)) {
+        html = html.replace(/<link\s+rel=["']apple-touch-icon["'][\s\S]*?>/i, () => appleTag);
+      } else {
+        html = html.replace(/<\/head>/i, () => `  ${appleTag}\n</head>`);
+      }
+    }
+
+    const manifestTag = `<link rel="manifest" href="/site.webmanifest">`;
+    if (/<link\s+rel=["']manifest["'][\s\S]*?>/i.test(html)) {
+      html = html.replace(/<link\s+rel=["']manifest["'][\s\S]*?>/i, () => manifestTag);
+    } else {
+      html = html.replace(/<\/head>/i, () => `  ${manifestTag}\n</head>`);
+    }
+
+    // 7. Inject Structured Data (JSON-LD)
     if (vehicle) {
+      const vehicleImages = vehicle.images && vehicle.images.length > 0 ? vehicle.images : [safeOgImage];
       const jsonLdData = {
         "@context": "https://schema.org",
-        "@type": "Car",
-        "name": `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-        "image": vehicle.images && vehicle.images.length > 0 ? vehicle.images : [safeOgImage],
+        "@type": ["Car", "Product"],
+        "name": `${vehicle.year} ${vehicle.make} ${vehicle.model}${vehicle.grade ? ' Grade ' + vehicle.grade : ''}`,
+        "image": vehicleImages,
         "description": vehicle.description || description,
+        "sku": vehicle.stockNumber || `STOCK-${vehicle.id}`,
+        "mpn": vehicle.chassisNumber || vehicle.stockNumber || String(vehicle.id),
         "brand": {
           "@type": "Brand",
           "name": vehicle.make
@@ -314,8 +355,14 @@ export class MetadataService {
           "@type": "Offer",
           "priceCurrency": vehicle.currency || "BDT",
           "price": vehicle.price || 0,
+          "priceValidUntil": "2027-12-31",
           "itemCondition": "https://schema.org/UsedCondition",
-          "availability": vehicle.status === "available" ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+          "availability": vehicle.status === "available" ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          "seller": {
+            "@type": "AutoDealer",
+            "name": safeCompanyName
+          },
+          "url": safeCanonical
         }
       };
 
@@ -327,20 +374,29 @@ export class MetadataService {
         html = html.replace(/<\/head>/i, () => `  ${jsonLdScript}\n</head>`);
       }
     } else if (settings) {
-      // Inject / update Organization / AutoDealer schema for non-vehicle pages
+      const sameAsList = [];
+      if (settings.facebook) sameAsList.push(settings.facebook);
+      if (settings.youtube) sameAsList.push(settings.youtube);
+
       const orgLdData = {
         "@context": "https://schema.org",
         "@type": "AutoDealer",
-        "name": companyName,
+        "name": safeCompanyName,
         "url": safeCanonical,
-        "telephone": settings.phone || settings.contact_phone || "",
+        "logo": safeCompanyLogo || safeOgImage,
+        "image": safeOgImage,
+        "telephone": settings.phone || settings.contact_phone || settings.showroom_phone || "",
         "email": settings.email || "",
         "address": {
           "@type": "PostalAddress",
-          "streetAddress": settings.address || "",
+          "streetAddress": settings.address || settings.showroom_address || "",
           "addressLocality": "Dhaka",
+          "addressRegion": "Dhaka",
+          "postalCode": "1000",
           "addressCountry": "BD"
-        }
+        },
+        "sameAs": sameAsList,
+        "priceRange": "$$$"
       };
 
       const orgLdScript = `<script type="application/ld+json" id="org-json-ld">\n${JSON.stringify(orgLdData, null, 2)}\n</script>`;
