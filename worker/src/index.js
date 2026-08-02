@@ -57,7 +57,8 @@ import { getPublicSettings } from "./routes/public/settings.js";
 import {
     getPublicHomeMetadata,
     getPublicVehicleMetadata,
-    getPublicStockMetadata
+    getPublicStockMetadata,
+    getPublicSiteManifest
 } from "./routes/public/metadata.js";
 import {
     getPublicLocations,
@@ -103,6 +104,8 @@ const routes = {
     [`GET:${API.PUBLIC}/metadata/home`]: getPublicHomeMetadata,
     [`GET:${API.PUBLIC}/metadata/vehicle/:identifier`]: getPublicVehicleMetadata,
     [`GET:${API.PUBLIC}/metadata/stock`]: getPublicStockMetadata,
+    [`GET:${API.PUBLIC}/metadata/manifest`]: getPublicSiteManifest,
+    ["GET:/site.webmanifest"]: getPublicSiteManifest,
 
     // Public Locations
     [`GET:${API.PUBLIC}/locations`]: getPublicLocations,
