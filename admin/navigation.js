@@ -18,6 +18,7 @@ class NavigationController {
    */
   registerModule(name, config) {
     this.modules[name] = config;
+    this.bindSidebarEvents();
   }
 
   /**
@@ -196,25 +197,7 @@ class NavigationController {
    * @param {string} name - Registered module key
    * @param {Object} options - { query, isNavEvent, replaceState }
    */
-  async navigateTo(name, options = {}) {
-    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
-    if (token) {
-      try {
-        const profRes = await apiFetch("/api/v1/admin/profile");
-        if (profRes.ok) {
-          const result = await profRes.json();
-          if (result.success && result.data) {
-            sessionStorage.setItem("currentUser", JSON.stringify(result.data));
-            if (typeof window.applyUIPermissions === "function") {
-              window.applyUIPermissions();
-            }
-          }
-        }
-      } catch (e) {
-        console.error("Failed to refresh profile during navigation:", e);
-      }
-    }
-
+  navigateTo(name, options = {}) {
     const mandatoryAction = sessionStorage.getItem("mandatorySecurityAction") || 
       (sessionStorage.getItem("mustChangePassword") === "true" ? "PASSWORD_CHANGE" : 
       (sessionStorage.getItem("mustEnrollMfa") === "true" ? "MFA_ENROLLMENT" : null));
@@ -253,11 +236,10 @@ class NavigationController {
       }
     }
 
-    const module = this.modules[name];
     const pageTitle = $("topbar-page-title");
     const sidebar = $("admin-sidebar");
 
-    // Switch display states and trigger initializers
+    // Switch display states and trigger initializers immediately
     Object.keys(this.modules).forEach(key => {
       const item = this.modules[key];
       const panel = $(item.panelId);
@@ -299,6 +281,24 @@ class NavigationController {
 
     // Close mobile navigation drawer if open
     if (sidebar) sidebar.classList.remove("drawer-open");
+
+    // Non-blocking background profile & permissions refresh
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+    if (token) {
+      apiFetch("/api/v1/admin/profile").then(async (profRes) => {
+        if (profRes && profRes.ok) {
+          const result = await profRes.json();
+          if (result.success && result.data) {
+            sessionStorage.setItem("currentUser", JSON.stringify(result.data));
+            if (typeof window.applyUIPermissions === "function") {
+              window.applyUIPermissions();
+            }
+          }
+        }
+      }).catch(e => {
+        // Silent catch for background re-validation
+      });
+    }
   }
 
   /**
@@ -309,7 +309,8 @@ class NavigationController {
       const item = this.modules[key];
       const btn = $(item.btnId);
       if (btn) {
-        btn.onclick = () => {
+        btn.onclick = (e) => {
+          if (e) e.preventDefault();
           if (key === "vehicles") {
             try {
               resetFilters();
@@ -323,6 +324,27 @@ class NavigationController {
         };
       }
     });
+
+    // Delegated listener for sidebar links container
+    const navContainer = document.querySelector(".sidebar-links-list");
+    if (navContainer && !navContainer.dataset.clickBound) {
+      navContainer.dataset.clickBound = "true";
+      navContainer.addEventListener("click", (e) => {
+        const linkBtn = e.target.closest(".sidebar-nav-link");
+        if (!linkBtn) return;
+        
+        const matchedKey = Object.keys(this.modules).find(k => this.modules[k].btnId === linkBtn.id);
+        if (matchedKey) {
+          e.preventDefault();
+          if (matchedKey === "vehicles") {
+            try { resetFilters(); } catch (err) {}
+            this.navigateTo("vehicles", { query: {} });
+          } else {
+            this.navigateTo(matchedKey, { query: {} });
+          }
+        }
+      });
+    }
   }
 }
 
