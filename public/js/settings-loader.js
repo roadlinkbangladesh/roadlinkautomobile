@@ -433,25 +433,6 @@ export function hydratePageContacts() {
     });
   }
 
-  // Dynamic Brand Text
-  if (settings.companyName) {
-    const words = settings.companyName.trim().split(/\s+/);
-    if (words.length > 1) {
-      const firstWord = words[0];
-      const restWords = words.slice(1).join(" ");
-      document.querySelectorAll(".logo-text").forEach(container => {
-        const brandNameEl = container.querySelector(".brand-name");
-        const brandSubtextEl = container.querySelector(".brand-subtext");
-        if (brandNameEl) {
-          brandNameEl.innerHTML = `<span class="road">${firstWord}</span>`;
-        }
-        if (brandSubtextEl) {
-          brandSubtextEl.textContent = restWords;
-        }
-      });
-    }
-  }
-
   // Why Choose Us Cards Hydration
   const whyGrid = document.querySelector("#why-choose-us-section .why-grid");
   if (whyGrid && settings.whyChooseUs) {
