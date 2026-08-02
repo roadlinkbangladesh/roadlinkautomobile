@@ -60,13 +60,26 @@ export function setUnauthorizedHandler(handler) {
   unauthorizedHandler = handler;
 }
 
+let isHandlingUnauthorized = false;
+
 /**
  * Invokes the registered unauthorized handler.
  */
 export function handleUnauthorized() {
+  if (isHandlingUnauthorized) return;
+  isHandlingUnauthorized = true;
+
   if (typeof unauthorizedHandler === "function") {
-    unauthorizedHandler();
+    try {
+      unauthorizedHandler();
+    } catch (e) {
+      console.error("Error in unauthorized handler:", e);
+    }
   }
+
+  setTimeout(() => {
+    isHandlingUnauthorized = false;
+  }, 1000);
 }
 
 /**
