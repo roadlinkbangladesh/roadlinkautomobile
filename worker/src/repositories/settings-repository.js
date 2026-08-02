@@ -3,11 +3,23 @@
  */
 export class SettingsRepository {
   /**
+   * Helper to ensure optional columns exist in the settings table.
+   */
+  static async ensureSchema(db) {
+    try {
+      await db.prepare(`ALTER TABLE settings ADD COLUMN twitter_username TEXT`).run();
+    } catch {
+      // Column already exists or table uninitialized
+    }
+  }
+
+  /**
    * Get full settings record for admin
    * @param {Object} db
    * @returns {Promise<Object|null>}
    */
   static async getSettings(db) {
+    await this.ensureSchema(db);
     return await db.prepare(`SELECT * FROM settings WHERE id = 1 LIMIT 1`).first() || null;
   }
 
@@ -17,17 +29,18 @@ export class SettingsRepository {
    * @returns {Promise<Object|null>}
    */
   static async getPublicSettings(db) {
+    await this.ensureSchema(db);
     return await db.prepare(`
       SELECT 
         company_name, company_slug, phone, whatsapp, email, address, 
-        facebook, youtube, default_currency, seo_title_suffix, 
+        facebook, youtube, display_timezone, display_locale, default_currency, seo_title_suffix, 
         seo_default_keywords, seo_default_description, 
         contact_name, contact_phone, show_primary_contact, show_whatsapp, show_email, 
         company_logo_url, favicon_url, stock_banner_url, 
         featured_vehicles_limit, show_sold_vehicles,
         why_choose_us, website_title, website_description,
         og_title, og_description, og_image_url,
-        twitter_title, twitter_description, twitter_image_url,
+        twitter_title, twitter_description, twitter_image_url, twitter_username,
         public_website_url
       FROM settings 
       WHERE id = 1
@@ -40,6 +53,7 @@ export class SettingsRepository {
    * @param {Object} params
    */
   static async updateSettings(db, params) {
+    await this.ensureSchema(db);
     const now = new Date().toISOString();
     await db
       .prepare(`
@@ -55,7 +69,7 @@ export class SettingsRepository {
             company_logo_url = ?, favicon_url = ?, stock_banner_url = ?, featured_vehicles_limit = ?, show_sold_vehicles = ?,
             why_choose_us = ?, website_title = ?, website_description = ?,
             og_title = ?, og_description = ?, og_image_url = ?,
-            twitter_title = ?, twitter_description = ?, twitter_image_url = ?,
+            twitter_title = ?, twitter_description = ?, twitter_image_url = ?, twitter_username = ?,
             public_website_url = ?,
             updated_at = ?
         WHERE id = 1
@@ -72,7 +86,7 @@ export class SettingsRepository {
         params.companyLogoUrl, params.faviconUrl, params.stockBannerUrl, params.featuredVehiclesLimit, params.showSoldVehicles,
         params.whyChooseUs, params.websiteTitle, params.websiteDescription,
         params.ogTitle, params.ogDescription, params.ogImageUrl,
-        params.twitterTitle, params.twitterDescription, params.twitterImageUrl,
+        params.twitterTitle, params.twitterDescription, params.twitterImageUrl, params.twitterUsername,
         params.publicWebsiteUrl,
         now
       )
