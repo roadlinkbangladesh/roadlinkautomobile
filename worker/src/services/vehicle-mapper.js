@@ -80,6 +80,8 @@ export function mapDbToVehicle(row, images = [], options = {}) {
     price: row.price ?? 0,
     currency: row.currency || "BDT",
     negotiable: Boolean(row.negotiable),
+    showPrice: row.show_price !== undefined && row.show_price !== null ? Boolean(row.show_price) : true,
+    show_price: row.show_price !== undefined && row.show_price !== null ? Boolean(row.show_price) : true,
     shortDescription: row.short_description || "",
     description: row.description || "",
     features: parsedFeatures,
