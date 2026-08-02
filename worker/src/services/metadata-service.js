@@ -354,7 +354,7 @@ export class MetadataService {
         "offers": {
           "@type": "Offer",
           "priceCurrency": vehicle.currency || "BDT",
-          "price": vehicle.price || 0,
+          "price": (vehicle.showPrice !== false && vehicle.show_price !== false) ? (vehicle.price || 0) : undefined,
           "priceValidUntil": "2027-12-31",
           "itemCondition": "https://schema.org/UsedCondition",
           "availability": vehicle.status === "available" ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
