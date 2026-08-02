@@ -16,11 +16,15 @@ import { initAuditLogsView } from "./audit-logs.js";
 import { showLoginView } from "./ui.js";
 import { navigationController } from "./navigation.js";
 import { initIdleTimeout } from "./idle-timeout.js";
+import { fetchPublicSettings } from "./js/settings-loader.js";
 
 /**
  * Initialize core application
  */
 async function init() {
+  // Always fetch public settings first to hydrate admin branding (logo, title, favicon, company name)
+  fetchPublicSettings().catch(err => console.error("Admin portal branding load error:", err));
+
   // Always bind event handlers first
   bindLoginEvents(() => showDashboardView({ isFreshLogin: true }));
   bindLogoutEvents(showLoginView);
@@ -234,6 +238,10 @@ function showDashboardView(options = {}) {
   if (adminLayout) adminLayout.style.display = "grid";
 
   applyUIPermissions();
+
+  // Always ensure sidebar click listeners and popstate/hashchange history handlers are bound
+  navigationController.bindSidebarEvents();
+  navigationController.bindPopState();
 
   const isFreshLogin = options?.isFreshLogin === true || sessionStorage.getItem("is_fresh_login") === "true";
   sessionStorage.removeItem("is_fresh_login");
