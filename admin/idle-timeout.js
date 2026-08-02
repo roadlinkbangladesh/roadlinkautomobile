@@ -78,14 +78,27 @@ function updateCountdown() {
   }
 }
 
+let isTimingOut = false;
+
 /**
  * Handles session logout on timeout.
  */
 async function handleTimeout() {
-  hideWarningModal();
-  await logout();
-  showLoginView();
-  alert("Your session has expired due to inactivity. Please log in again.");
+  if (isTimingOut) return;
+  isTimingOut = true;
+
+  try {
+    hideWarningModal();
+    clearToken();
+    try {
+      await logout();
+    } catch (e) {
+      // Ignore network errors during timeout logout
+    }
+    showLoginView("Your session has expired due to inactivity. Please log in again.");
+  } finally {
+    isTimingOut = false;
+  }
 }
 
 /**
