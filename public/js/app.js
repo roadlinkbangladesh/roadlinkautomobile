@@ -498,7 +498,8 @@ async function loadHeroCarousel() {
     
     if (!payload.success || !Array.isArray(payload.data) || payload.data.length === 0) {
       if (heroImg) {
-        heroImg.src = "./assets/hero.jpg";
+        const fallbackBanner = getSettings()?.stockBannerUrl;
+        heroImg.src = fallbackBanner ? getPublicFileUrl(fallbackBanner) : "./assets/hero.jpg";
         heroImg.style.opacity = "1";
       }
       return;
@@ -575,7 +576,8 @@ async function loadHeroCarousel() {
   } catch (err) {
     console.error("Failed to load hero carousel:", err);
     if (heroImg) {
-      heroImg.src = "./assets/hero.jpg";
+      const fallbackBanner = getSettings()?.stockBannerUrl;
+      heroImg.src = fallbackBanner ? getPublicFileUrl(fallbackBanner) : "./assets/hero.jpg";
       heroImg.style.opacity = "1";
     }
   }
