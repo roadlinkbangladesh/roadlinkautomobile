@@ -446,13 +446,21 @@ export function renderVehicleTable() {
       </div>
     `;
 
+    const isPriceHidden = v.showPrice === false || v.show_price === false;
+    const priceCellHtml = `
+      <div style="display: flex; flex-direction: column; gap: 3px;">
+        <span style="font-weight: 700; color: var(--primary-blue); font-family: var(--font-mono);">${formattedPrice}</span>
+        ${isPriceHidden ? `<span style="font-size: 0.7rem; font-weight: 700; color: #dc2626; background: rgba(220, 38, 38, 0.08); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(220, 38, 38, 0.2); width: fit-content;">Price Hidden</span>` : `<span style="font-size: 0.7rem; font-weight: 600; color: #16a34a; background: rgba(22, 163, 74, 0.08); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(22, 163, 74, 0.2); width: fit-content;">Price Visible</span>`}
+      </div>
+    `;
+
     row.innerHTML = `
       <td>
         <img src="${thumbnailSrc}" alt="${v.make} ${v.model}" class="thumb-img" referrerpolicy="no-referrer" data-id="${v.id}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800';">
       </td>
       <td style="font-weight: 700; font-family: var(--font-mono); font-size: 0.85rem;">${v.stockNumber}</td>
       <td style="font-weight: 600; font-family: var(--font-display);">${vehicleName}</td>
-      <td style="font-weight: 700; color: var(--primary-blue); font-family: var(--font-mono);">${formattedPrice}</td>
+      <td>${priceCellHtml}</td>
       <td>
         ${statusCellHtml}
       </td>
