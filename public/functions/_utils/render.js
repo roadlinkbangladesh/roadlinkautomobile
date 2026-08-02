@@ -32,10 +32,13 @@ export function renderHtmlMetadata(htmlTemplate, metadata) {
     ogDescription,
     ogImage,
     ogImageAlt,
+    ogLocale,
     twitterTitle,
     twitterDescription,
     twitterImage,
+    twitterSite,
     faviconUrl,
+    companyLogoUrl,
     vehicle,
     settings
   } = metadata;
@@ -49,9 +52,13 @@ export function renderHtmlMetadata(htmlTemplate, metadata) {
   const safeOgDesc = escapeHtml(ogDescription);
   const safeOgImage = escapeHtml(ogImage);
   const safeOgAlt = escapeHtml(ogImageAlt);
+  const safeOgLocale = escapeHtml(ogLocale || "en_US");
   const safeTwTitle = escapeHtml(twitterTitle);
   const safeTwDesc = escapeHtml(twitterDescription);
   const safeTwImage = escapeHtml(twitterImage);
+  const safeTwSite = escapeHtml(twitterSite);
+  const safeFavicon = escapeHtml(faviconUrl);
+  const safeCompanyLogo = escapeHtml(companyLogoUrl);
 
   // 1. Title Tag Replacement
   if (/<title>[\s\S]*?<\/title>/i.test(html)) {
@@ -87,6 +94,7 @@ export function renderHtmlMetadata(htmlTemplate, metadata) {
   setMetaName("description", safeDesc);
   setMetaName("keywords", safeKeywords);
   setMetaName("author", safeCompanyName);
+  setMetaName("robots", "index, follow, max-image-preview:large");
 
   // 3. Canonical Link Tag
   if (safeCanonical) {
@@ -104,8 +112,11 @@ export function renderHtmlMetadata(htmlTemplate, metadata) {
   setMetaProperty("og:title", safeOgTitle);
   setMetaProperty("og:description", safeOgDesc);
   if (safeCanonical) setMetaProperty("og:url", safeCanonical);
+  setMetaProperty("og:locale", safeOgLocale);
   if (safeOgImage) {
     setMetaProperty("og:image", safeOgImage);
+    setMetaProperty("og:image:width", "1200");
+    setMetaProperty("og:image:height", "630");
     setMetaProperty("og:image:alt", safeOgAlt);
   }
 
@@ -116,10 +127,12 @@ export function renderHtmlMetadata(htmlTemplate, metadata) {
   if (safeTwImage) {
     setMetaName("twitter:image", safeTwImage);
   }
+  if (safeTwSite) {
+    setMetaName("twitter:site", safeTwSite);
+  }
 
-  // 6. Favicon Link Tag
-  if (faviconUrl) {
-    const safeFavicon = escapeHtml(faviconUrl);
+  // 6. Favicon, Apple Touch Icon, and WebManifest Link Tags
+  if (safeFavicon) {
     const faviconTag = `<link rel="icon" href="${safeFavicon}">`;
     if (/<link\s+rel=["'](?:shortcut\s+)?icon["'][\s\S]*?>/i.test(html)) {
       html = html.replace(/<link\s+rel=["'](?:shortcut\s+)?icon["'][\s\S]*?>/i, () => faviconTag);
@@ -128,14 +141,34 @@ export function renderHtmlMetadata(htmlTemplate, metadata) {
     }
   }
 
+  if (safeFavicon || safeCompanyLogo) {
+    const appleIcon = safeCompanyLogo || safeFavicon;
+    const appleTag = `<link rel="apple-touch-icon" sizes="180x180" href="${appleIcon}">`;
+    if (/<link\s+rel=["']apple-touch-icon["'][\s\S]*?>/i.test(html)) {
+      html = html.replace(/<link\s+rel=["']apple-touch-icon["'][\s\S]*?>/i, () => appleTag);
+    } else {
+      html = html.replace(/<\/head>/i, () => `  ${appleTag}\n</head>`);
+    }
+  }
+
+  const manifestTag = `<link rel="manifest" href="/site.webmanifest">`;
+  if (/<link\s+rel=["']manifest["'][\s\S]*?>/i.test(html)) {
+    html = html.replace(/<link\s+rel=["']manifest["'][\s\S]*?>/i, () => manifestTag);
+  } else {
+    html = html.replace(/<\/head>/i, () => `  ${manifestTag}\n</head>`);
+  }
+
   // 7. Inject Structured Data (JSON-LD)
   if (vehicle) {
+    const vehicleImages = vehicle.images && vehicle.images.length > 0 ? vehicle.images : [safeOgImage];
     const jsonLdData = {
       "@context": "https://schema.org",
-      "@type": "Car",
-      "name": `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-      "image": vehicle.images && vehicle.images.length > 0 ? vehicle.images : [safeOgImage],
+      "@type": ["Car", "Product"],
+      "name": `${vehicle.year} ${vehicle.make} ${vehicle.model}${vehicle.grade ? ' Grade ' + vehicle.grade : ''}`,
+      "image": vehicleImages,
       "description": vehicle.description || description,
+      "sku": vehicle.stockNumber || `STOCK-${vehicle.id}`,
+      "mpn": vehicle.chassisNumber || vehicle.stockNumber || String(vehicle.id),
       "brand": {
         "@type": "Brand",
         "name": vehicle.make
@@ -156,8 +189,14 @@ export function renderHtmlMetadata(htmlTemplate, metadata) {
         "@type": "Offer",
         "priceCurrency": vehicle.currency || "BDT",
         "price": vehicle.price || 0,
+        "priceValidUntil": "2027-12-31",
         "itemCondition": "https://schema.org/UsedCondition",
-        "availability": vehicle.status === "available" ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+        "availability": vehicle.status === "available" ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        "seller": {
+          "@type": "AutoDealer",
+          "name": safeCompanyName
+        },
+        "url": safeCanonical
       }
     };
 
@@ -169,19 +208,29 @@ export function renderHtmlMetadata(htmlTemplate, metadata) {
       html = html.replace(/<\/head>/i, () => `  ${jsonLdScript}\n</head>`);
     }
   } else if (settings) {
+    const sameAsList = [];
+    if (settings.facebook) sameAsList.push(settings.facebook);
+    if (settings.youtube) sameAsList.push(settings.youtube);
+
     const orgLdData = {
       "@context": "https://schema.org",
       "@type": "AutoDealer",
       "name": safeCompanyName,
       "url": safeCanonical,
-      "telephone": settings.phone || settings.contact_phone || "",
+      "logo": safeCompanyLogo || safeOgImage,
+      "image": safeOgImage,
+      "telephone": settings.phone || settings.contact_phone || settings.showroom_phone || "",
       "email": settings.email || "",
       "address": {
         "@type": "PostalAddress",
-        "streetAddress": settings.address || "",
+        "streetAddress": settings.address || settings.showroom_address || "",
         "addressLocality": "Dhaka",
+        "addressRegion": "Dhaka",
+        "postalCode": "1000",
         "addressCountry": "BD"
-      }
+      },
+      "sameAs": sameAsList,
+      "priceRange": "$$$"
     };
 
     const orgLdScript = `<script type="application/ld+json" id="org-json-ld">\n${JSON.stringify(orgLdData, null, 2)}\n</script>`;
