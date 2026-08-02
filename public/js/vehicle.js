@@ -217,7 +217,7 @@ function hydrateSEO(car) {
       "offers": {
         "@type": "Offer",
         "priceCurrency": "BDT",
-        "price": car.price,
+        "price": (car.showPrice !== false && car.show_price !== false) ? car.price : undefined,
         "itemCondition": "https://schema.org/UsedCondition",
         "availability": car.status === 'available' ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
         "seller": {
@@ -263,9 +263,10 @@ function hydrateStickyContactPanel(car) {
   document.getElementById('panel-vehicle-grade').textContent = car.grade ? `Verifiable Grade: ${car.grade}` : 'Auction Grade Available';
 
   // Pricing
-  document.getElementById('panel-vehicle-price').textContent = formatPrice(car.price, false);
+  const isShowPrice = car.showPrice !== false && car.show_price !== false;
+  document.getElementById('panel-vehicle-price').textContent = formatPrice(car.price, false, isShowPrice);
   const negotiableBadge = document.getElementById('panel-negotiable');
-  if (car.negotiable) {
+  if (car.negotiable && isShowPrice) {
     negotiableBadge.style.display = 'inline-block';
   } else {
     negotiableBadge.style.display = 'none';
@@ -836,8 +837,8 @@ function hydrateRelatedVehicles(car) {
             <div class="vehicle-price-container">
               <span class="price-label">Price (BDT)</span>
               <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                <span class="vehicle-price">${formatPrice(carMatch.price, false)}</span>
-                ${carMatch.negotiable ? `<span class="panel-negotiable-badge" style="font-size: 0.6rem; padding: 2px 5px; margin-top: 1px;">Negotiable</span>` : ''}
+                <span class="vehicle-price">${formatPrice(carMatch.price, false, carMatch.showPrice !== false && carMatch.show_price !== false)}</span>
+                ${carMatch.negotiable && carMatch.showPrice !== false && carMatch.show_price !== false ? `<span class="panel-negotiable-badge" style="font-size: 0.6rem; padding: 2px 5px; margin-top: 1px;">Negotiable</span>` : ''}
               </div>
             </div>
             <a href="vehicle.html?stock=${carMatch.stockNumber}" class="btn-view-details" aria-label="View specifications for ${carMatch.make} ${carMatch.model}">View Details</a>
@@ -1002,8 +1003,9 @@ function initShareHandler(car) {
  * UTILITY HELPERS
  */
 
-function formatPrice(amount, negotiable) {
-  if (!amount) return '৳ Contact Us';
+function formatPrice(amount, negotiable, showPrice = true) {
+  if (showPrice === false) return 'Contact for Price';
+  if (!amount) return 'Contact for Price';
   const priceFormatted = `৳ ${amount.toLocaleString()}`;
   return negotiable ? `${priceFormatted} (Negotiable)` : priceFormatted;
 }
