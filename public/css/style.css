@@ -2837,18 +2837,28 @@ section {
 
 .sidebar-spec-item {
   display: flex;
-  justify-content: space-between;
-  font-size: 0.8rem;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .sidebar-spec-item .lbl {
+  font-size: 0.725rem;
+  font-weight: 600;
   color: var(--text-muted);
-  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 .sidebar-spec-item .val {
-  color: var(--text-dark);
+  font-size: 0.875rem;
   font-weight: 700;
+  color: var(--primary-blue);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
 }
 
 /* Sidebar actions buttons */
@@ -3150,136 +3160,64 @@ section {
   }
 }
 
-/* Mobile-only Summary Panel Styles */
-.mobile-only-summary-panel {
-  display: none;
-}
-
 @media (max-width: 849px) {
-  .mobile-only-summary-panel {
-    display: block;
-    background-color: var(--bg-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 24px;
-    margin-bottom: 24px;
-    box-shadow: var(--shadow-sm);
-  }
-  
-  .mobile-summary-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 8px;
-  }
-  
-  .mobile-reference-number {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    font-weight: 600;
-    font-family: var(--font-mono);
-  }
-  
-  .mobile-title-container {
-    margin-bottom: 12px;
-  }
-  
-  .mobile-vehicle-year {
-    font-size: 0.85rem;
-    color: var(--primary-red);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  
-  .mobile-vehicle-title {
-    font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--primary-blue);
-    margin-top: 2px;
-    margin-bottom: 4px;
-    line-height: 1.25;
-    letter-spacing: -0.01em;
-  }
-  
-  .mobile-vehicle-grade {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    font-weight: 600;
-  }
-  
-  .mobile-price-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-  }
-  
-  .mobile-price-container {
+  .vehicle-details-layout {
     display: flex;
     flex-direction: column;
+    gap: 20px;
   }
-  
-  .mobile-vehicle-price {
-    font-family: var(--font-display);
-    font-size: 1.7rem;
-    font-weight: 700;
-    color: var(--primary-blue);
-    line-height: 1;
+
+  .vehicle-details-main {
+    display: contents;
   }
-  
-  .mobile-negotiable-badge {
-    background-color: rgba(227, 27, 35, 0.08);
-    color: var(--primary-red);
-    border: 1px solid rgba(227, 27, 35, 0.35);
-    font-size: 0.65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    padding: 3px 7px;
-    border-radius: 4px;
-    letter-spacing: 0.05em;
-    display: inline-flex;
-    align-items: center;
+
+  #hero-cover-viewport {
+    order: 1;
+    margin-bottom: 0;
   }
-  
-  .mobile-actions-group {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    width: 100%;
-  }
-  
-  .mobile-actions-group .btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px 16px;
-    font-size: 0.95rem;
-    font-weight: 700;
-    border-radius: var(--radius-sm);
-    width: 100%;
-    text-align: center;
-    transition: var(--transition-smooth);
-    border: 1px solid transparent;
-  }
-  
-  .mobile-actions-group .mobile-share-btn {
-    background-color: var(--bg-light);
-    color: var(--primary-blue);
-    border: 1px solid var(--border-color);
-  }
-  
-  .mobile-actions-group .mobile-share-btn:hover {
-    background-color: var(--border-color);
-  }
-  
+
   .vehicle-details-sidebar {
-    display: none !important;
+    order: 2;
+    display: block !important;
+    width: 100%;
+  }
+
+  .sticky-contact-panel {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  #exterior-gallery-section {
+    order: 3;
+  }
+
+  #interior-gallery-section {
+    order: 4;
+  }
+
+  #specs-section {
+    order: 5;
+  }
+
+  #features-section {
+    order: 6;
+  }
+
+  #description-section {
+    order: 7;
+  }
+
+  #auction-sheet-section {
+    order: 8;
+  }
+
+  #poster-section {
+    order: 9;
+  }
+
+  #youtube-section {
+    order: 10;
   }
 }
 
