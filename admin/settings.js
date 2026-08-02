@@ -349,6 +349,7 @@ function populateForm(data) {
   const ogImageUrlField = $("set-og-image-url");
   const twitterTitleField = $("set-twitter-title");
   const twitterDescField = $("set-twitter-description");
+  const twitterUsernameField = $("set-twitter-username");
   const twitterImageUrlField = $("set-twitter-image-url");
 
   if (websiteTitleField) websiteTitleField.value = data.websiteTitle || data.website_title || "";
@@ -361,6 +362,7 @@ function populateForm(data) {
   }
   if (twitterTitleField) twitterTitleField.value = data.twitterTitle || data.twitter_title || "";
   if (twitterDescField) twitterDescField.value = data.twitterDescription || data.twitter_description || "";
+  if (twitterUsernameField) twitterUsernameField.value = data.twitterUsername || data.twitter_username || "";
   if (twitterImageUrlField) {
     twitterImageUrlField.value = data.twitterImageUrl || data.twitter_image_url || "";
     updateBrandingPreview("twitter-image", twitterImageUrlField.value);
@@ -508,6 +510,7 @@ async function handleSettingsSubmit(e) {
   const ogImageUrl = $("set-og-image-url")?.value || "";
   const twitterTitle = $("set-twitter-title")?.value || "";
   const twitterDescription = $("set-twitter-description")?.value || "";
+  const twitterUsername = $("set-twitter-username")?.value || "";
   const twitterImageUrl = $("set-twitter-image-url")?.value || "";
 
   const whyChooseUs = [
@@ -547,7 +550,7 @@ async function handleSettingsSubmit(e) {
         companyLogoUrl, faviconUrl, stockBannerUrl,
         publicWebsiteUrl, websiteTitle, websiteDescription,
         ogTitle, ogDescription, ogImageUrl,
-        twitterTitle, twitterDescription, twitterImageUrl,
+        twitterTitle, twitterDescription, twitterUsername, twitterImageUrl,
         whyChooseUs
       })
     });
