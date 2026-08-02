@@ -397,7 +397,10 @@ function sortVehicles(sortBy) {
 /**
  * Format functions for presentation layer
  */
-function formatPrice(price, negotiable = false) {
+function formatPrice(price, negotiable = false, vehicle = null) {
+  if (vehicle && (vehicle.showPrice === false || vehicle.show_price === false)) {
+    return "Price on Request";
+  }
   if (price === 0) return "Ask for Price";
   
   // Format to standard Bengali Lakh layout, e.g. 2150000 -> ৳ 21,50,000
@@ -578,8 +581,8 @@ function renderVehicleCard(car) {
         <div class="vehicle-price-container">
           <span class="price-label">Price (BDT)</span>
           <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-            <span class="vehicle-price">${formatPrice(car.price, false)}</span>
-            ${car.negotiable ? `<span class="panel-negotiable-badge" style="font-size: 0.6rem; padding: 2px 5px; margin-top: 1px;">Negotiable</span>` : ''}
+            <span class="vehicle-price">${formatPrice(car.price, false, car)}</span>
+            ${car.negotiable && car.showPrice !== false && car.show_price !== false ? `<span class="panel-negotiable-badge" style="font-size: 0.6rem; padding: 2px 5px; margin-top: 1px;">Negotiable</span>` : ''}
           </div>
         </div>
         <div class="card-action-row">
