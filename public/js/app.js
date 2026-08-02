@@ -24,14 +24,17 @@ function mapVehicleToHomeFormat(v) {
     engine: v.engine || (v.engineCC ? `${(v.engineCC / 1000).toFixed(1)}L ${v.fuel || ''}`.trim() : 'N/A'),
     color: v.exteriorColor || v.color || 'N/A',
     grade: v.grade || 'N/A',
-    price: typeof v.price === 'number'
-      ? new Intl.NumberFormat("en-BD", {
-          style: "currency",
-          currency: v.currency || "BDT",
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0
-        }).format(v.price).replace("BDT", "৳").replace("USD", "$").replace("JPY", "¥")
-      : v.price,
+    price: (v.showPrice === false || v.show_price === false)
+      ? "Price on Request"
+      : (typeof v.price === 'number'
+        ? new Intl.NumberFormat("en-BD", {
+            style: "currency",
+            currency: v.currency || "BDT",
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+          }).format(v.price).replace("BDT", "৳").replace("USD", "$").replace("JPY", "¥")
+        : v.price),
+    showPrice: v.showPrice !== false && v.show_price !== false,
     image: v.coverImage || v.images[0] || "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800",
     description: v.description || v.shortDescription || ""
   };
@@ -257,7 +260,8 @@ function openModal(carId) {
   const cleanPhone = displayPhone.replace(/[^0-9+]/g, '');
 
   // Pre-fill a professional sales request
-  const whatsappQuery = `Salam ${companyName}, I am interested in purchasing the Japanese reconditioned ${car.year} ${car.make} ${car.model} listed for ${car.price} on your website. Please share the auction sheet and booking details.`;
+  const pricePhrase = car.showPrice ? `listed for ${car.price}` : `listed`;
+  const whatsappQuery = `Salam ${companyName}, I am interested in purchasing the Japanese reconditioned ${car.year} ${car.make} ${car.model} ${pricePhrase} on your website. Please share the auction sheet and booking details.`;
   const whatsappLink = `https://wa.me/${cleanWa}?text=${encodeURIComponent(whatsappQuery)}`;
 
   modalContent.innerHTML = `
