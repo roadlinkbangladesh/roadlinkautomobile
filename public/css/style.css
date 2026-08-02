@@ -2326,14 +2326,14 @@ section {
 /* VEHICLE DETAILS PAGE STYLING */
 .vehicle-details-layout {
   display: grid;
-  grid-template-columns: 1.65fr 1fr;
+  grid-template-columns: minmax(0, 1fr) 360px;
   gap: 32px;
   align-items: start;
 }
 
 @media (max-width: 1199px) and (min-width: 992px) {
   .vehicle-details-layout {
-    grid-template-columns: 1.5fr 1fr;
+    grid-template-columns: minmax(0, 1fr) 340px;
     gap: 24px;
   }
 }
@@ -2685,6 +2685,8 @@ section {
   margin-bottom: 16px;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .panel-header .vehicle-badge {
@@ -2717,10 +2719,11 @@ section {
 }
 
 .reference-number {
-  font-size: 0.75rem;
+  font-size: 0.775rem;
   color: var(--text-muted);
   font-weight: 600;
   font-family: var(--font-mono);
+  white-space: nowrap;
 }
 
 .panel-title-container {
@@ -2815,7 +2818,7 @@ section {
 .panel-quick-specs {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px 16px;
+  gap: 12px 14px;
   margin-bottom: 24px;
   background-color: var(--bg-light);
   padding: 14px 16px;
@@ -2837,7 +2840,7 @@ section {
 }
 
 .sidebar-spec-item .lbl {
-  font-size: 0.725rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
@@ -2846,13 +2849,12 @@ section {
 }
 
 .sidebar-spec-item .val {
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: var(--primary-blue);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.25;
+  line-height: 1.35;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* Sidebar actions buttons */
@@ -2869,14 +2871,15 @@ section {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 18px;
+  padding: 12px 14px;
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   border-radius: var(--radius-sm);
   text-align: center;
   border: 1px solid transparent;
   cursor: pointer;
   transition: var(--transition-smooth);
+  white-space: nowrap;
 }
 
 .btn-whatsapp-action {
