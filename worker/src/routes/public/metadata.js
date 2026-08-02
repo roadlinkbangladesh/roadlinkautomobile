@@ -1,4 +1,6 @@
 import { MetadataService } from "../../services/metadata-service.js";
+import { SettingsRepository } from "../../repositories/settings-repository.js";
+import { resolveFileUrl } from "../../utils/storage.js";
 import { success, badRequest } from "../../utils/response.js";
 
 /**
@@ -69,5 +71,57 @@ export async function getPublicStockMetadata(request, env, ctx) {
     } catch (err) {
         console.error("Error generating stock metadata:", err);
         return badRequest("Failed to generate stock metadata.");
+    }
+}
+
+/**
+ * Returns webmanifest for PWA / site icon standards.
+ * GET /api/v1/public/metadata/manifest or GET /site.webmanifest
+ */
+export async function getPublicSiteManifest(request, env, ctx) {
+    try {
+        let settings = null;
+        if (env && env.DB) {
+            settings = await SettingsRepository.getPublicSettings(env.DB);
+        }
+        const companyName = settings?.company_name || "Roadlink Automobiles";
+        const title = settings?.website_title || companyName;
+        const description = settings?.website_description || "Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh.";
+        
+        let iconUrl = "/assets/logo.png";
+        if (settings?.favicon_url) {
+            iconUrl = resolveFileUrl(settings.favicon_url);
+        } else if (settings?.company_logo_url) {
+            iconUrl = resolveFileUrl(settings.company_logo_url);
+        }
+
+        const manifest = {
+            name: title,
+            short_name: companyName,
+            description: description,
+            start_url: "/",
+            display: "standalone",
+            background_color: "#ffffff",
+            theme_color: "#1e3a8a",
+            icons: [
+                {
+                    src: iconUrl,
+                    sizes: "192x192 512x512",
+                    type: "image/png",
+                    purpose: "any maskable"
+                }
+            ]
+        };
+
+        return new Response(JSON.stringify(manifest, null, 2), {
+            headers: {
+                "Content-Type": "application/manifest+json; charset=utf-8",
+                "Cache-Control": "public, max-age=86400",
+                "Access-Control-Allow-Origin": "*"
+            }
+        });
+    } catch (err) {
+        console.error("Error generating manifest:", err);
+        return badRequest("Failed to generate site manifest.");
     }
 }
