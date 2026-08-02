@@ -2156,6 +2156,13 @@ section {
 }
 
 /* Responsive Overrides for Inventory */
+@media (max-width: 1280px) {
+  .filter-panel-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+}
+
 @media (max-width: 1024px) {
   .filter-panel-grid {
     grid-template-columns: repeat(3, 1fr);
@@ -2319,15 +2326,22 @@ section {
 /* VEHICLE DETAILS PAGE STYLING */
 .vehicle-details-layout {
   display: grid;
-  grid-template-columns: 1.8fr 1.2fr;
-  gap: 36px;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 32px;
   align-items: start;
 }
 
-@media (max-width: 1199px) and (min-width: 850px) {
+@media (max-width: 1199px) and (min-width: 992px) {
   .vehicle-details-layout {
-    grid-template-columns: 1.6fr 1.4fr;
-    gap: 16px;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 991px) and (min-width: 850px) {
+  .vehicle-details-layout {
+    grid-template-columns: 1.05fr 1fr;
+    gap: 20px;
   }
 }
 
@@ -2645,13 +2659,24 @@ section {
 /* STICKY SIDEBAR PANEL */
 .sticky-contact-panel {
   position: sticky;
-  top: 100px;
+  top: 90px;
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
   background-color: var(--bg-white);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   padding: 24px;
   box-shadow: var(--shadow-md);
   transition: var(--transition-smooth);
+}
+
+.sticky-contact-panel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sticky-contact-panel::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
 }
 
 .sticky-contact-panel:hover {
@@ -2718,13 +2743,15 @@ section {
 
 .panel-title {
   font-family: var(--font-display);
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--primary-blue);
   margin-top: 2px;
   margin-bottom: 6px;
   line-height: 1.25;
   letter-spacing: -0.01em;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .panel-grade {
@@ -2793,13 +2820,19 @@ section {
 /* Sidebar quick specs list */
 .panel-quick-specs {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 16px;
   margin-bottom: 24px;
   background-color: var(--bg-light);
   padding: 14px 16px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
+}
+
+@media (max-width: 480px) {
+  .panel-quick-specs {
+    grid-template-columns: 1fr;
+  }
 }
 
 .sidebar-spec-item {
