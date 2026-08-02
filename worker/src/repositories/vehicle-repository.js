@@ -162,13 +162,14 @@ export class VehicleRepository {
    * @returns {Promise<Object>}
    */
   static async insertVehicle(db, record) {
+    const showPriceVal = record.showPrice !== undefined ? (record.showPrice ? 1 : 0) : (record.show_price !== undefined ? (record.show_price ? 1 : 0) : 1);
     return await db.prepare(`
       INSERT INTO vehicles (
         slug, stock_number, make, model, year, status, is_published, is_featured, featured_position, is_new_arrival,
         display_order, grade, auction_grade, mileage, engine_cc, transmission,
         fuel, drive, body_type, exterior_color, interior_color, seats, doors,
         chassis_number, registration, steering, accident_history, purchase_price,
-        price, currency, negotiable, short_description, description, features,
+        price, currency, negotiable, show_price, short_description, description, features,
         auction_sheet_available, auction_sheet_url, youtube_url, arrival_date,
         archived_at, created_at, updated_at
       ) VALUES (
@@ -176,7 +177,7 @@ export class VehicleRepository {
         ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?,
         ?, ?, ?
       )
@@ -187,7 +188,7 @@ export class VehicleRepository {
       record.transmission, record.fuel, record.drive, record.bodyType, record.exteriorColor,
       record.interiorColor, record.seats, record.doors, record.chassisNumber, record.registration,
       record.steering, record.accidentHistory, record.purchasePrice, record.price, record.currency,
-      record.negotiable, record.shortDescription, record.description, record.featuresJson,
+      record.negotiable, showPriceVal, record.shortDescription, record.description, record.featuresJson,
       record.auctionSheetAvailable, record.auctionSheetUrl, record.youtubeUrl, record.arrivalDate,
       record.archivedAt, record.createdAt, record.updatedAt
     ).run();
@@ -201,6 +202,7 @@ export class VehicleRepository {
    * @returns {Promise<Object>}
    */
   static async updateVehicle(db, dbId, record) {
+    const showPriceVal = record.showPrice !== undefined ? (record.showPrice ? 1 : 0) : (record.show_price !== undefined ? (record.show_price ? 1 : 0) : 1);
     return await db.prepare(`
       UPDATE vehicles SET
         stock_number = ?, make = ?, model = ?, year = ?, status = ?,
@@ -209,7 +211,7 @@ export class VehicleRepository {
         fuel = ?, drive = ?, body_type = ?, exterior_color = ?, interior_color = ?,
         seats = ?, doors = ?, chassis_number = ?, registration = ?, steering = ?,
         accident_history = ?, purchase_price = ?, price = ?, currency = ?,
-        negotiable = ?, short_description = ?, description = ?, features = ?,
+        negotiable = ?, show_price = ?, short_description = ?, description = ?, features = ?,
         auction_sheet_available = ?, auction_sheet_url = ?, youtube_url = ?,
         arrival_date = ?, archived_at = ?, updated_at = ?
       WHERE id = ?
@@ -220,7 +222,7 @@ export class VehicleRepository {
       record.fuel, record.drive, record.bodyType, record.exteriorColor, record.interiorColor,
       record.seats, record.doors, record.chassisNumber, record.registration, record.steering,
       record.accidentHistory, record.purchasePrice, record.price, record.currency,
-      record.negotiable, record.shortDescription, record.description, record.featuresJson,
+      record.negotiable, showPriceVal, record.shortDescription, record.description, record.featuresJson,
       record.auctionSheetAvailable, record.auctionSheetUrl, record.youtubeUrl, record.arrivalDate,
       record.archivedAt, record.updatedAt,
       dbId
