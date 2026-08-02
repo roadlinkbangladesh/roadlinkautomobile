@@ -437,6 +437,7 @@ export function openVehicleModal(vehicleId = null) {
       populateField("isNewArrival", !!vehicle.isNewArrival);
       populateField("published", vehicle.published !== false);
       populateField("negotiable", !!vehicle.negotiable);
+      populateField("showPrice", vehicle.showPrice !== false && vehicle.show_price !== false);
       populateField("arrivalDate", vehicle.arrivalDate || "");
       populateField("accidentHistory", vehicle.accidentHistory || "");
       populateField("shortDescription", vehicle.shortDescription || "");
@@ -562,6 +563,7 @@ function copyVehicleParams(vehicle) {
   populateField("featured", !!vehicle.featured);
   populateField("published", vehicle.published !== false);
   populateField("negotiable", !!vehicle.negotiable);
+  populateField("showPrice", vehicle.showPrice !== false && vehicle.show_price !== false);
   populateField("arrivalDate", vehicle.arrivalDate || "");
   populateField("accidentHistory", vehicle.accidentHistory || "");
   populateField("shortDescription", vehicle.shortDescription || "");
@@ -633,7 +635,7 @@ async function handleFormSubmit(e) {
     "stockNumber", "make", "model", "grade", "year", "chassisNumber", "registration",
     "mileage", "engineCC", "transmission", "fuel", "drive", "exteriorColor", "interiorColor",
     "steering", "doors", "seats", "purchasePrice", "price", "currency", "status", "description",
-    "bodyType", "featured", "featuredPosition", "isNewArrival", "published", "negotiable", "arrivalDate", "accidentHistory", "shortDescription",
+    "bodyType", "featured", "featuredPosition", "isNewArrival", "published", "negotiable", "showPrice", "arrivalDate", "accidentHistory", "shortDescription",
     "youtubeUrl", "auctionSheetUrl", "auctionSheetAvailable", "features"
   ];
 
@@ -746,6 +748,7 @@ async function handleFormSubmit(e) {
       isNewArrival: !!data.isNewArrival,
       published: !!data.published,
       negotiable: !!data.negotiable,
+      showPrice: !!data.showPrice,
       arrivalDate: data.arrivalDate || "",
       accidentHistory: data.accidentHistory || "",
       shortDescription: data.shortDescription || "",
@@ -801,6 +804,7 @@ async function handleFormSubmit(e) {
       description: data.description || "",
       bodyType: data.bodyType || "",
       negotiable: !!data.negotiable,
+      showPrice: !!data.showPrice,
       arrivalDate: data.arrivalDate || "",
       accidentHistory: data.accidentHistory || "",
       shortDescription: data.shortDescription || "",
