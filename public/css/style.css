@@ -3171,6 +3171,7 @@ section {
     display: contents;
   }
 
+  .hero-cover-viewport,
   #hero-cover-viewport {
     order: 1;
     margin-bottom: 0;
@@ -3196,6 +3197,7 @@ section {
     order: 4;
   }
 
+  .specs-section,
   #specs-section {
     order: 5;
   }
