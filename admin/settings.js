@@ -11,6 +11,7 @@ import { initCarouselView } from "./carousel.js";
 import { initTestimonialsView } from "./testimonials.js";
 import { uploadFileAsync } from "./js/inventory.js";
 import { getPublicFileUrl } from "./js/shared/api.js";
+import { fetchPublicSettings } from "./js/settings-loader.js";
 
 let settingsEventsBound = false;
 let activeSubtab = "general";
@@ -584,6 +585,9 @@ async function handleSettingsSubmit(e) {
       if (publicSiteLink && publicWebsiteUrl) {
         publicSiteLink.href = publicWebsiteUrl;
       }
+
+      // Re-hydrate page branding and favicon
+      fetchPublicSettings().catch(err => console.error("Failed to re-hydrate public settings:", err));
 
       if (successAlert) {
         successAlert.style.display = "flex";
