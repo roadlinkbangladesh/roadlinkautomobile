@@ -401,21 +401,55 @@ export function hydratePageContacts() {
   }
 
   // Favicon Hydration
-  if (settings.faviconUrl) {
+  const favKey = settings.faviconUrl || settings.companyLogoUrl;
+  if (favKey) {
+    const resolvedFavUrl = getPublicFileUrl(favKey);
     let faviconLink = document.querySelector("link[rel*='icon']");
     if (!faviconLink) {
       faviconLink = document.createElement("link");
       faviconLink.rel = "shortcut icon";
       document.head.appendChild(faviconLink);
     }
-    faviconLink.href = getPublicFileUrl(settings.faviconUrl);
+    faviconLink.href = resolvedFavUrl;
+
+    let appleIconLink = document.querySelector("link[rel='apple-touch-icon']");
+    if (!appleIconLink) {
+      appleIconLink = document.createElement("link");
+      appleIconLink.rel = "apple-touch-icon";
+      appleIconLink.setAttribute("sizes", "180x180");
+      document.head.appendChild(appleIconLink);
+    }
+    appleIconLink.href = resolvedFavUrl;
   }
 
   // Logo Hydration
   if (settings.companyLogoUrl) {
-    document.querySelectorAll(".brand-logo-img, .logo img, #header-logo-img").forEach(img => {
-      img.src = getPublicFileUrl(settings.companyLogoUrl);
+    const logoUrl = getPublicFileUrl(settings.companyLogoUrl);
+    document.querySelectorAll(".brand-logo-img, .logo img, #header-logo-img, .logo-img, .logo-wrapper img, .admin-login-logo img, .admin-sidebar-logo img").forEach(img => {
+      img.src = logoUrl;
+      if (settings.companyName) {
+        img.alt = `${settings.companyName} Logo`;
+      }
     });
+  }
+
+  // Dynamic Brand Text
+  if (settings.companyName) {
+    const words = settings.companyName.trim().split(/\s+/);
+    if (words.length > 1) {
+      const firstWord = words[0];
+      const restWords = words.slice(1).join(" ");
+      document.querySelectorAll(".logo-text").forEach(container => {
+        const brandNameEl = container.querySelector(".brand-name");
+        const brandSubtextEl = container.querySelector(".brand-subtext");
+        if (brandNameEl) {
+          brandNameEl.innerHTML = `<span class="road">${firstWord}</span>`;
+        }
+        if (brandSubtextEl) {
+          brandSubtextEl.textContent = restWords;
+        }
+      });
+    }
   }
 
   // Why Choose Us Cards Hydration
