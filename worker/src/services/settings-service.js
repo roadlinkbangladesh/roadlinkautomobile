@@ -92,6 +92,13 @@ export class SettingsService {
     const twitterTitle = body.twitter_title ?? body.twitterTitle ?? currentSettings?.twitter_title ?? "";
     const twitterDescription = body.twitter_description ?? body.twitterDescription ?? currentSettings?.twitter_description ?? "";
     const twitterImageUrl = body.twitter_image_url ?? body.twitterImageUrl ?? null;
+    let twitterUsername = body.twitter_username ?? body.twitterUsername ?? currentSettings?.twitter_username ?? "";
+    if (twitterUsername) {
+      twitterUsername = twitterUsername.trim();
+      if (twitterUsername && !twitterUsername.startsWith("@")) {
+        twitterUsername = "@" + twitterUsername;
+      }
+    }
 
     // Why Choose Us cards (JSON string array)
     let whyChooseUs = body.why_choose_us ?? body.whyChooseUs;
@@ -166,7 +173,7 @@ export class SettingsService {
       companyLogoUrl, faviconUrl, stockBannerUrl, featuredVehiclesLimit, showSoldVehicles,
       whyChooseUs, websiteTitle, websiteDescription,
       ogTitle, ogDescription, ogImageUrl,
-      twitterTitle, twitterDescription, twitterImageUrl,
+      twitterTitle, twitterDescription, twitterImageUrl, twitterUsername,
       publicWebsiteUrl
     });
 
