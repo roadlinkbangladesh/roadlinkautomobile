@@ -175,11 +175,9 @@ function hydrateLocationsUI(locations) {
     contactList.innerHTML = locations.map((loc) => {
       const isDefault = loc.isDefault;
       const phonesHtml = (loc.phones || []).map(p => `
-        <a href="tel:${sanitizePhoneNumber(p)}" onclick="event.stopPropagation();" style="color: inherit; text-decoration: none; font-weight: 600;">${p}</a>
+        <a href="tel:${sanitizePhoneNumber(p)}" onclick="event.stopPropagation();" class="loc-phone-link">${p}</a>
       `).join(' &bull; ') || 'Contact sales team';
 
-      const hoursHtml = (loc.businessHours || loc.openingHours) ? `<p class="loc-extra-info"><strong>Hours:</strong> ${loc.businessHours || loc.openingHours}</p>` : '';
-      const servicesHtml = loc.services ? `<p class="loc-extra-info"><strong>Services:</strong> ${loc.services}</p>` : '';
       const navUrl = resolveNavigationUrl(loc.mapUrl, loc.mapEmbedUrl, loc.title, loc.address);
 
       return `
@@ -190,16 +188,56 @@ function hydrateLocationsUI(locations) {
             data-loc-title="${loc.title}">
           <div class="loc-card-header">
             <div class="loc-title-group">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin loc-pin-icon"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-              <span>${loc.title}</span>
+              <span class="loc-card-title-text">${loc.title}</span>
             </div>
             ${isDefault ? `<span class="branch-badge main-badge">Primary</span>` : (loc.branchType ? `<span class="branch-badge">${loc.branchType}</span>` : '')}
           </div>
 
-          <p class="loc-card-address">${loc.address}</p>
-          <p class="loc-card-phone"><strong>Phone:</strong> ${phonesHtml}</p>
-          ${hoursHtml}
-          ${servicesHtml}
+          <div class="loc-card-details">
+            <div class="loc-detail-row">
+              <div class="loc-detail-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              </div>
+              <div class="loc-detail-text">
+                <span class="loc-detail-label">Address</span>
+                <span class="loc-detail-value">${loc.address}</span>
+              </div>
+            </div>
+
+            <div class="loc-detail-row">
+              <div class="loc-detail-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              </div>
+              <div class="loc-detail-text">
+                <span class="loc-detail-label">Phone</span>
+                <span class="loc-detail-value">${phonesHtml}</span>
+              </div>
+            </div>
+
+            ${(loc.businessHours || loc.openingHours) ? `
+              <div class="loc-detail-row">
+                <div class="loc-detail-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div class="loc-detail-text">
+                  <span class="loc-detail-label">Hours</span>
+                  <span class="loc-detail-value">${loc.businessHours || loc.openingHours}</span>
+                </div>
+              </div>
+            ` : ''}
+
+            ${loc.services ? `
+              <div class="loc-detail-row">
+                <div class="loc-detail-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-wrench"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                </div>
+                <div class="loc-detail-text">
+                  <span class="loc-detail-label">Services</span>
+                  <span class="loc-detail-value">${loc.services}</span>
+                </div>
+              </div>
+            ` : ''}
+          </div>
         </li>
       `;
     }).join('');
@@ -264,7 +302,7 @@ function hydrateLocationsUI(locations) {
       ${settings.showWhatsapp && waSanitized ? `
         <a href="https://wa.me/${waSanitized}" target="_blank" id="contact-action-wa" class="contact-info-card wa-info-card" title="Chat on WhatsApp (${waDisplay})">
           <div class="contact-info-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           </div>
           <div class="contact-info-text">
             <span class="contact-item-label">WhatsApp</span>
@@ -276,10 +314,10 @@ function hydrateLocationsUI(locations) {
       ${settings.showEmail && email ? `
         <a href="mailto:${email}" id="contact-action-email" class="contact-info-card email-info-card" title="Send email inquiry to ${email}">
           <div class="contact-info-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
           </div>
           <div class="contact-info-text">
-            <span class="contact-item-label">Email Us</span>
+            <span class="contact-item-label">Email</span>
             <span class="contact-item-value" id="email-display-val">${email}</span>
           </div>
         </a>
@@ -301,8 +339,13 @@ function hydrateLocationsUI(locations) {
       if (defaultLoc.address) {
         footerItems.push(`
           <li class="footer-contact-item">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span><strong>${defaultLoc.title}:</strong> ${defaultLoc.address}</span>
+            <div class="footer-contact-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div class="footer-contact-text">
+              <span class="footer-contact-label">${defaultLoc.title || 'Corporate Office'}</span>
+              <span class="footer-contact-value">${defaultLoc.address}</span>
+            </div>
           </li>
         `);
       }
@@ -310,22 +353,33 @@ function hydrateLocationsUI(locations) {
       if (Array.isArray(defaultLoc.phones) && defaultLoc.phones.length > 0) {
         const phoneLinks = defaultLoc.phones.map(p => `
           <a href="tel:${sanitizePhoneNumber(p)}" style="color: inherit; text-decoration: none;">${p}</a>
-        `).join(', ');
+        `).join(' &bull; ');
 
         footerItems.push(`
           <li class="footer-contact-item">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-            <span>${phoneLinks}</span>
+            <div class="footer-contact-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-phone"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </div>
+            <div class="footer-contact-text">
+              <span class="footer-contact-label">Phone</span>
+              <span class="footer-contact-value">${phoneLinks}</span>
+            </div>
           </li>
         `);
       }
 
       if (settings.showWhatsapp && settings.whatsapp) {
         const waNumber = sanitizePhoneNumber(settings.whatsapp);
+        const waDisp = formatWaDisplay(settings.whatsapp);
         footerItems.push(`
           <li class="footer-contact-item">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            <span><strong>WhatsApp:</strong> <a href="https://wa.me/${waNumber}" target="_blank" style="color: inherit; text-decoration: none;">+${waNumber}</a></span>
+            <div class="footer-contact-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div class="footer-contact-text">
+              <span class="footer-contact-label">WhatsApp</span>
+              <span class="footer-contact-value"><a href="https://wa.me/${waNumber}" target="_blank" style="color: inherit; text-decoration: none;">${waDisp}</a></span>
+            </div>
           </li>
         `);
       }
@@ -333,8 +387,13 @@ function hydrateLocationsUI(locations) {
       if (settings.showEmail && settings.email) {
         footerItems.push(`
           <li class="footer-contact-item">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-            <span><a href="mailto:${settings.email}" style="color: inherit; text-decoration: none;">${settings.email}</a></span>
+            <div class="footer-contact-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            </div>
+            <div class="footer-contact-text">
+              <span class="footer-contact-label">Email</span>
+              <span class="footer-contact-value"><a href="mailto:${settings.email}" style="color: inherit; text-decoration: none;">${settings.email}</a></span>
+            </div>
           </li>
         `);
       }
