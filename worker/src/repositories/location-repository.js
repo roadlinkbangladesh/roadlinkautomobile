@@ -127,13 +127,15 @@ export class LocationRepository {
   /**
    * Create new location
    */
-  static async create(db, { slug, title, address, mapUrl, isVisible, isDefault, displayOrder }) {
+  static async create(db, { slug, title, address, mapUrl, mapEmbedUrl, isVisible, isDefault, displayOrder }) {
     const now = new Date().toISOString();
+    const nav = mapUrl || "";
+    const embed = mapEmbedUrl || mapUrl || "";
     const res = await db.prepare(`
       INSERT INTO business_locations (
         slug, title, address, map_url, map_embed_url, is_visible, is_default, display_order, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(slug, title, address, mapUrl, mapUrl, isVisible ? 1 : 0, isDefault ? 1 : 0, displayOrder, now, now).run();
+    `).bind(slug, title, address, nav, embed, isVisible ? 1 : 0, isDefault ? 1 : 0, displayOrder, now, now).run();
 
     return res.meta.last_row_id;
   }
@@ -141,8 +143,10 @@ export class LocationRepository {
   /**
    * Update location by ID
    */
-  static async update(db, id, { title, address, mapUrl, isVisible, isDefault, displayOrder }) {
+  static async update(db, id, { title, address, mapUrl, mapEmbedUrl, isVisible, isDefault, displayOrder }) {
     const now = new Date().toISOString();
+    const nav = mapUrl || "";
+    const embed = mapEmbedUrl || mapUrl || "";
     await db.prepare(`
       UPDATE business_locations SET
         title = ?,
@@ -154,7 +158,7 @@ export class LocationRepository {
         display_order = ?,
         updated_at = ?
       WHERE id = ?
-    `).bind(title, address, mapUrl, mapUrl, isVisible ? 1 : 0, isDefault ? 1 : 0, displayOrder, now, id).run();
+    `).bind(title, address, nav, embed, isVisible ? 1 : 0, isDefault ? 1 : 0, displayOrder, now, id).run();
   }
 
   /**
