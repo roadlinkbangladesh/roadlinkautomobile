@@ -224,13 +224,6 @@ function hydrateLocationsUI(locations) {
       mapIframe.src = embedUrl;
     }
 
-    // Update Get Directions button
-    const directionsBtn = document.getElementById("btn-get-directions");
-    if (directionsBtn) {
-      directionsBtn.href = navUrl;
-      directionsBtn.title = `Get directions to ${title}`;
-    }
-
     // Dynamic WhatsApp update if location has specific WhatsApp
     const waLink = document.getElementById("contact-action-wa");
     const locWa = loc?.whatsapp || settings.whatsapp;
@@ -271,7 +264,6 @@ function hydrateLocationsUI(locations) {
     const waSanitized = rawWa ? sanitizePhoneNumber(rawWa) : '';
     const waDisplay = rawWa ? formatWaDisplay(rawWa) : '';
     const email = settings.email || '';
-    const initialNavUrl = defaultLoc ? (defaultLoc.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(defaultLoc.title + ' ' + defaultLoc.address)}`) : '#';
 
     actionsBar.innerHTML = `
       ${settings.showWhatsapp && waSanitized ? `
@@ -297,16 +289,6 @@ function hydrateLocationsUI(locations) {
           </div>
         </a>
       ` : ''}
-
-      <a href="${initialNavUrl}" target="_blank" id="btn-get-directions" class="contact-info-card directions-action-card" title="Get Google Maps navigation directions">
-        <div class="contact-info-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-navigation"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-        </div>
-        <div class="contact-info-text">
-          <span class="contact-item-label">Navigation</span>
-          <span class="contact-item-value btn-text">Get Directions</span>
-        </div>
-      </a>
     `;
   }
 
