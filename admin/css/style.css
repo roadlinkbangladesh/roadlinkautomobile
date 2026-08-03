@@ -851,18 +851,19 @@ section {
 /* LOCATION / MAP SECTION */
 #location-section {
   background-color: var(--bg-white);
-  padding-bottom: 40px;
+  padding: 60px 0 40px;
 }
 
 .location-layout {
   display: grid;
-  grid-template-columns: 0.9fr 1.1fr;
+  grid-template-columns: minmax(320px, 380px) 1fr;
   gap: 0;
   background-color: var(--bg-white);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-lg, 16px);
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  align-items: stretch;
 }
 
 .location-info {
@@ -871,6 +872,7 @@ section {
   flex-direction: column;
   background-color: var(--bg-white);
   border-right: 1px solid var(--border-color);
+  min-width: 0;
 }
 
 .location-title {
@@ -887,11 +889,31 @@ section {
   list-style: none;
   max-height: 480px;
   overflow-y: auto;
-  padding-right: 4px;
+  padding-right: 6px;
+  margin: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(37, 99, 235, 0.25) transparent;
+}
+
+.location-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.location-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.location-list::-webkit-scrollbar-thumb {
+  background: rgba(37, 99, 235, 0.25);
+  border-radius: 4px;
+}
+
+.location-list::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-blue);
 }
 
 .location-card-item {
-  padding: 14px 16px;
+  padding: 16px;
   border: 1.5px solid var(--border-color);
   border-radius: var(--radius-md);
   background: var(--bg-white);
@@ -904,13 +926,25 @@ section {
 .location-card-item:hover {
   border-color: var(--primary-blue);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .location-card-item.active-location {
   border-color: var(--primary-blue);
   background: rgba(37, 99, 235, 0.04);
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.1);
+}
+
+.location-card-item.active-location::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3.5px;
+  background-color: var(--primary-blue);
+  border-top-right-radius: 3px;
+  border-bottom-right-radius: 3px;
 }
 
 .loc-card-header {
@@ -979,40 +1013,44 @@ section {
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 400px;
+  min-height: 380px;
   background-color: #f1f5f9;
+  display: flex;
+  flex-direction: column;
 }
 
 .map-container iframe {
   border: 0;
   width: 100%;
   height: 100%;
-  min-height: 400px;
+  min-height: 380px;
+  flex: 1;
+  display: block;
 }
 
 /* Contact Actions Bar */
 .contact-actions-bar {
-  margin-top: 20px;
+  margin-top: 24px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 16px;
-  background: var(--bg-neutral);
+  background: var(--bg-neutral, #F8FAFC);
   padding: 16px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border-color, #E2E8F0);
   align-items: center;
 }
 
 .contact-info-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--bg-white);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
+  gap: 14px;
+  padding: 14px 20px;
+  background: var(--bg-white, #ffffff);
+  border: 1.5px solid var(--border-color, #E2E8F0);
+  border-radius: var(--radius-sm, 10px);
   text-decoration: none;
-  transition: all 0.2s ease-in-out;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
   min-width: 0;
   height: 100%;
@@ -1021,22 +1059,22 @@ section {
 
 .contact-info-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
 }
 
 .contact-info-icon {
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: transform 0.2s ease;
+  transition: transform 0.25s ease;
 }
 
 .contact-info-card:hover .contact-info-icon {
-  transform: scale(1.06);
+  transform: scale(1.08);
 }
 
 /* WhatsApp Card */
@@ -1047,7 +1085,7 @@ section {
 
 .wa-info-card:hover {
   border-color: #16a34a;
-  background: rgba(37, 211, 102, 0.02);
+  background: rgba(37, 211, 102, 0.03);
 }
 
 /* Email Card */
@@ -1058,7 +1096,7 @@ section {
 
 .email-info-card:hover {
   border-color: var(--primary-blue);
-  background: rgba(37, 99, 235, 0.02);
+  background: rgba(37, 99, 235, 0.03);
 }
 
 .contact-info-text {
@@ -1079,39 +1117,13 @@ section {
 }
 
 .contact-item-value {
-  font-size: 0.88rem;
+  font-size: 0.92rem;
   font-weight: 700;
   color: var(--text-dark);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.35;
-}
-
-/* Primary Action: Get Directions */
-.directions-action-card {
-  background: var(--primary-blue);
-  border: 1px solid var(--primary-blue);
-  color: #ffffff;
-}
-
-.directions-action-card .contact-info-icon {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-}
-
-.directions-action-card .contact-item-label {
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.directions-action-card .contact-item-value {
-  color: #ffffff;
-}
-
-.directions-action-card:hover {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.28);
 }
 
 /* CAR SPECIFICATION DETAILS MODAL */
