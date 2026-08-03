@@ -986,6 +986,65 @@ section {
   border-color: rgba(37, 99, 235, 0.2);
 }
 
+.loc-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.loc-detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.loc-detail-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--primary-blue);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.loc-detail-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.loc-detail-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.loc-detail-value {
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.loc-phone-link {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.loc-phone-link:hover {
+  color: var(--primary-blue);
+}
+
 .loc-card-address {
   font-size: 0.85rem;
   color: var(--text-muted);
@@ -1434,6 +1493,41 @@ section {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+}
+
+.footer-contact-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--primary-red);
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+
+.footer-contact-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.footer-contact-label {
+  font-size: 0.73rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  line-height: 1.2;
+}
+
+.footer-contact-value {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #f8fafc;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .footer-contact-item svg {
