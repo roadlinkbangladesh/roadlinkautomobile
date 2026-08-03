@@ -126,6 +126,44 @@ function formatWaDisplay(raw) {
   return `+${clean}`;
 }
 
+function resolveNavigationUrl(mapUrl, embedUrl, title = '', address = '') {
+  if (mapUrl && typeof mapUrl === 'string') {
+    const trimmed = mapUrl.trim();
+    if (trimmed && !trimmed.toLowerCase().includes('/embed') && !trimmed.toLowerCase().includes('output=embed')) {
+      return trimmed;
+    }
+  }
+
+  const source = (embedUrl || mapUrl || '').trim();
+  if (source) {
+    const latMatch = source.match(/!3d([-+]?\d+(?:\.\d+)?)/i);
+    const lngMatch = source.match(/!2d([-+]?\d+(?:\.\d+)?)/i);
+    if (latMatch && lngMatch) {
+      return `https://www.google.com/maps/dir/?api=1&destination=${latMatch[1]},${lngMatch[1]}`;
+    }
+    const placeMatch = source.match(/!2s([^!&#]+)/i);
+    if (placeMatch && placeMatch[1]) {
+      try {
+        const decoded = decodeURIComponent(placeMatch[1]);
+        return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(decoded)}`;
+      } catch (e) {
+        return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(placeMatch[1])}`;
+      }
+    }
+    const coordMatch = source.match(/@([-+]?\d+\.\d+),([-+]?\d+\.\d+)/i) || source.match(/[?&]q=([-+]?\d+\.\d+),([-+]?\d+\.\d+)/i);
+    if (coordMatch) {
+      return `https://www.google.com/maps/dir/?api=1&destination=${coordMatch[1]},${coordMatch[2]}`;
+    }
+  }
+
+  const query = [title, address].map(s => (s || '').trim()).filter(Boolean).join(' ');
+  if (query) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(query)}`;
+  }
+
+  return '#';
+}
+
 function hydrateLocationsUI(locations) {
   const settings = getSettings();
   const defaultLoc = locations.find(l => l.isDefault) || locations[0];
@@ -142,7 +180,7 @@ function hydrateLocationsUI(locations) {
 
       const hoursHtml = (loc.businessHours || loc.openingHours) ? `<p class="loc-extra-info"><strong>Hours:</strong> ${loc.businessHours || loc.openingHours}</p>` : '';
       const servicesHtml = loc.services ? `<p class="loc-extra-info"><strong>Services:</strong> ${loc.services}</p>` : '';
-      const navUrl = loc.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loc.title + ' ' + loc.address)}`;
+      const navUrl = resolveNavigationUrl(loc.mapUrl, loc.mapEmbedUrl, loc.title, loc.address);
 
       return `
         <li class="location-card-item ${isDefault ? 'active-location' : ''}" 
@@ -170,8 +208,9 @@ function hydrateLocationsUI(locations) {
   const selectLocationCard = (cardEl, loc) => {
     if (!cardEl) return;
     const embedUrl = cardEl.dataset.mapEmbed || loc?.mapEmbedUrl || '';
-    const navUrl = cardEl.dataset.navUrl || loc?.mapUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((loc?.title || '') + ' ' + (loc?.address || ''))}`;
+    const rawNavUrl = cardEl.dataset.navUrl || loc?.mapUrl || '';
     const title = cardEl.dataset.locTitle || loc?.title || 'Location';
+    const navUrl = resolveNavigationUrl(rawNavUrl, embedUrl, title, loc?.address);
 
     if (contactList) {
       contactList.querySelectorAll(".location-card-item").forEach(card => {
