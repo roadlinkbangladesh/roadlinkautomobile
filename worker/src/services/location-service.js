@@ -1,6 +1,24 @@
 import { LocationRepository } from "../repositories/location-repository.js";
-import { parseAndValidateEmbedMapUrl } from "../utils/map-helper.js";
+import { parseAndNormalizeMapInput, deriveNavigationUrl } from "../utils/map-helper.js";
 import { logAudit } from "../utils/audit.js";
+
+function formatLocationRecord(loc, phones = []) {
+  const rawEmbed = loc.mapEmbedUrl || loc.map_embed_url || "";
+  const rawNav = loc.mapUrl || loc.map_url || "";
+  const embedUrl = (rawEmbed && (rawEmbed.includes("/embed") || rawEmbed.includes("output=embed")))
+    ? rawEmbed 
+    : (rawNav.includes("/embed") || rawNav.includes("output=embed") ? rawNav : rawEmbed);
+  const navUrl = deriveNavigationUrl(rawNav, embedUrl, loc.title, loc.address);
+
+  return {
+    ...loc,
+    mapEmbedUrl: embedUrl || (navUrl !== "#" ? `https://maps.google.com/maps?q=${encodeURIComponent([loc.title, loc.address].filter(Boolean).join(" "))}&output=embed` : ""),
+    mapUrl: navUrl,
+    isVisible: Boolean(loc.isVisible),
+    isDefault: Boolean(loc.isDefault),
+    phones
+  };
+}
 
 export class LocationDomainError extends Error {
   constructor(message, status = 400, code = null) {
@@ -39,14 +57,7 @@ export class LocationService {
     const locationIds = locations.map(l => l.id);
     const phoneMap = await LocationRepository.fetchPhonesForLocations(env.DB, locationIds);
 
-    return locations.map(loc => ({
-      ...loc,
-      mapEmbedUrl: loc.mapEmbedUrl || loc.mapUrl || "",
-      mapUrl: loc.mapEmbedUrl || loc.mapUrl || "",
-      isVisible: Boolean(loc.isVisible),
-      isDefault: Boolean(loc.isDefault),
-      phones: phoneMap[loc.id] || []
-    }));
+    return locations.map(loc => formatLocationRecord(loc, phoneMap[loc.id] || []));
   }
 
   /**
@@ -62,14 +73,7 @@ export class LocationService {
 
     const phoneMap = await LocationRepository.fetchPhonesForLocations(env.DB, [location.id]);
 
-    return {
-      ...location,
-      mapEmbedUrl: location.mapEmbedUrl || location.mapUrl || "",
-      mapUrl: location.mapEmbedUrl || location.mapUrl || "",
-      isVisible: Boolean(location.isVisible),
-      isDefault: Boolean(location.isDefault),
-      phones: phoneMap[location.id] || []
-    };
+    return formatLocationRecord(location, phoneMap[location.id] || []);
   }
 
   /**
@@ -80,14 +84,7 @@ export class LocationService {
     const locationIds = locations.map(l => l.id);
     const phoneMap = await LocationRepository.fetchPhonesForLocations(env.DB, locationIds);
 
-    return locations.map(loc => ({
-      ...loc,
-      mapEmbedUrl: loc.mapEmbedUrl || loc.mapUrl || "",
-      mapUrl: loc.mapEmbedUrl || loc.mapUrl || "",
-      isVisible: Boolean(loc.isVisible),
-      isDefault: Boolean(loc.isDefault),
-      phones: phoneMap[loc.id] || []
-    }));
+    return locations.map(loc => formatLocationRecord(loc, phoneMap[loc.id] || []));
   }
 
   /**
@@ -106,12 +103,19 @@ export class LocationService {
     if (!address) throw new LocationDomainError("Location full address is required.", 400);
 
     let storedEmbedUrl = "";
+    let storedNavUrl = "";
+
     if (rawMapInput) {
-      const mapCheck = parseAndValidateEmbedMapUrl(rawMapInput);
+      const mapCheck = parseAndNormalizeMapInput(rawMapInput, title, address);
       if (!mapCheck.valid) {
         throw new LocationDomainError(mapCheck.error, 400);
       }
       storedEmbedUrl = mapCheck.embedUrl;
+      storedNavUrl = mapCheck.navUrl;
+    } else {
+      storedNavUrl = deriveNavigationUrl("", "", title, address);
+      const query = [title, address].filter(Boolean).join(" ");
+      storedEmbedUrl = query ? `https://maps.google.com/maps?q=${encodeURIComponent(query)}&output=embed` : "";
     }
 
     const currentDefault = await LocationRepository.findDefault(env.DB);
@@ -129,7 +133,7 @@ export class LocationService {
 
     const now = new Date().toISOString();
     const locationId = await LocationRepository.create(env.DB, {
-      slug, title, address, mapUrl: storedEmbedUrl, isVisible, isDefault, displayOrder
+      slug, title, address, mapUrl: storedNavUrl, mapEmbedUrl: storedEmbedUrl, isVisible, isDefault, displayOrder
     });
 
     if (phones.length > 0) {
@@ -150,7 +154,7 @@ export class LocationService {
       slug,
       title,
       address,
-      mapUrl: storedEmbedUrl,
+      mapUrl: storedNavUrl,
       mapEmbedUrl: storedEmbedUrl,
       isVisible: Boolean(isVisible),
       isDefault: Boolean(isDefault),
@@ -180,15 +184,20 @@ export class LocationService {
     if (!title) throw new LocationDomainError("Location title is required.", 400);
     if (!address) throw new LocationDomainError("Location address is required.", 400);
 
-    let storedEmbedUrl = existing.map_embed_url || existing.map_url || "";
+    let storedEmbedUrl = "";
+    let storedNavUrl = "";
+
     if (rawMapInput) {
-      const mapCheck = parseAndValidateEmbedMapUrl(rawMapInput);
+      const mapCheck = parseAndNormalizeMapInput(rawMapInput, title, address);
       if (!mapCheck.valid) {
         throw new LocationDomainError(mapCheck.error, 400);
       }
       storedEmbedUrl = mapCheck.embedUrl;
+      storedNavUrl = mapCheck.navUrl;
     } else {
-      storedEmbedUrl = "";
+      storedNavUrl = deriveNavigationUrl("", "", title, address);
+      const query = [title, address].filter(Boolean).join(" ");
+      storedEmbedUrl = query ? `https://maps.google.com/maps?q=${encodeURIComponent(query)}&output=embed` : "";
     }
 
     if (isDefault) {
@@ -203,7 +212,7 @@ export class LocationService {
     }
 
     await LocationRepository.update(env.DB, id, {
-      title, address, mapUrl: storedEmbedUrl, isVisible, isDefault, displayOrder
+      title, address, mapUrl: storedNavUrl, mapEmbedUrl: storedEmbedUrl, isVisible, isDefault, displayOrder
     });
 
     let phones = [];
@@ -230,7 +239,7 @@ export class LocationService {
       slug: existing.slug,
       title,
       address,
-      mapUrl: storedEmbedUrl,
+      mapUrl: storedNavUrl,
       mapEmbedUrl: storedEmbedUrl,
       isVisible: Boolean(isVisible),
       isDefault: Boolean(isDefault),
