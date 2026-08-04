@@ -97,7 +97,6 @@ export function mapDbToVehicle(row, images = [], options = {}) {
     images: allImageUrls.length > 0 ? allImageUrls : [cover],
     exteriorImages: exteriorImages.length > 0 ? exteriorImages : [cover],
     interiorImages: interiorImages,
-    coverImage: cover,
-    posterImage: cover
+    coverImage: cover
   };
 }
