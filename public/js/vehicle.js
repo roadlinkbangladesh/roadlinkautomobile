@@ -44,7 +44,6 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
       hydrateFeatures(currentVehicle);
       hydrateDescription(currentVehicle);
       hydrateAuctionSheet(currentVehicle);
-      hydratePromotionalPoster(currentVehicle);
       hydrateYoutubeEmbed(currentVehicle);
       
       // Hydrate Related Vehicles section
@@ -129,7 +128,7 @@ function hydrateSEO(car) {
   const pageTitle = `${car.year} ${car.make} ${car.model} | Stock No: ${car.stockNumber} | Roadlink Automobiles`;
   const pageDesc = car.shortDescription || `Check out the reconditioned Japanese ${car.year} ${car.make} ${car.model} available at Roadlink Automobiles Dhaka. Verifiable Grade ${car.grade}, genuine ${formatMileage(car.mileage)} mileage.`;
   const currentUrl = window.location.href;
-  const coverImg = car.coverImage || car.posterImage || car.images[0] || '';
+  const coverImg = car.coverImage || car.images[0] || '';
 
   // Update DOM Title and description
   document.title = pageTitle;
@@ -714,22 +713,6 @@ function hydrateAuctionSheet(car) {
 }
 
 /**
- * Hydrates Promotional Poster Section
- */
-function hydratePromotionalPoster(car) {
-  const section = document.getElementById('poster-section');
-  const imgElement = document.getElementById('poster-image-element');
-  
-  if (car.posterImage) {
-    imgElement.src = car.posterImage;
-    imgElement.alt = `Official Roadlink Promotional Poster for ${car.year} ${car.make} ${car.model}`;
-    section.style.display = 'block';
-  } else {
-    section.style.display = 'none';
-  }
-}
-
-/**
  * Hydrates YouTube video player embed iframe
  */
 function hydrateYoutubeEmbed(car) {
@@ -809,7 +792,7 @@ function hydrateRelatedVehicles(car) {
           <span class="vehicle-badge badge-category">${carMatch.bodyType.toUpperCase()}</span>
           ${statusBadge}
           ${gradeBadge}
-          <img src="${carMatch.posterImage || carMatch.images[0]}" alt="${carMatch.year} ${carMatch.make} ${carMatch.model}" class="vehicle-img" loading="lazy">
+          <img src="${carMatch.coverImage || carMatch.images[0]}" alt="${carMatch.year} ${carMatch.make} ${carMatch.model}" class="vehicle-img" loading="lazy">
         </div>
         <div class="vehicle-content">
           <div class="vehicle-meta-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
