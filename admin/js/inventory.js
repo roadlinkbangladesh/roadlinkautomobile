@@ -21,7 +21,6 @@ export function normalizeVehicleMedia(v) {
   const rawSheet = v.auctionSheetUrl || "";
   const auctionSheetUrl = resolveMediaUrl(rawSheet);
   const coverImage = resolveMediaUrl(v.coverImage) || exteriorImages[0] || images[0] || "";
-  const posterImage = resolveMediaUrl(v.posterImage) || coverImage;
 
   return {
     ...v,
@@ -30,7 +29,6 @@ export function normalizeVehicleMedia(v) {
     interiorImages,
     auctionSheetUrl,
     coverImage,
-    posterImage,
     auctionSheetAvailable: Boolean(v.auctionSheetAvailable && rawSheet && rawSheet.trim() !== "")
   };
 }
