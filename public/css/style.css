@@ -3317,12 +3317,8 @@ section {
     order: 8;
   }
 
-  #poster-section {
-    order: 9;
-  }
-
   #youtube-section {
-    order: 10;
+    order: 9;
   }
 }
 
@@ -3403,7 +3399,7 @@ section {
   }
 }
 
-/* Auction Sheet and Promo Poster previews on smaller screens */
+/* Auction Sheet preview on smaller screens */
 .auction-sheet-preview-container {
   display: none;
   position: relative;
