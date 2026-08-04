@@ -121,7 +121,7 @@ export class MetadataService {
       keywords = `${vehicle.year} ${vehicle.make} ${vehicle.model}, ${vehicle.make} ${vehicle.model} Bangladesh, ${vehicle.bodyType || 'Japanese'} car, ${companyName}`;
 
       // Dynamic Vehicle Cover Image
-      const vehicleCover = vehicle.coverImage || vehicle.posterImage || (Array.isArray(vehicle.images) ? vehicle.images[0] : "");
+      const vehicleCover = vehicle.coverImage || (Array.isArray(vehicle.images) ? vehicle.images[0] : "");
       if (vehicleCover) {
         ogImageRaw = vehicleCover;
       }
