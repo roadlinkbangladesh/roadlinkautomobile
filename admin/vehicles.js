@@ -452,8 +452,8 @@ export function openVehicleModal(vehicleId = null) {
       if (activeExteriorImages.length === 0) {
         if (vehicle.images && vehicle.images.length > 0) {
           activeExteriorImages = [...vehicle.images];
-        } else if (vehicle.coverImage || vehicle.posterImage) {
-          activeExteriorImages = [vehicle.coverImage || vehicle.posterImage];
+        } else if (vehicle.coverImage) {
+          activeExteriorImages = [vehicle.coverImage];
         }
       }
       
@@ -577,8 +577,8 @@ function copyVehicleParams(vehicle) {
   if (activeExteriorImages.length === 0) {
     if (vehicle.images && vehicle.images.length > 0) {
       activeExteriorImages = [...vehicle.images];
-    } else if (vehicle.coverImage || vehicle.posterImage) {
-      activeExteriorImages = [vehicle.coverImage || vehicle.posterImage];
+    } else if (vehicle.coverImage) {
+      activeExteriorImages = [vehicle.coverImage];
     }
   }
   
@@ -713,7 +713,7 @@ async function handleFormSubmit(e) {
   // Parse comma-separated features into array
   const parsedFeatures = data.features ? data.features.split(",").map(f => f.trim()).filter(Boolean) : [];
 
-  // The first exterior image becomes the cover/poster image
+  // The first exterior image becomes the cover image
   const coverImg = activeExteriorImages[0] || "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
   const combinedImages = [...activeExteriorImages, ...activeInteriorImages];
 
@@ -759,8 +759,7 @@ async function handleFormSubmit(e) {
       images: combinedImages,
       exteriorImages: [...activeExteriorImages],
       interiorImages: [...activeInteriorImages],
-      coverImage: coverImg,
-      posterImage: coverImg
+      coverImage: coverImg
     };
     try {
       await updateVehicleAsync(currentVehicleId, updatedFields);
@@ -817,7 +816,6 @@ async function handleFormSubmit(e) {
       exteriorImages: [...activeExteriorImages],
       interiorImages: [...activeInteriorImages],
       coverImage: coverImg,
-      posterImage: coverImg,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -1183,7 +1181,7 @@ function openImagePreviewModal(vehicleId) {
   const titleEl = $("preview-modal-title");
 
   if (modal && imgEl) {
-    const rawThumbnail = vehicle.coverImage || vehicle.posterImage || (vehicle.images && vehicle.images[0]) || "";
+    const rawThumbnail = vehicle.coverImage || (vehicle.images && vehicle.images[0]) || "";
     const thumbnailSrc = rawThumbnail ? getPublicFileUrl(rawThumbnail) : "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
     imgEl.src = thumbnailSrc;
     imgEl.alt = `${vehicle.make} ${vehicle.model}`;
@@ -1338,7 +1336,7 @@ export function openVehicleDetailsModal(vehicleId) {
 
   // Render Cover image / main image
   const mainImg = $("details-modal-main-img");
-  const rawCover = vehicle.coverImage || vehicle.posterImage || (vehicle.images && vehicle.images[0]) || "";
+  const rawCover = vehicle.coverImage || (vehicle.images && vehicle.images[0]) || "";
   const coverSrc = rawCover ? getPublicFileUrl(rawCover) : "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=800";
   if (mainImg) {
     mainImg.src = coverSrc;
@@ -1352,7 +1350,6 @@ export function openVehicleDetailsModal(vehicleId) {
     // Gather all unique images
     const allImages = [];
     if (vehicle.coverImage) allImages.push(vehicle.coverImage);
-    if (vehicle.posterImage) allImages.push(vehicle.posterImage);
     if (Array.isArray(vehicle.images)) {
       vehicle.images.forEach(img => { if (img) allImages.push(img); });
     }
