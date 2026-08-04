@@ -525,7 +525,7 @@ function renderVehicleCard(car) {
         ${statusBadge}
         ${featuredBadge}
         ${gradeBadge}
-        <img src="${car.posterImage || car.images[0]}" alt="${car.year} ${car.make} ${car.model}" class="vehicle-img" loading="lazy">
+        <img src="${car.coverImage || car.images[0]}" alt="${car.year} ${car.make} ${car.model}" class="vehicle-img" loading="lazy">
       </div>
     </a>
     <div class="vehicle-content">
