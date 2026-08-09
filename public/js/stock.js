@@ -5,6 +5,7 @@
 
 import { fetchPublicSettings, getPublicSettings } from "./settings-loader.js";
 import { getAllVehicles, loadVehiclesAsync } from "./inventory.js";
+import { sanitizePhoneNumber, formatPhoneNumber } from "./shared/api.js";
 
 // App State
 let allVehicles = [];
@@ -515,8 +516,11 @@ function renderVehicleCard(car) {
   const gradeBadge = car.grade ? `<span class="vehicle-badge auction-grade">Grade ${car.grade}</span>` : '';
 
   // WhatsApp click query assembly
+  const settings = getPublicSettings();
+  const rawWa = settings.whatsapp || "8801311503840";
+  const cleanWa = sanitizePhoneNumber(rawWa);
   const whatsappMsg = `Hi Roadlink Automobiles, I am interested in your reconditioned ${car.year} ${car.make} ${car.model} (Stock No: ${car.stockNumber}). Please let me know its availability and pricing options. Thank you.`;
-  const whatsappUrl = `https://wa.me/8801311503840?text=${encodeURIComponent(whatsappMsg)}`;
+  const whatsappUrl = `https://wa.me/${cleanWa}?text=${encodeURIComponent(whatsappMsg)}`;
 
   card.innerHTML = `
     <a href="vehicle.html?stock=${car.stockNumber}" class="vehicle-img-link" aria-label="View specifications for ${car.make} ${car.model}" style="display: block; text-decoration: none; color: inherit;">
@@ -642,6 +646,10 @@ function showErrorMessage() {
   const grid = document.getElementById('vehicles-grid');
   if (!grid) return;
 
+  const settings = getPublicSettings();
+  const rawWa = settings.whatsapp || "8801311503840";
+  const cleanWa = sanitizePhoneNumber(rawWa);
+
   grid.innerHTML = `
     <div class="empty-state error">
       <div class="empty-icon-box" style="color: var(--primary-red);">
@@ -649,7 +657,7 @@ function showErrorMessage() {
       </div>
       <h3>Failed to Load Inventory</h3>
       <p>We are currently experiencing technical updates. Please refresh the page or reach us directly on WhatsApp.</p>
-      <a href="https://wa.me/8801311503840" class="btn btn-primary">Contact Support</a>
+      <a href="https://wa.me/${cleanWa}" class="btn btn-primary">Contact Support</a>
     </div>
   `;
 }
