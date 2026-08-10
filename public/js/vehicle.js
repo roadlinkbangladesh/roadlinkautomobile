@@ -4,8 +4,8 @@
  */
 
 import { getAllVehicles, loadVehiclesAsync } from './inventory.js';
-import { getPublicFileUrl } from './shared/api.js';
-import './settings-loader.js';
+import { getPublicFileUrl, sanitizePhoneNumber, formatPhoneNumber } from './shared/api.js';
+import { getSettings } from './settings-loader.js';
 
 // App State for the current page
 let currentVehicle = null;
@@ -222,7 +222,7 @@ function hydrateSEO(car) {
         "seller": {
           "@type": "AutoDealer",
           "name": "Roadlink Automobiles",
-          "telephone": "+8801311503840",
+          "telephone": formatPhoneNumber(getSettings().phone || "+880 1311503840"),
           "url": "https://your-domain.com"
         }
       }
@@ -298,7 +298,10 @@ Could you please share the auction sheet and current availability?
 
 Thank you.`;
 
-  const waUrl = `https://wa.me/8801311503840?text=${encodeURIComponent(whatsAppText)}`;
+  const settings = getSettings();
+  const rawWa = settings.whatsapp || "8801311503840";
+  const cleanWa = sanitizePhoneNumber(rawWa);
+  const waUrl = `https://wa.me/${cleanWa}?text=${encodeURIComponent(whatsAppText)}`;
   whatsappBtn.setAttribute('href', waUrl);
 
   // Last Updated Date
