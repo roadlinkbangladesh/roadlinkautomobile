@@ -5,7 +5,7 @@
 
 import { getSettings } from "./settings-loader.js";
 import { getAllVehicles, loadVehiclesAsync } from "./inventory.js";
-import { apiRequest, getPublicFileUrl } from "./shared/api.js";
+import { apiRequest, getPublicFileUrl, sanitizePhoneNumber, formatPhoneNumber } from "./shared/api.js";
 
 /**
  * Maps a standard vehicle object to the presentation format expected by the home page.
@@ -255,9 +255,9 @@ function openModal(carId) {
 
   const settings = getSettings();
   const companyName = settings.companyName || "Roadlink Automobiles";
-  const cleanWa = settings.whatsapp ? settings.whatsapp.replace(/[^0-9]/g, '') : "8801311503840";
-  const displayPhone = settings.showroomPhone || settings.phone || "+880 1311-503840";
-  const cleanPhone = displayPhone.replace(/[^0-9+]/g, '');
+  const cleanWa = settings.whatsapp ? sanitizePhoneNumber(settings.whatsapp) : "8801311503840";
+  const displayPhone = formatPhoneNumber(settings.showroomPhone || settings.phone || "+880 1311503840");
+  const cleanPhone = sanitizePhoneNumber(displayPhone);
 
   // Pre-fill a professional sales request
   const pricePhrase = car.showPrice ? `listed for ${car.price}` : `listed`;
