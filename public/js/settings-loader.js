@@ -3,14 +3,14 @@
  * Single source of truth for public website settings and business location rendering.
  */
 
-import { apiRequest, getPublicFileUrl, sanitizePhoneNumber } from "./shared/api.js";
+import { apiRequest, getPublicFileUrl, sanitizePhoneNumber, formatPhoneNumber } from "./shared/api.js";
 
 export const DEFAULT_SETTINGS = {
   companyName: "Roadlink Automobiles",
   address: "169 (Level 2), Fakirerpool, Dhaka 1000",
-  phone: "+880 1311-503840",
+  phone: "+880 1311503840",
   contactName: "Sales Helpline / Managing Officer",
-  contactPhone: "+880 1311-503840",
+  contactPhone: "+880 1311503840",
   showPrimaryContact: false,
   whatsapp: "8801311503840",
   showWhatsapp: true,
@@ -115,15 +115,7 @@ export async function fetchPublicLocations() {
 
 function formatWaDisplay(raw) {
   if (!raw) return '';
-  const clean = String(raw).trim();
-  if (clean.startsWith('+')) return clean;
-  if (clean.startsWith('880') && clean.length >= 11) {
-    return `+880 ${clean.slice(3, 7)}-${clean.slice(7)}`;
-  }
-  if (clean.startsWith('01') && clean.length === 11) {
-    return `+880 ${clean.slice(1, 5)}-${clean.slice(5)}`;
-  }
-  return `+${clean}`;
+  return formatPhoneNumber(raw);
 }
 
 function resolveNavigationUrl(mapUrl, embedUrl, title = '', address = '') {
@@ -175,7 +167,7 @@ function hydrateLocationsUI(locations) {
     contactList.innerHTML = locations.map((loc) => {
       const isDefault = loc.isDefault;
       const phonesHtml = (loc.phones || []).map(p => `
-        <a href="tel:${sanitizePhoneNumber(p)}" onclick="event.stopPropagation();" class="loc-phone-link">${p}</a>
+        <a href="tel:${sanitizePhoneNumber(p)}" onclick="event.stopPropagation();" class="loc-phone-link">${formatPhoneNumber(p)}</a>
       `).join(' &bull; ') || 'Contact sales team';
 
       const navUrl = resolveNavigationUrl(loc.mapUrl, loc.mapEmbedUrl, loc.title, loc.address);
@@ -352,7 +344,7 @@ function hydrateLocationsUI(locations) {
 
       if (Array.isArray(defaultLoc.phones) && defaultLoc.phones.length > 0) {
         const phoneLinks = defaultLoc.phones.map(p => `
-          <a href="tel:${sanitizePhoneNumber(p)}" style="color: inherit; text-decoration: none;">${p}</a>
+          <a href="tel:${sanitizePhoneNumber(p)}" style="color: inherit; text-decoration: none;">${formatPhoneNumber(p)}</a>
         `).join(' &bull; ');
 
         footerItems.push(`
@@ -551,16 +543,17 @@ export function hydratePageContacts() {
       const targetPhone = settings.phone;
       if (targetPhone) {
         const cleanPhone = sanitizePhoneNumber(targetPhone);
+        const formattedPhone = formatPhoneNumber(targetPhone);
         link.href = `tel:${cleanPhone}`;
         if (link.classList.contains("btn-call-action")) {
           const svg = link.querySelector("svg");
           if (svg) {
-            link.innerHTML = svg.outerHTML + ` Call ${targetPhone}`;
+            link.innerHTML = svg.outerHTML + ` Call ${formattedPhone}`;
           } else {
-            link.textContent = `Call ${targetPhone}`;
+            link.textContent = `Call ${formattedPhone}`;
           }
-        } else if (link.textContent.trim().includes("+880") || link.textContent.trim().includes("1311")) {
-          link.textContent = targetPhone;
+        } else if (link.textContent.trim().includes("+880") || link.textContent.trim().includes("1311") || link.textContent.trim().startsWith("Call")) {
+          link.textContent = formattedPhone;
         }
       }
     } else if (href.includes("mailto:")) {
@@ -592,7 +585,7 @@ export function hydratePageContacts() {
       const json = JSON.parse(script.textContent);
       if (json['@type'] === 'AutoDealer' || json['@type'] === 'Organization') {
         if (settings.companyName) json.name = settings.companyName;
-        if (settings.phone) json.telephone = settings.phone;
+        if (settings.phone) json.telephone = formatPhoneNumber(settings.phone);
         if (settings.email) json.email = settings.email;
         if (json.address && settings.address) {
           json.address.streetAddress = settings.address;
