@@ -3,14 +3,14 @@
  * Single source of truth for public website settings and business location rendering.
  */
 
-import { apiRequest, getPublicFileUrl, sanitizePhoneNumber } from "./shared/api.js";
+import { apiRequest, getPublicFileUrl, sanitizePhoneNumber, formatPhoneNumber } from "./shared/api.js";
 
 export const DEFAULT_SETTINGS = {
   companyName: "Roadlink Automobiles",
   address: "169 (Level 2), Fakirerpool, Dhaka 1000",
-  phone: "+880 1311-503840",
+  phone: "+880 1311503840",
   contactName: "Sales Helpline / Managing Officer",
-  contactPhone: "+880 1311-503840",
+  contactPhone: "+880 1311503840",
   showPrimaryContact: false,
   whatsapp: "8801311503840",
   showWhatsapp: true,
@@ -108,15 +108,7 @@ export async function fetchPublicLocations() {
 // Helper to format WhatsApp number for visual display
 function formatWaDisplay(raw) {
   if (!raw) return '';
-  const clean = String(raw).trim();
-  if (clean.startsWith('+')) return clean;
-  if (clean.startsWith('880') && clean.length >= 11) {
-    return `+880 ${clean.slice(3, 7)}-${clean.slice(7)}`;
-  }
-  if (clean.startsWith('01') && clean.length === 11) {
-    return `+880 ${clean.slice(1, 5)}-${clean.slice(5)}`;
-  }
-  return `+${clean}`;
+  return formatPhoneNumber(raw);
 }
 
 /**
