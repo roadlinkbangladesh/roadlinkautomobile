@@ -17,16 +17,40 @@ export function sanitizePhoneNumber(phone) {
 }
 
 /**
+ * Formats phone numbers consistently for display across the application.
+ * E.g., "+880 1311503840"
+ * @param {string} phone
+ * @returns {string}
+ */
+export function formatPhoneNumber(phone) {
+  if (!phone) return "";
+  const raw = String(phone).trim();
+  const noHyphen = raw.replace(/-/g, "").replace(/\s+/g, " ");
+  const digits = noHyphen.replace(/[^0-9]/g, "");
+
+  if (digits.startsWith("880") && digits.length >= 11 && digits.length <= 13) {
+    return `+880 ${digits.slice(3)}`;
+  }
+  if (digits.startsWith("01") && digits.length === 11) {
+    return `+880 ${digits.slice(1)}`;
+  }
+
+  if (noHyphen.startsWith("+")) return noHyphen;
+  if (digits.length >= 10) return `+${digits}`;
+  return noHyphen;
+}
+
+/**
  * Normalizes and builds a full URL using API_BASE_URL and the specified endpoint path.
  * @param {string} endpoint - Relative API path (e.g. "/api/v1/public/vehicles") or full URL
  * @returns {string} Fully qualified URL string
  */
 export function buildUrl(endpoint) {
-  if (!endpoint) return API_BASE_URL;
+  if (!endpoint) return API_BASE_URL || "";
   if (endpoint.startsWith("http://") || endpoint.startsWith("https://")) {
     return endpoint;
   }
-  const cleanBase = API_BASE_URL.endsWith("/") ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+  const cleanBase = API_BASE_URL && API_BASE_URL.endsWith("/") ? API_BASE_URL.slice(0, -1) : (API_BASE_URL || "");
   const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
   return `${cleanBase}${cleanEndpoint}`;
 }
@@ -95,7 +119,6 @@ export async function apiRequest(endpoint, options = {}) {
     ...(options.headers || {})
   };
 
-  // Set default Content-Type to application/json for non-FormData requests with body
   if (options.body && !(options.body instanceof FormData) && !headers["Content-Type"] && !headers["content-type"]) {
     headers["Content-Type"] = "application/json";
   }
