@@ -222,7 +222,7 @@ function hydrateSEO(car) {
         "seller": {
           "@type": "AutoDealer",
           "name": "Roadlink Automobiles",
-          "telephone": formatPhoneNumber(getSettings().phone || "+880 1311503840"),
+          "telephone": getSettings().phone ? formatPhoneNumber(getSettings().phone) : "",
           "url": "https://your-domain.com"
         }
       }
@@ -299,8 +299,8 @@ Could you please share the auction sheet and current availability?
 Thank you.`;
 
   const settings = getSettings();
-  const rawWa = settings.whatsapp || "8801311503840";
-  const cleanWa = sanitizePhoneNumber(rawWa);
+  const rawWa = settings.whatsapp || "";
+  const cleanWa = rawWa ? sanitizePhoneNumber(rawWa) : "";
   const waUrl = `https://wa.me/${cleanWa}?text=${encodeURIComponent(whatsAppText)}`;
   whatsappBtn.setAttribute('href', waUrl);
 
