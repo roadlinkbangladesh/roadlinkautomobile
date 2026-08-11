@@ -17,7 +17,7 @@ let settingsEventsBound = false;
 let activeSubtab = "general";
 
 const SYSTEM_DEFAULTS = {
-  companyName: "Roadlink Automobiles",
+  companyName: "Automobile Dealership",
   whatsapp: "",
   showWhatsapp: true,
   email: "",
@@ -32,23 +32,23 @@ const SYSTEM_DEFAULTS = {
   companyLogoUrl: "",
   faviconUrl: "",
   stockBannerUrl: "",
-  seoTitleSuffix: "Roadlink Automobiles",
-  seoDefaultKeywords: "Japanese cars, reconditioned cars, Dhaka car importer, Toyota Axio, Honda Vezel, Nissan X-Trail, Roadlink Automobiles Bangladesh",
-  seoDefaultDescription: "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock.",
-  websiteTitle: "Roadlink Automobiles",
-  websiteDescription: "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock.",
-  ogTitle: "Roadlink Automobiles | Premium Japanese Reconditioned Vehicles Importer",
-  ogDescription: "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock.",
+  seoTitleSuffix: "Automobile Dealership",
+  seoDefaultKeywords: "Japanese cars, reconditioned vehicles, car importer",
+  seoDefaultDescription: "Importer and seller of high-quality reconditioned vehicles.",
+  websiteTitle: "Automobile Dealership",
+  websiteDescription: "Importer and seller of high-quality reconditioned vehicles.",
+  ogTitle: "Automobile Dealership | Premium Reconditioned Vehicles Importer",
+  ogDescription: "Importer and seller of high-quality reconditioned vehicles.",
   ogImageUrl: "assets/logo.png",
-  twitterTitle: "Roadlink Automobiles | Premium Japanese Reconditioned Vehicles Importer",
-  twitterDescription: "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock.",
+  twitterTitle: "Automobile Dealership | Premium Reconditioned Vehicles Importer",
+  twitterDescription: "Importer and seller of high-quality reconditioned vehicles.",
   twitterImageUrl: "assets/logo.png",
   publicWebsiteUrl: "../",
   whyChooseUs: [
     { title: "Genuine Japanese Imports", description: "Every vehicle in our stock is sourced directly from premier Japanese auction houses with authentic, un-doctored auction sheets." },
     { title: "Rigorous Quality Inspection", description: "All cars undergo a comprehensive multi-point mechanical, electrical, and structural diagnostics test in Japan and upon port arrival in Bangladesh." },
     { title: "Competitive Pricing", description: "We offer direct-to-buyer pricing with zero middleman markups. We assist with custom bank loan configurations and streamlined paperwork processing." },
-    { title: "Trusted Importer", description: "Years of dedicated, transparent service has made us a landmark for quality reconditioned automobiles in the Fakirerpool and Dhaka circles." }
+    { title: "Trusted Importer", description: "Years of dedicated, transparent service has made us a landmark for quality reconditioned automobiles." }
   ]
 };
 
