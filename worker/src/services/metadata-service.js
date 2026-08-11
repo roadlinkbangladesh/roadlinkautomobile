@@ -79,10 +79,10 @@ export class MetadataService {
       console.error("Failed to load settings for metadata:", err);
     }
 
-    const companyName = settings?.company_name || settings?.companyName || "Roadlink Automobiles";
-    const defaultSeoTitle = settings?.website_title || `${companyName} | Premium Japanese Reconditioned Vehicles Importer`;
-    const defaultSeoDesc = settings?.website_description || settings?.seo_default_description || "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock.";
-    const defaultSeoKeywords = settings?.seo_default_keywords || "Japanese cars, reconditioned cars, Dhaka car importer, Toyota Axio, Honda Vezel, Nissan X-Trail, Roadlink Automobiles Bangladesh";
+    const companyName = settings?.company_name || settings?.companyName || "Automobile Dealership";
+    const defaultSeoTitle = settings?.website_title || `${companyName} | Premium Reconditioned Vehicles Importer`;
+    const defaultSeoDesc = settings?.website_description || settings?.seo_default_description || "Importer and seller of high-quality reconditioned vehicles.";
+    const defaultSeoKeywords = settings?.seo_default_keywords || "Japanese cars, reconditioned vehicles, car importer";
 
     let vehicle = null;
     if (pageType === "vehicle" && vehicleIdentifier && env && env.DB) {
