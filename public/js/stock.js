@@ -517,8 +517,8 @@ function renderVehicleCard(car) {
 
   // WhatsApp click query assembly
   const settings = getPublicSettings();
-  const rawWa = settings.whatsapp || "8801311503840";
-  const cleanWa = sanitizePhoneNumber(rawWa);
+  const rawWa = settings.whatsapp || "";
+  const cleanWa = rawWa ? sanitizePhoneNumber(rawWa) : "";
   const whatsappMsg = `Hi Roadlink Automobiles, I am interested in your reconditioned ${car.year} ${car.make} ${car.model} (Stock No: ${car.stockNumber}). Please let me know its availability and pricing options. Thank you.`;
   const whatsappUrl = `https://wa.me/${cleanWa}?text=${encodeURIComponent(whatsappMsg)}`;
 
@@ -647,8 +647,8 @@ function showErrorMessage() {
   if (!grid) return;
 
   const settings = getPublicSettings();
-  const rawWa = settings.whatsapp || "8801311503840";
-  const cleanWa = sanitizePhoneNumber(rawWa);
+  const rawWa = settings.whatsapp || "";
+  const cleanWa = rawWa ? sanitizePhoneNumber(rawWa) : "";
 
   grid.innerHTML = `
     <div class="empty-state error">
