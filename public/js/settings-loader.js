@@ -7,20 +7,20 @@ import { apiRequest, getPublicFileUrl, sanitizePhoneNumber, formatPhoneNumber } 
 
 export const DEFAULT_SETTINGS = {
   companyName: "Roadlink Automobiles",
-  address: "169 (Level 2), Fakirerpool, Dhaka 1000",
-  phone: "+880 1311503840",
-  contactName: "Sales Helpline / Managing Officer",
-  contactPhone: "+880 1311503840",
+  address: "",
+  phone: "",
+  contactName: "",
+  contactPhone: "",
   showPrimaryContact: false,
-  whatsapp: "8801311503840",
+  whatsapp: "",
   showWhatsapp: true,
-  email: "roadlinkbangladesh@gmail.com",
+  email: "",
   showEmail: true,
-  facebookUrl: "https://www.facebook.com/roadlinkautomobiles",
-  youtubeUrl: "https://www.youtube.com/@roadlinkautomobiles9168",
+  facebookUrl: "",
+  youtubeUrl: "",
   seoTitleSuffix: "Roadlink Automobiles",
-  seoDefaultKeywords: "Japanese cars, reconditioned cars, Dhaka car importer, Toyota Axio, Honda Vezel, Nissan X-Trail, Roadlink Automobiles Bangladesh",
-  seoDefaultDescription: "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh. Explore our verified auction stock.",
+  seoDefaultKeywords: "Japanese cars, reconditioned cars, Dhaka car importer",
+  seoDefaultDescription: "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh.",
   showSoldVehicles: true
 };
 
@@ -552,26 +552,31 @@ export function hydratePageContacts() {
           } else {
             link.textContent = `Call ${formattedPhone}`;
           }
-        } else if (link.textContent.trim().includes("+880") || link.textContent.trim().includes("1311") || link.textContent.trim().startsWith("Call")) {
+        } else if (link.hasAttribute("data-setting") || link.classList.contains("tel-link") || link.textContent.trim().startsWith("+") || link.textContent.trim().startsWith("Call")) {
           link.textContent = formattedPhone;
         }
       }
     } else if (href.includes("mailto:")) {
       if (settings.email) {
         link.href = `mailto:${settings.email}`;
-        if (link.textContent.trim().includes("roadlink") || link.textContent.trim().includes("@")) {
+        if (link.hasAttribute("data-setting") || link.classList.contains("email-link") || link.textContent.trim().includes("@")) {
           link.textContent = settings.email;
         }
       }
-    } else if (href.includes("wa.me/")) {
+    } else if (href.includes("wa.me/") || link.classList.contains("nav-cta") || link.classList.contains("btn-whatsapp")) {
       if (settings.whatsapp) {
         const waNumber = sanitizePhoneNumber(settings.whatsapp);
         const waMatch = href.match(/wa\.me\/([0-9]+)/);
         if (waMatch) {
           link.href = href.replace(waMatch[1], waNumber);
+        } else if (href.includes("wa.me/")) {
+          link.href = href.endsWith("/") ? `${href}${waNumber}` : href.replace("wa.me/", `wa.me/${waNumber}`);
         } else {
           link.href = `https://wa.me/${waNumber}`;
         }
+      }
+      if (settings.showWhatsapp === false) {
+        link.style.display = "none";
       }
     } else if (href.includes("facebook.com/") || link.classList.contains("facebook-link")) {
       if (settings.facebookUrl) link.href = settings.facebookUrl;
