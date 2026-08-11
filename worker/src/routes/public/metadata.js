@@ -84,9 +84,9 @@ export async function getPublicSiteManifest(request, env, ctx) {
         if (env && env.DB) {
             settings = await SettingsRepository.getPublicSettings(env.DB);
         }
-        const companyName = settings?.company_name || "Roadlink Automobiles";
+        const companyName = settings?.company_name || "Automobile Dealership";
         const title = settings?.website_title || companyName;
-        const description = settings?.website_description || "Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh.";
+        const description = settings?.website_description || "Importer and seller of high-quality reconditioned vehicles.";
         
         let iconUrl = "/assets/logo.png";
         if (settings?.favicon_url) {
