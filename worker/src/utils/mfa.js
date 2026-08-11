@@ -215,8 +215,8 @@ export async function hashRecoveryCode(code) {
 /**
  * Builds standard OTPAuth URI string for QR code generation
  */
-export function buildOtpAuthUrl(username, base32Secret, issuer = "Roadlink Automobiles") {
-    const cleanIssuer = issuer || "Roadlink Automobiles";
+export function buildOtpAuthUrl(username, base32Secret, issuer = "Automobile Dealership") {
+    const cleanIssuer = issuer || "Automobile Dealership";
     const cleanUser = username || "user";
     const encodedIssuer = encodeURIComponent(cleanIssuer);
     const encodedUser = encodeURIComponent(cleanUser);
