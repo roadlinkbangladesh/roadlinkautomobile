@@ -6,7 +6,7 @@
 import { apiRequest, getPublicFileUrl, sanitizePhoneNumber, formatPhoneNumber } from "./shared/api.js";
 
 export const DEFAULT_SETTINGS = {
-  companyName: "",
+  companyName: "Automobile Dealership",
   address: "",
   phone: "",
   contactName: "",
@@ -18,9 +18,9 @@ export const DEFAULT_SETTINGS = {
   showEmail: true,
   facebookUrl: "",
   youtubeUrl: "",
-  seoTitleSuffix: "",
-  seoDefaultKeywords: "",
-  seoDefaultDescription: "",
+  seoTitleSuffix: "Automobile Dealership",
+  seoDefaultKeywords: "Japanese cars, reconditioned vehicles, car importer",
+  seoDefaultDescription: "Importer and seller of high-quality reconditioned vehicles.",
   showSoldVehicles: true
 };
 
