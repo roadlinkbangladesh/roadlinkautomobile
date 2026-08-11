@@ -18,12 +18,12 @@ let activeSubtab = "general";
 
 const SYSTEM_DEFAULTS = {
   companyName: "Roadlink Automobiles",
-  whatsapp: "8801311503840",
+  whatsapp: "",
   showWhatsapp: true,
-  email: "roadlinkbangladesh@gmail.com",
+  email: "",
   showEmail: true,
-  facebookUrl: "https://www.facebook.com/roadlinkautomobiles",
-  youtubeUrl: "https://www.youtube.com/@roadlinkautomobiles9168",
+  facebookUrl: "",
+  youtubeUrl: "",
   displayTimezone: "Asia/Dhaka",
   displayLocale: "en-BD",
   defaultCurrency: "BDT",
