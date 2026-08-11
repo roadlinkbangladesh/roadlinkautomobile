@@ -6,7 +6,7 @@
 import { apiRequest, getPublicFileUrl, sanitizePhoneNumber, formatPhoneNumber } from "./shared/api.js";
 
 export const DEFAULT_SETTINGS = {
-  companyName: "Roadlink Automobiles",
+  companyName: "",
   address: "",
   phone: "",
   contactName: "",
