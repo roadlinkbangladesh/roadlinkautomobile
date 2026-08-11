@@ -6,7 +6,7 @@
 import { apiRequest, getPublicFileUrl, sanitizePhoneNumber, formatPhoneNumber } from "./shared/api.js";
 
 export const DEFAULT_SETTINGS = {
-  companyName: "Roadlink Automobiles",
+  companyName: "",
   address: "",
   phone: "",
   contactName: "",
@@ -18,9 +18,9 @@ export const DEFAULT_SETTINGS = {
   showEmail: true,
   facebookUrl: "",
   youtubeUrl: "",
-  seoTitleSuffix: "Roadlink Automobiles",
-  seoDefaultKeywords: "Japanese cars, reconditioned cars, Dhaka car importer",
-  seoDefaultDescription: "Roadlink Automobiles - Importer and seller of high-quality reconditioned Japanese vehicles in Dhaka, Bangladesh.",
+  seoTitleSuffix: "",
+  seoDefaultKeywords: "",
+  seoDefaultDescription: "",
   showSoldVehicles: true
 };
 
