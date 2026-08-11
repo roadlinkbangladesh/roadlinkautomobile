@@ -255,9 +255,10 @@ function openModal(carId) {
 
   const settings = getSettings();
   const companyName = settings.companyName || "Roadlink Automobiles";
-  const cleanWa = settings.whatsapp ? sanitizePhoneNumber(settings.whatsapp) : "8801311503840";
-  const displayPhone = formatPhoneNumber(settings.showroomPhone || settings.phone || "+880 1311503840");
-  const cleanPhone = sanitizePhoneNumber(displayPhone);
+  const cleanWa = settings.whatsapp ? sanitizePhoneNumber(settings.whatsapp) : "";
+  const rawPhone = settings.showroomPhone || settings.phone || "";
+  const displayPhone = rawPhone ? formatPhoneNumber(rawPhone) : "";
+  const cleanPhone = rawPhone ? sanitizePhoneNumber(rawPhone) : "";
 
   // Pre-fill a professional sales request
   const pricePhrase = car.showPrice ? `listed for ${car.price}` : `listed`;
@@ -490,6 +491,13 @@ async function loadHeroCarousel() {
   const titleText = document.getElementById("hero-title-text");
   const descText = document.getElementById("hero-desc-text");
   const indicators = document.getElementById("hero-carousel-indicators");
+  const heroContentBox = document.getElementById("hero-content-box");
+
+  const revealContent = () => {
+    if (heroContentBox) {
+      heroContentBox.style.opacity = "1";
+    }
+  };
 
   try {
     const res = await apiRequest("/api/v1/public/carousel");
@@ -502,6 +510,7 @@ async function loadHeroCarousel() {
         heroImg.src = fallbackBanner ? getPublicFileUrl(fallbackBanner) : "./assets/hero.jpg";
         heroImg.style.opacity = "1";
       }
+      revealContent();
       return;
     }
 
@@ -539,13 +548,13 @@ async function loadHeroCarousel() {
         }
       }
 
-      if (badgeText && slide.badgeText) {
+      if (badgeText && slide.badgeText !== undefined) {
         badgeText.textContent = slide.badgeText;
       }
-      if (titleText && slide.heading) {
+      if (titleText && slide.heading !== undefined) {
         titleText.innerHTML = slide.heading;
       }
-      if (descText && slide.subheading) {
+      if (descText && slide.subheading !== undefined) {
         descText.textContent = slide.subheading;
       }
 
@@ -554,6 +563,8 @@ async function loadHeroCarousel() {
           dot.style.background = dIdx === idx ? "white" : "transparent";
         });
       }
+
+      revealContent();
     };
 
     updateSlide(0);
@@ -580,6 +591,7 @@ async function loadHeroCarousel() {
       heroImg.src = fallbackBanner ? getPublicFileUrl(fallbackBanner) : "./assets/hero.jpg";
       heroImg.style.opacity = "1";
     }
+    revealContent();
   }
 }
 
