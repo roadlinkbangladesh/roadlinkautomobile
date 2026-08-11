@@ -325,7 +325,7 @@ export async function setupMfa(request, env) {
             otpauth_url: otpauthUrl,
             qr_code_url: otpauthUrl,
             setup_token: setupToken,
-            issuer: "Roadlink Automobiles",
+            issuer: "Automobile Dealership",
             account_name: auth.user.username
         });
 
