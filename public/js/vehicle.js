@@ -283,6 +283,10 @@ function hydrateStickyContactPanel(car) {
   // Quick specifications in Sidebar
   document.getElementById('panel-spec-mileage').textContent = formatMileage(car.mileage);
   document.getElementById('panel-spec-trans').textContent = car.transmission || '-';
+  const fuelEl = document.getElementById('panel-spec-fuel');
+  if (fuelEl) fuelEl.textContent = car.fuel || '-';
+  const driveEl = document.getElementById('panel-spec-drive');
+  if (driveEl) driveEl.textContent = car.drive || car.drivetrain || '-';
   document.getElementById('panel-spec-engine').textContent = car.engineCC ? `${car.engineCC.toLocaleString()} cc` : '-';
   document.getElementById('panel-spec-color').textContent = car.exteriorColor || '-';
 
