@@ -71,12 +71,12 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
     // Initialize Navigation Drawer for Mobile devices
     initMobileMenu();
 
-    // Load vehicles from API
-    await loadVehiclesAsync();
+    // Load dynamic carousel & testimonials immediately in background (non-blocking)
+    const carouselPromise = loadHeroCarousel();
+    const testimonialsPromise = loadTestimonials();
 
-    // Load dynamic carousel & testimonials
-    loadHeroCarousel();
-    loadTestimonials();
+    // Load vehicles from API in parallel
+    await loadVehiclesAsync();
 
     // Load and render vehicles grid
     renderVehicles('all');
@@ -92,6 +92,8 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
 
     // Setup smooth anchor navigation and handle initial URL hash
     initAnchorNavigation();
+
+    await Promise.allSettled([carouselPromise, testimonialsPromise]);
   };
 
   if (document.readyState === "loading") {
@@ -493,22 +495,30 @@ async function loadHeroCarousel() {
   const indicators = document.getElementById("hero-carousel-indicators");
   const heroContentBox = document.getElementById("hero-content-box");
 
+  let revealed = false;
   const revealContent = () => {
-    if (heroContentBox) {
-      heroContentBox.style.opacity = "1";
-    }
+    if (revealed) return;
+    revealed = true;
+    if (heroContentBox) heroContentBox.style.opacity = "1";
+    if (heroImg) heroImg.style.opacity = "1";
   };
+
+  // Safety fallback: reveal after 300ms if API is slow/offline so content is never stuck hidden
+  const safetyTimer = setTimeout(() => {
+    revealContent();
+  }, 300);
 
   try {
     const res = await apiRequest("/api/v1/public/carousel");
+    clearTimeout(safetyTimer);
+
     if (!res.ok) throw new Error("Carousel endpoint error");
     const payload = await res.json();
     
     if (!payload.success || !Array.isArray(payload.data) || payload.data.length === 0) {
-      if (heroImg) {
+      if (heroImg && !heroImg.src) {
         const fallbackBanner = getSettings()?.stockBannerUrl;
         heroImg.src = fallbackBanner ? getPublicFileUrl(fallbackBanner) : "./assets/hero.jpg";
-        heroImg.style.opacity = "1";
       }
       revealContent();
       return;
@@ -529,25 +539,6 @@ async function loadHeroCarousel() {
       currentIndex = idx;
       const slide = slides[idx];
 
-      if (heroImg && slide.imageUrl) {
-        const targetUrl = getPublicFileUrl(slide.imageUrl);
-        if (heroImg.src !== targetUrl) {
-          heroImg.style.opacity = "0";
-          const tempImg = new Image();
-          tempImg.onload = () => {
-            heroImg.src = targetUrl;
-            heroImg.style.opacity = "1";
-          };
-          tempImg.onerror = () => {
-            heroImg.src = targetUrl;
-            heroImg.style.opacity = "1";
-          };
-          tempImg.src = targetUrl;
-        } else {
-          heroImg.style.opacity = "1";
-        }
-      }
-
       if (badgeText && slide.badgeText !== undefined) {
         badgeText.textContent = slide.badgeText;
       }
@@ -558,13 +549,33 @@ async function loadHeroCarousel() {
         descText.textContent = slide.subheading;
       }
 
+      if (heroImg && slide.imageUrl) {
+        const targetUrl = getPublicFileUrl(slide.imageUrl);
+        const absoluteTarget = new URL(targetUrl, window.location.href).href;
+        
+        if (heroImg.src !== absoluteTarget) {
+          const tempImg = new Image();
+          tempImg.onload = () => {
+            heroImg.src = targetUrl;
+            revealContent();
+          };
+          tempImg.onerror = () => {
+            heroImg.src = targetUrl;
+            revealContent();
+          };
+          tempImg.src = targetUrl;
+        } else {
+          revealContent();
+        }
+      } else {
+        revealContent();
+      }
+
       if (indicators) {
         indicators.querySelectorAll(".carousel-dot").forEach((dot, dIdx) => {
           dot.style.background = dIdx === idx ? "white" : "transparent";
         });
       }
-
-      revealContent();
     };
 
     updateSlide(0);
