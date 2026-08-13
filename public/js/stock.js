@@ -522,6 +522,10 @@ function renderVehicleCard(car) {
   const whatsappMsg = `Hi Roadlink Automobiles, I am interested in your reconditioned ${car.year} ${car.make} ${car.model} (Stock No: ${car.stockNumber}). Please let me know its availability and pricing options. Thank you.`;
   const whatsappUrl = `https://wa.me/${cleanWa}?text=${encodeURIComponent(whatsappMsg)}`;
 
+  // Quick spec formatting matching home page cards
+  const engineDisplay = car.engine || (car.engineCC ? `${(car.engineCC / 1000).toFixed(1)}L ${car.fuel || ''}`.trim() : (formatEngine(car.engineCC) || 'N/A'));
+  const colorDisplay = car.exteriorColor || car.color || 'N/A';
+
   card.innerHTML = `
     <a href="vehicle.html?stock=${car.stockNumber}" class="vehicle-img-link" aria-label="View specifications for ${car.make} ${car.model}" style="display: block; text-decoration: none; color: inherit;">
       <div class="vehicle-img-wrapper">
@@ -564,20 +568,20 @@ function renderVehicleCard(car) {
             <rect width="18" height="18" x="3" y="3" rx="2" />
             <path d="M9 3v18M15 3v18" />
           </svg>
-          <span>${car.transmission}</span>
+          <span>${car.transmission || 'N/A'}</span>
         </div>
-        <div class="spec-item" title="Engine Capacity">
+        <div class="spec-item" title="Engine Specs">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
           </svg>
-          <span>${formatEngine(car.engineCC)}</span>
+          <span>${engineDisplay}</span>
         </div>
-        <div class="spec-item" title="Fuel Type">
+        <div class="spec-item" title="Exterior Color">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="10" />
             <path d="m4.93 4.93 14.14 14.14" />
           </svg>
-          <span>${car.fuel}</span>
+          <span>${colorDisplay}</span>
         </div>
       </div>
       
