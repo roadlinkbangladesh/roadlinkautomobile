@@ -1850,9 +1850,9 @@ section {
 /* Small Hero Banner */
 .inventory-hero {
   position: relative;
-  background-color: #0b1120;
+  background-color: var(--bg-dark);
   color: var(--bg-white);
-  padding: 48px 0 56px 0;
+  padding: 24px 0 28px 0;
   overflow: hidden;
   box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
 }
@@ -1875,8 +1875,7 @@ section {
   left: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle at 50% 30%, rgba(27, 54, 93, 0.45) 0%, rgba(11, 17, 32, 0.85) 65%, rgba(11, 17, 32, 0.95) 100%),
-              linear-gradient(180deg, rgba(11, 17, 32, 0.7) 0%, rgba(11, 17, 32, 0.88) 100%);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.65) 100%);
   z-index: 2;
   pointer-events: none;
 }
@@ -1885,13 +1884,13 @@ section {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: brightness(0.72) contrast(1.15) saturate(0.95);
+  filter: brightness(0.7) contrast(1.15) saturate(0.9);
   transform: scale(1.02);
   transition: transform 8s ease;
 }
 
 .inventory-hero:hover .hero-bg-img {
-  transform: scale(1.05);
+  transform: scale(1.04);
 }
 
 .inventory-hero .hero-container {
@@ -1907,18 +1906,18 @@ section {
 .inventory-hero .breadcrumb-container {
   background: transparent;
   border-bottom: none;
-  padding: 0 0 16px 0;
-  margin-bottom: 4px;
+  padding: 0 0 8px 0;
+  margin-bottom: 2px;
 }
 
 .inventory-hero .breadcrumbs {
   justify-content: center;
-  font-size: 0.8rem;
+  font-size: 0.775rem;
   font-weight: 500;
 }
 
 .inventory-hero .breadcrumbs a {
-  color: rgba(226, 232, 240, 0.7);
+  color: rgba(226, 232, 240, 0.75);
 }
 
 .inventory-hero .breadcrumbs a:hover {
@@ -1936,31 +1935,31 @@ section {
 
 /* Stock Hero Badge */
 .stock-badge-wrapper {
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .stock-hero-badge {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  padding: 6px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 4px 14px;
   border-radius: var(--radius-full);
   font-family: var(--font-body);
-  font-size: 0.775rem;
+  font-size: 0.725rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   color: #ffffff;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   text-transform: uppercase;
 }
 
 .badge-pulse-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   background-color: var(--primary-red);
   border-radius: 50%;
   display: inline-block;
@@ -1975,7 +1974,7 @@ section {
   }
   70% {
     transform: scale(1);
-    box-shadow: 0 0 0 6px rgba(227, 27, 35, 0);
+    box-shadow: 0 0 0 5px rgba(227, 27, 35, 0);
   }
   100% {
     transform: scale(0.95);
@@ -1984,13 +1983,13 @@ section {
 }
 
 .inventory-hero .hero-title {
-  font-size: 3rem;
+  font-size: 2.1rem;
   font-weight: 800;
   color: #ffffff;
-  margin-bottom: 12px;
-  letter-spacing: -0.025em;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
   line-height: 1.15;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .inventory-hero .hero-title .highlight-text {
@@ -2002,11 +2001,11 @@ section {
 }
 
 .inventory-hero .hero-subtitle {
-  font-size: 1.025rem;
-  line-height: 1.6;
+  font-size: 0.925rem;
+  line-height: 1.5;
   color: rgba(226, 232, 240, 0.85);
-  max-width: 660px;
-  margin: 0 auto 22px auto;
+  max-width: 600px;
+  margin: 0 auto 10px auto;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
@@ -2015,29 +2014,29 @@ section {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 12px;
-  margin-top: 4px;
+  gap: 8px;
+  margin-top: 2px;
 }
 
 .stock-hero-highlights .highlight-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(15, 23, 42, 0.65);
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 7px 16px;
+  padding: 4px 12px;
   border-radius: var(--radius-sm);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  color: rgba(248, 250, 252, 0.95);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  color: rgba(248, 250, 252, 0.92);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   transition: var(--transition-fast);
 }
 
 .stock-hero-highlights .highlight-pill:hover {
   border-color: rgba(255, 255, 255, 0.25);
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(15, 23, 42, 0.75);
   transform: translateY(-1px);
 }
 
