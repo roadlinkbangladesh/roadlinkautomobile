@@ -1850,10 +1850,11 @@ section {
 /* Small Hero Banner */
 .inventory-hero {
   position: relative;
-  background-color: var(--bg-dark);
+  background-color: #0b1120;
   color: var(--bg-white);
-  padding: 60px 0;
+  padding: 48px 0 56px 0;
   overflow: hidden;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .inventory-hero .hero-bg-wrapper,
@@ -1874,7 +1875,8 @@ section {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(180deg, rgba(11, 18, 32, 0.45) 0%, rgba(11, 18, 32, 0.72) 100%);
+  background: radial-gradient(circle at 50% 30%, rgba(27, 54, 93, 0.45) 0%, rgba(11, 17, 32, 0.85) 65%, rgba(11, 17, 32, 0.95) 100%),
+              linear-gradient(180deg, rgba(11, 17, 32, 0.7) 0%, rgba(11, 17, 32, 0.88) 100%);
   z-index: 2;
   pointer-events: none;
 }
@@ -1883,38 +1885,165 @@ section {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: brightness(0.85) contrast(1.1) saturate(0.95);
+  filter: brightness(0.72) contrast(1.15) saturate(0.95);
+  transform: scale(1.02);
+  transition: transform 8s ease;
+}
+
+.inventory-hero:hover .hero-bg-img {
+  transform: scale(1.05);
 }
 
 .inventory-hero .hero-container {
   position: relative;
   z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
 }
 
-.inventory-hero .hero-badge {
-  display: inline-block;
-  font-family: var(--font-display);
+/* Integrated Breadcrumb within dark hero */
+.inventory-hero .breadcrumb-container {
+  background: transparent;
+  border-bottom: none;
+  padding: 0 0 16px 0;
+  margin-bottom: 4px;
+}
+
+.inventory-hero .breadcrumbs {
+  justify-content: center;
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: 500;
+}
+
+.inventory-hero .breadcrumbs a {
+  color: rgba(226, 232, 240, 0.7);
+}
+
+.inventory-hero .breadcrumbs a:hover {
+  color: #ffffff;
+}
+
+.inventory-hero .breadcrumbs .separator {
+  color: rgba(148, 163, 184, 0.5);
+}
+
+.inventory-hero .breadcrumbs .current {
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
+}
+
+/* Stock Hero Badge */
+.stock-badge-wrapper {
+  margin-bottom: 16px;
+}
+
+.stock-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 6px 18px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: 0.775rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--primary-red);
-  margin-bottom: 12px;
+}
+
+.badge-pulse-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--primary-red);
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 0 rgba(227, 27, 35, 0.7);
+  animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(227, 27, 35, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(227, 27, 35, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(227, 27, 35, 0);
+  }
 }
 
 .inventory-hero .hero-title {
-  font-size: 2.8rem;
-  color: var(--bg-white);
+  font-size: 3rem;
+  font-weight: 800;
+  color: #ffffff;
   margin-bottom: 12px;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.inventory-hero .hero-title .highlight-text {
+  color: var(--primary-red);
+  background: linear-gradient(135deg, #ff5258 0%, var(--primary-red) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
 }
 
 .inventory-hero .hero-subtitle {
-  font-size: 1.05rem;
-  color: rgba(248, 250, 252, 0.8);
-  max-width: 650px;
-  margin: 0 auto;
+  font-size: 1.025rem;
+  line-height: 1.6;
+  color: rgba(226, 232, 240, 0.85);
+  max-width: 660px;
+  margin: 0 auto 22px auto;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Feature Highlights Bar inside Stock Banner */
+.stock-hero-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.stock-hero-highlights .highlight-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 7px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(248, 250, 252, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: var(--transition-fast);
+}
+
+.stock-hero-highlights .highlight-pill:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(15, 23, 42, 0.85);
+  transform: translateY(-1px);
+}
+
+.stock-hero-highlights .highlight-pill svg {
+  color: var(--primary-red);
+  flex-shrink: 0;
 }
 
 /* Filter Panel Section */
