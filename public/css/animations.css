@@ -1,35 +1,35 @@
 /**
  * Roadlink Automobiles - Modern Website Animations Engine
- * Meets all 9 enterprise requirements:
- * 1. Smooth, purposeful, non-distracting motion.
- * 2. Viewport scroll-based reveals with staggered children.
- * 3. Seamless section transitions with zero layout shifts.
- * 4. Micro-interactions for buttons, cards, links, tabs, and icons.
- * 5. GPU-accelerated properties (transform, opacity) at 60fps.
- * 6. Full accessibility with prefers-reduced-motion support.
- * 7. Responsive touch-optimized mobile behavior.
- * 8. Resilient no-JS fallback (content visible immediately if JS fails).
- * 9. Modular and maintainable architecture.
+ * High-impact, silky-smooth GPU-accelerated motion system.
+ * 1. Noticeable, purposeful scroll reveals with rich depth and momentum.
+ * 2. Cascading staggered sequences for inventory grids and features.
+ * 3. Tactile 3D card elevation, image zooms, and glossy reflection sweeps.
+ * 4. Micro-interactions for buttons, tabs, pills, and icons.
+ * 5. Full 60fps GPU acceleration via transform, opacity, and subtle blur.
+ * 6. Strict compliance with prefers-reduced-motion accessibility.
+ * 7. Mobile and touch-responsive fallbacks.
+ * 8. Zero-JS resilient fallback.
  */
 
 /* ==========================================================================
    1. Animation Variables & Design Tokens
    ========================================================================== */
 :root {
-  /* Ultra-smooth decel easing curves modeled after modern SaaS leaders */
+  /* High-end deceleration and spring curves */
   --ease-reveal: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-interaction: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-glide: cubic-bezier(0.25, 1, 0.5, 1);
   
   /* Durations */
   --dur-micro: 180ms;
-  --dur-base: 300ms;
-  --dur-reveal: 600ms;
-  --dur-slow: 800ms;
+  --dur-base: 320ms;
+  --dur-reveal: 720ms;
+  --dur-slow: 900ms;
 
-  /* Offsets */
-  --offset-y: 24px;
-  --offset-x: 24px;
+  /* Noticeable displacements */
+  --offset-y: 44px;
+  --offset-x: 40px;
 }
 
 /* ==========================================================================
@@ -44,9 +44,11 @@
 .reveal-slide-left,
 .reveal-slide-right,
 .reveal-scale,
+.reveal-pop,
 .reveal-stagger-group > * {
   opacity: 1;
   transform: none;
+  filter: none;
 }
 
 /* Once JS is active, activate the prepared hidden state for scroll observer */
@@ -56,36 +58,48 @@ html.js-ready .reveal-slide-up,
 html.js-ready .reveal-slide-left,
 html.js-ready .reveal-slide-right,
 html.js-ready .reveal-scale,
+html.js-ready .reveal-pop,
 html.js-ready .reveal-stagger-group > * {
   opacity: 0;
-  will-change: transform, opacity;
-  transition-property: transform, opacity;
+  will-change: transform, opacity, filter;
+  transition-property: transform, opacity, filter;
   transition-duration: var(--dur-reveal);
   transition-timing-function: var(--ease-reveal);
   transition-delay: var(--reveal-delay, 0ms);
 }
 
-/* Initial transform states for different animation flavors */
+/* Initial transform states for different animation flavors - Noticeable & Dynamic */
 html.js-ready .reveal,
 html.js-ready .reveal-slide-up,
 html.js-ready .reveal-stagger-group > * {
-  transform: translateY(var(--offset-y));
+  transform: translateY(var(--offset-y)) scale(0.96);
+  filter: blur(4px);
 }
 
 html.js-ready .reveal-fade {
-  transform: none;
+  transform: translateY(16px);
+  filter: blur(3px);
 }
 
 html.js-ready .reveal-slide-left {
-  transform: translateX(calc(-1 * var(--offset-x)));
+  transform: translateX(calc(-1 * var(--offset-x))) scale(0.96);
+  filter: blur(4px);
 }
 
 html.js-ready .reveal-slide-right {
-  transform: translateX(var(--offset-x));
+  transform: translateX(var(--offset-x)) scale(0.96);
+  filter: blur(4px);
 }
 
 html.js-ready .reveal-scale {
-  transform: translateY(12px) scale(0.96);
+  transform: translateY(24px) scale(0.88);
+  filter: blur(4px);
+}
+
+html.js-ready .reveal-pop {
+  transform: scale(0.82);
+  filter: blur(4px);
+  transition-timing-function: var(--ease-spring);
 }
 
 /* REVEALED STATE - Applied when elements enter the viewport */
@@ -95,32 +109,193 @@ html.js-ready .reveal-slide-up.is-revealed,
 html.js-ready .reveal-slide-left.is-revealed,
 html.js-ready .reveal-slide-right.is-revealed,
 html.js-ready .reveal-scale.is-revealed,
+html.js-ready .reveal-pop.is-revealed,
 html.js-ready .reveal-stagger-group > *.is-revealed {
-  opacity: 1;
-  transform: translate(0, 0) scale(1);
+  opacity: 1 !important;
+  transform: translate(0, 0) scale(1) !important;
+  filter: blur(0px) !important;
   will-change: auto; /* Release GPU composite layer memory */
 }
 
 /* Pre-defined stagger delays */
-.delay-1 { --reveal-delay: 70ms; }
-.delay-2 { --reveal-delay: 140ms; }
-.delay-3 { --reveal-delay: 210ms; }
-.delay-4 { --reveal-delay: 280ms; }
-.delay-5 { --reveal-delay: 350ms; }
-.delay-6 { --reveal-delay: 420ms; }
+.delay-1 { --reveal-delay: 80ms; }
+.delay-2 { --reveal-delay: 160ms; }
+.delay-3 { --reveal-delay: 240ms; }
+.delay-4 { --reveal-delay: 320ms; }
+.delay-5 { --reveal-delay: 400ms; }
+.delay-6 { --reveal-delay: 480ms; }
 
 /* ==========================================================================
-   3. Interactive Micro-Interactions (Buttons, Cards, Links)
+   3. Vehicle Cards & High-Impact Micro-Interactions
    ========================================================================== */
 
-/* Button Hover Lift & Click Tactile Press */
+/* Vehicle Card - 3D Hover Elevation, Shadow & Glossy Reflection Sweep */
+.vehicle-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--dur-base) var(--ease-reveal),
+              box-shadow var(--dur-base) var(--ease-reveal),
+              border-color var(--dur-base) var(--ease-reveal);
+}
+
+/* Glossy light sheen sweep on hover across vehicle cards */
+.vehicle-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -130%;
+  width: 90%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 100%
+  );
+  transform: skewX(-25deg);
+  pointer-events: none;
+  z-index: 5;
+  transition: none;
+}
+
+.vehicle-card:hover::before {
+  left: 150%;
+  transition: left 850ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.vehicle-card:hover {
+  transform: translateY(-10px) !important;
+  box-shadow: 0 24px 48px -10px rgba(27, 54, 93, 0.22),
+              0 12px 24px -4px rgba(37, 99, 235, 0.16),
+              0 0 0 1px rgba(37, 99, 235, 0.3) !important;
+  border-color: rgba(37, 99, 235, 0.45) !important;
+}
+
+/* Image Zoom on Card Hover */
+.vehicle-img-wrapper {
+  overflow: hidden;
+  position: relative;
+}
+
+.vehicle-img {
+  transition: transform 700ms var(--ease-interaction);
+}
+
+.vehicle-card:hover .vehicle-img {
+  transform: scale(1.09) !important;
+}
+
+/* Vehicle Badge Elevation & Shine on Card Hover */
+.vehicle-badge {
+  transition: transform var(--dur-base) var(--ease-spring),
+              box-shadow var(--dur-base) ease;
+}
+
+.vehicle-card:hover .vehicle-badge {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+/* Card CTA Details Button Hover Sync */
+.btn-card-details,
+.btn-view-details {
+  transition: background-color var(--dur-micro) ease,
+              color var(--dur-micro) ease,
+              transform var(--dur-micro) var(--ease-spring),
+              box-shadow var(--dur-micro) ease;
+}
+
+.vehicle-card:hover .btn-card-details,
+.vehicle-card:hover .btn-view-details {
+  background-color: var(--primary-blue);
+  color: #ffffff;
+  box-shadow: 0 6px 16px -2px rgba(27, 54, 93, 0.3);
+}
+
+.vehicle-card:hover .btn-card-details svg,
+.vehicle-card:hover .btn-view-details svg {
+  transform: translateX(5px);
+}
+
+/* WhatsApp action button inside card */
+.btn-card-whatsapp {
+  transition: transform var(--dur-micro) var(--ease-spring),
+              box-shadow var(--dur-micro) ease;
+}
+
+.btn-card-whatsapp:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 6px 16px -2px rgba(37, 211, 102, 0.45);
+}
+
+/* ==========================================================================
+   4. Value Proposition (Why Choose Us) Cards
+   ========================================================================== */
+.why-card {
+  transition: transform var(--dur-base) var(--ease-reveal),
+              box-shadow var(--dur-base) var(--ease-reveal),
+              border-color var(--dur-base) var(--ease-reveal);
+}
+
+.why-card:hover {
+  transform: translateY(-10px) scale(1.02) !important;
+  box-shadow: 0 22px 45px -10px rgba(27, 54, 93, 0.18),
+              0 0 0 1px rgba(37, 99, 235, 0.25) !important;
+  border-color: rgba(37, 99, 235, 0.35) !important;
+}
+
+.why-icon-box {
+  transition: transform var(--dur-base) var(--ease-spring),
+              background var(--dur-base) var(--ease-reveal),
+              color var(--dur-base) ease,
+              box-shadow var(--dur-base) var(--ease-reveal);
+}
+
+.why-card:hover .why-icon-box {
+  transform: scale(1.22) rotate(-6deg) !important;
+  background: linear-gradient(135deg, var(--primary-blue), #2563eb) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 24px -4px rgba(37, 99, 235, 0.45) !important;
+}
+
+/* ==========================================================================
+   5. Customer Testimonials Cards
+   ========================================================================== */
+.testimonial-card {
+  transition: transform var(--dur-base) var(--ease-reveal),
+              box-shadow var(--dur-base) var(--ease-reveal),
+              border-color var(--dur-base) var(--ease-reveal);
+}
+
+.testimonial-card:hover {
+  transform: translateY(-8px) scale(1.02) !important;
+  box-shadow: 0 20px 42px -10px rgba(27, 54, 93, 0.16),
+              0 0 0 1px rgba(37, 99, 235, 0.2) !important;
+  border-color: rgba(37, 99, 235, 0.35) !important;
+}
+
+/* ==========================================================================
+   6. Location & Contact Interactive Items
+   ========================================================================== */
+.location-item {
+  transition: transform var(--dur-base) var(--ease-reveal),
+              box-shadow var(--dur-base) var(--ease-reveal),
+              border-color var(--dur-base) ease;
+}
+
+.location-item:hover {
+  transform: translateX(8px) !important;
+  box-shadow: 0 10px 24px -4px rgba(27, 54, 93, 0.14) !important;
+  border-left: 3px solid var(--primary-blue) !important;
+}
+
+/* ==========================================================================
+   7. Buttons, CTAs & Tactile Micro-Interactions
+   ========================================================================== */
 .btn,
 .nav-cta,
-.filter-btn,
-.btn-view-details,
-.btn-card-details,
-.btn-card-whatsapp,
-.btn-whatsapp {
+.filter-btn {
+  position: relative;
   transition: transform var(--dur-micro) var(--ease-interaction),
               box-shadow var(--dur-micro) var(--ease-interaction),
               background-color var(--dur-micro) ease,
@@ -128,103 +303,92 @@ html.js-ready .reveal-stagger-group > *.is-revealed {
               color var(--dur-micro) ease;
 }
 
+/* Noticeable Button Lift & Glow */
+.btn-primary:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 12px 28px -6px rgba(37, 99, 235, 0.45);
+}
+
+.btn-secondary:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 10px 24px -6px rgba(27, 54, 93, 0.2);
+}
+
+.nav-cta:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 8px 22px -2px rgba(37, 211, 102, 0.45);
+}
+
+/* Tactile Click Snap */
 .btn:active,
 .nav-cta:active,
 .filter-btn:active,
 .btn-view-details:active,
 .btn-card-details:active,
-.btn-card-whatsapp:active,
-.btn-whatsapp:active {
-  transform: translateY(0px) scale(0.97) !important;
-  transition-duration: 80ms;
+.btn-card-whatsapp:active {
+  transform: translateY(1px) scale(0.96) !important;
+  transition-duration: 80ms !important;
 }
 
 /* Arrow / Icon Hover Nudge */
 .btn svg,
 .btn-view-details svg,
 .btn-card-details svg {
-  transition: transform var(--dur-micro) var(--ease-reveal);
+  transition: transform var(--dur-micro) var(--ease-spring);
 }
 
 .btn:hover svg,
 .btn-view-details:hover svg,
 .btn-card-details:hover svg {
-  transform: translateX(4px);
+  transform: translateX(6px);
 }
 
-/* Navigation Links Animated Underline */
-.nav-link {
-  transition: color var(--dur-micro) ease;
-}
-
-.nav-link::after {
-  transition: width var(--dur-base) var(--ease-reveal),
-              background-color var(--dur-micro) ease;
-}
-
-/* Card Elevation & Hover Dynamics */
-.vehicle-card,
-.why-card,
-.testimonial-card,
-.location-item,
-.detail-spec-card,
-.spec-item {
-  transition: transform var(--dur-base) var(--ease-reveal),
-              box-shadow var(--dur-base) var(--ease-reveal),
-              border-color var(--dur-base) var(--ease-reveal);
-}
-
-.vehicle-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 16px 32px -8px rgba(27, 54, 93, 0.12),
-              0 6px 16px -4px rgba(0, 0, 0, 0.05);
-  border-color: rgba(27, 54, 93, 0.22);
-}
-
-.why-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 14px 28px -6px rgba(27, 54, 93, 0.1),
-              0 4px 12px -2px rgba(0, 0, 0, 0.04);
-}
-
-.why-icon-box {
-  transition: transform var(--dur-base) var(--ease-spring),
-              background-color var(--dur-base) var(--ease-reveal);
-}
-
-.why-card:hover .why-icon-box {
-  transform: scale(1.1) translateY(-2px);
-}
-
-/* Image Zoom on Card Hover */
-.vehicle-img-wrapper {
-  overflow: hidden;
-}
-
-.vehicle-img {
-  transition: transform 650ms var(--ease-interaction);
-}
-
-.vehicle-card:hover .vehicle-img {
-  transform: scale(1.05);
-}
-
-/* Category Filter Tabs Micro-Interactions */
+/* Category Filter Tabs Micro-Interactions & Pill Pop */
 .filter-btn {
-  transition: transform var(--dur-micro) var(--ease-interaction),
+  transition: transform var(--dur-micro) var(--ease-spring),
               background-color var(--dur-micro) ease,
               color var(--dur-micro) ease,
               box-shadow var(--dur-micro) ease;
 }
 
 .filter-btn:hover:not(.active) {
-  background-color: rgba(27, 54, 93, 0.06);
+  background-color: rgba(27, 54, 93, 0.08);
   color: var(--primary-blue);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(27, 54, 93, 0.08);
 }
 
 .filter-btn.active {
-  transform: translateY(-1px);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 22px -4px rgba(37, 99, 235, 0.4);
+  animation: pill-pop 320ms var(--ease-spring);
+}
+
+@keyframes pill-pop {
+  0% { transform: scale(0.94); }
+  50% { transform: scale(1.08); }
+  100% { transform: translateY(-2px) scale(1.05); }
+}
+
+/* Navigation Links Animated Underline */
+.nav-link {
+  position: relative;
+  transition: color var(--dur-micro) ease;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0%;
+  height: 2px;
+  background-color: var(--primary-blue);
+  transition: width var(--dur-base) var(--ease-reveal);
+}
+
+.nav-link:hover::after {
+  width: 100%;
 }
 
 /* Sticky Header Scroll Elevation */
@@ -235,31 +399,78 @@ html.js-ready .reveal-stagger-group > *.is-revealed {
 }
 
 #main-header.scrolled {
-  background-color: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08);
+  background-color: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 6px 24px -2px rgba(0, 0, 0, 0.1);
 }
 
-/* WhatsApp Subtle Pulse (Enterprise Grade, Non-Intrusive) */
-@keyframes pulse-subtle-whatsapp {
+/* ==========================================================================
+   8. WhatsApp Prominent Dual-Wave Ripple Pulse
+   ========================================================================== */
+@keyframes pulse-prominent-whatsapp {
   0% {
-    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.45);
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.65), 0 0 0 0 rgba(37, 211, 102, 0.4);
   }
-  70% {
-    box-shadow: 0 0 0 12px rgba(37, 211, 102, 0);
+  50% {
+    box-shadow: 0 0 0 14px rgba(37, 211, 102, 0), 0 0 0 24px rgba(37, 211, 102, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0), 0 0 0 0 rgba(37, 211, 102, 0);
   }
 }
 
 .btn-whatsapp {
-  animation: pulse-subtle-whatsapp 3.2s infinite;
+  animation: pulse-prominent-whatsapp 2.8s infinite;
 }
 
 .btn-whatsapp:hover {
   animation: none;
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 12px 30px -4px rgba(37, 211, 102, 0.5);
+}
+
+/* ==========================================================================
+   9. Hero Section Dynamic Touches
+   ========================================================================== */
+
+/* Hero badge floating pulse */
+@keyframes badge-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.hero-badge {
+  display: inline-block;
+  animation: badge-float 4s ease-in-out infinite;
+}
+
+/* Hero title subtle emphasis shimmer */
+.hero-title span {
+  background: linear-gradient(120deg, var(--primary-blue) 0%, #3b82f6 50%, var(--primary-blue) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: text-shimmer 6s linear infinite;
+}
+
+@keyframes text-shimmer {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Hero Stats Hover Interactivity */
+.stat-item {
+  transition: transform var(--dur-micro) var(--ease-spring),
+              box-shadow var(--dur-micro) ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-4px) scale(1.04);
 }
 
 /* Ambient Hero Glow Drift */
@@ -269,13 +480,13 @@ html.js-ready .reveal-stagger-group > *.is-revealed {
     transform: scale(1);
   }
   50% {
-    opacity: 0.8;
-    transform: scale(1.05);
+    opacity: 0.85;
+    transform: scale(1.08);
   }
 }
 
 .hero-glow {
-  animation: ambient-glow 8s ease-in-out infinite;
+  animation: ambient-glow 7s ease-in-out infinite;
   pointer-events: none;
 }
 
@@ -289,40 +500,38 @@ select:focus-visible {
   transition: outline-offset var(--dur-micro) ease;
 }
 
-/* Subtle Section Divider Glow */
-section {
-  position: relative;
-  transition: background-color var(--dur-base) ease;
-}
-
 /* ==========================================================================
-   4. Mobile & Touch Screen Optimization (Requirement 7)
+   10. Mobile & Touch Screen Optimization
    ========================================================================== */
 @media (max-width: 768px) {
   :root {
-    --offset-y: 14px;
-    --offset-x: 14px;
-    --dur-reveal: 450ms;
+    --offset-y: 28px;
+    --offset-x: 24px;
+    --dur-reveal: 550ms;
   }
 
-  /* Disable sticky hover states on touch screens */
+  /* Disable sticky hover scale on touch screens */
   .vehicle-card:hover {
-    transform: none;
-    box-shadow: var(--shadow-sm);
-    border-color: var(--border-color);
+    transform: none !important;
+    box-shadow: var(--shadow-sm) !important;
+    border-color: var(--border-color) !important;
+  }
+
+  .vehicle-card::before {
+    display: none;
   }
 
   .why-card:hover {
-    transform: none;
-    box-shadow: none;
+    transform: none !important;
+    box-shadow: none !important;
   }
 
   .why-card:hover .why-icon-box {
-    transform: none;
+    transform: none !important;
   }
 
   .vehicle-card:hover .vehicle-img {
-    transform: none;
+    transform: none !important;
   }
 
   .btn-whatsapp {
@@ -331,7 +540,7 @@ section {
 }
 
 /* ==========================================================================
-   5. Reduced Motion Accessibility (Requirement 6)
+   11. Reduced Motion Accessibility (W3C WCAG 2.1)
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -349,15 +558,19 @@ section {
   html.js-ready .reveal-slide-left,
   html.js-ready .reveal-slide-right,
   html.js-ready .reveal-scale,
+  html.js-ready .reveal-pop,
   html.js-ready .reveal-stagger-group > * {
     opacity: 1 !important;
     transform: none !important;
+    filter: none !important;
     transition: none !important;
     visibility: visible !important;
   }
 
   .btn-whatsapp,
-  .hero-glow {
+  .hero-glow,
+  .hero-badge,
+  .hero-title span {
     animation: none !important;
   }
 }
