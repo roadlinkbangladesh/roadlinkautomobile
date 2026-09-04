@@ -1,0 +1,363 @@
+/**
+ * Roadlink Automobiles - Modern Website Animations Engine
+ * Meets all 9 enterprise requirements:
+ * 1. Smooth, purposeful, non-distracting motion.
+ * 2. Viewport scroll-based reveals with staggered children.
+ * 3. Seamless section transitions with zero layout shifts.
+ * 4. Micro-interactions for buttons, cards, links, tabs, and icons.
+ * 5. GPU-accelerated properties (transform, opacity) at 60fps.
+ * 6. Full accessibility with prefers-reduced-motion support.
+ * 7. Responsive touch-optimized mobile behavior.
+ * 8. Resilient no-JS fallback (content visible immediately if JS fails).
+ * 9. Modular and maintainable architecture.
+ */
+
+/* ==========================================================================
+   1. Animation Variables & Design Tokens
+   ========================================================================== */
+:root {
+  /* Ultra-smooth decel easing curves modeled after modern SaaS leaders */
+  --ease-reveal: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-interaction: cubic-bezier(0.2, 0.8, 0.2, 1);
+  
+  /* Durations */
+  --dur-micro: 180ms;
+  --dur-base: 300ms;
+  --dur-reveal: 600ms;
+  --dur-slow: 800ms;
+
+  /* Offsets */
+  --offset-y: 24px;
+  --offset-x: 24px;
+}
+
+/* ==========================================================================
+   2. Scroll-Based Reveals & Zero-JS Fallback
+   ========================================================================== */
+
+/* By default, elements are 100% visible and positioned naturally.
+   If JavaScript fails or is slow, the user will NEVER see blank content. */
+.reveal,
+.reveal-fade,
+.reveal-slide-up,
+.reveal-slide-left,
+.reveal-slide-right,
+.reveal-scale,
+.reveal-stagger-group > * {
+  opacity: 1;
+  transform: none;
+}
+
+/* Once JS is active, activate the prepared hidden state for scroll observer */
+html.js-ready .reveal,
+html.js-ready .reveal-fade,
+html.js-ready .reveal-slide-up,
+html.js-ready .reveal-slide-left,
+html.js-ready .reveal-slide-right,
+html.js-ready .reveal-scale,
+html.js-ready .reveal-stagger-group > * {
+  opacity: 0;
+  will-change: transform, opacity;
+  transition-property: transform, opacity;
+  transition-duration: var(--dur-reveal);
+  transition-timing-function: var(--ease-reveal);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+/* Initial transform states for different animation flavors */
+html.js-ready .reveal,
+html.js-ready .reveal-slide-up,
+html.js-ready .reveal-stagger-group > * {
+  transform: translateY(var(--offset-y));
+}
+
+html.js-ready .reveal-fade {
+  transform: none;
+}
+
+html.js-ready .reveal-slide-left {
+  transform: translateX(calc(-1 * var(--offset-x)));
+}
+
+html.js-ready .reveal-slide-right {
+  transform: translateX(var(--offset-x));
+}
+
+html.js-ready .reveal-scale {
+  transform: translateY(12px) scale(0.96);
+}
+
+/* REVEALED STATE - Applied when elements enter the viewport */
+html.js-ready .reveal.is-revealed,
+html.js-ready .reveal-fade.is-revealed,
+html.js-ready .reveal-slide-up.is-revealed,
+html.js-ready .reveal-slide-left.is-revealed,
+html.js-ready .reveal-slide-right.is-revealed,
+html.js-ready .reveal-scale.is-revealed,
+html.js-ready .reveal-stagger-group > *.is-revealed {
+  opacity: 1;
+  transform: translate(0, 0) scale(1);
+  will-change: auto; /* Release GPU composite layer memory */
+}
+
+/* Pre-defined stagger delays */
+.delay-1 { --reveal-delay: 70ms; }
+.delay-2 { --reveal-delay: 140ms; }
+.delay-3 { --reveal-delay: 210ms; }
+.delay-4 { --reveal-delay: 280ms; }
+.delay-5 { --reveal-delay: 350ms; }
+.delay-6 { --reveal-delay: 420ms; }
+
+/* ==========================================================================
+   3. Interactive Micro-Interactions (Buttons, Cards, Links)
+   ========================================================================== */
+
+/* Button Hover Lift & Click Tactile Press */
+.btn,
+.nav-cta,
+.filter-btn,
+.btn-view-details,
+.btn-card-details,
+.btn-card-whatsapp,
+.btn-whatsapp {
+  transition: transform var(--dur-micro) var(--ease-interaction),
+              box-shadow var(--dur-micro) var(--ease-interaction),
+              background-color var(--dur-micro) ease,
+              border-color var(--dur-micro) ease,
+              color var(--dur-micro) ease;
+}
+
+.btn:active,
+.nav-cta:active,
+.filter-btn:active,
+.btn-view-details:active,
+.btn-card-details:active,
+.btn-card-whatsapp:active,
+.btn-whatsapp:active {
+  transform: translateY(0px) scale(0.97) !important;
+  transition-duration: 80ms;
+}
+
+/* Arrow / Icon Hover Nudge */
+.btn svg,
+.btn-view-details svg,
+.btn-card-details svg {
+  transition: transform var(--dur-micro) var(--ease-reveal);
+}
+
+.btn:hover svg,
+.btn-view-details:hover svg,
+.btn-card-details:hover svg {
+  transform: translateX(4px);
+}
+
+/* Navigation Links Animated Underline */
+.nav-link {
+  transition: color var(--dur-micro) ease;
+}
+
+.nav-link::after {
+  transition: width var(--dur-base) var(--ease-reveal),
+              background-color var(--dur-micro) ease;
+}
+
+/* Card Elevation & Hover Dynamics */
+.vehicle-card,
+.why-card,
+.testimonial-card,
+.location-item,
+.detail-spec-card,
+.spec-item {
+  transition: transform var(--dur-base) var(--ease-reveal),
+              box-shadow var(--dur-base) var(--ease-reveal),
+              border-color var(--dur-base) var(--ease-reveal);
+}
+
+.vehicle-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 32px -8px rgba(27, 54, 93, 0.12),
+              0 6px 16px -4px rgba(0, 0, 0, 0.05);
+  border-color: rgba(27, 54, 93, 0.22);
+}
+
+.why-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 14px 28px -6px rgba(27, 54, 93, 0.1),
+              0 4px 12px -2px rgba(0, 0, 0, 0.04);
+}
+
+.why-icon-box {
+  transition: transform var(--dur-base) var(--ease-spring),
+              background-color var(--dur-base) var(--ease-reveal);
+}
+
+.why-card:hover .why-icon-box {
+  transform: scale(1.1) translateY(-2px);
+}
+
+/* Image Zoom on Card Hover */
+.vehicle-img-wrapper {
+  overflow: hidden;
+}
+
+.vehicle-img {
+  transition: transform 650ms var(--ease-interaction);
+}
+
+.vehicle-card:hover .vehicle-img {
+  transform: scale(1.05);
+}
+
+/* Category Filter Tabs Micro-Interactions */
+.filter-btn {
+  transition: transform var(--dur-micro) var(--ease-interaction),
+              background-color var(--dur-micro) ease,
+              color var(--dur-micro) ease,
+              box-shadow var(--dur-micro) ease;
+}
+
+.filter-btn:hover:not(.active) {
+  background-color: rgba(27, 54, 93, 0.06);
+  color: var(--primary-blue);
+  transform: translateY(-1px);
+}
+
+.filter-btn.active {
+  transform: translateY(-1px);
+}
+
+/* Sticky Header Scroll Elevation */
+#main-header {
+  transition: background-color var(--dur-base) ease,
+              box-shadow var(--dur-base) var(--ease-reveal),
+              backdrop-filter var(--dur-base) ease;
+}
+
+#main-header.scrolled {
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.08);
+}
+
+/* WhatsApp Subtle Pulse (Enterprise Grade, Non-Intrusive) */
+@keyframes pulse-subtle-whatsapp {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(37, 211, 102, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+  }
+}
+
+.btn-whatsapp {
+  animation: pulse-subtle-whatsapp 3.2s infinite;
+}
+
+.btn-whatsapp:hover {
+  animation: none;
+}
+
+/* Ambient Hero Glow Drift */
+@keyframes ambient-glow {
+  0%, 100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.hero-glow {
+  animation: ambient-glow 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Smooth Focus Rings for Keyboard Accessibility */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--primary-blue);
+  outline-offset: 3px;
+  transition: outline-offset var(--dur-micro) ease;
+}
+
+/* Subtle Section Divider Glow */
+section {
+  position: relative;
+  transition: background-color var(--dur-base) ease;
+}
+
+/* ==========================================================================
+   4. Mobile & Touch Screen Optimization (Requirement 7)
+   ========================================================================== */
+@media (max-width: 768px) {
+  :root {
+    --offset-y: 14px;
+    --offset-x: 14px;
+    --dur-reveal: 450ms;
+  }
+
+  /* Disable sticky hover states on touch screens */
+  .vehicle-card:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+    border-color: var(--border-color);
+  }
+
+  .why-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .why-card:hover .why-icon-box {
+    transform: none;
+  }
+
+  .vehicle-card:hover .vehicle-img {
+    transform: none;
+  }
+
+  .btn-whatsapp {
+    animation: none;
+  }
+}
+
+/* ==========================================================================
+   5. Reduced Motion Accessibility (Requirement 6)
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  html.js-ready .reveal,
+  html.js-ready .reveal-fade,
+  html.js-ready .reveal-slide-up,
+  html.js-ready .reveal-slide-left,
+  html.js-ready .reveal-slide-right,
+  html.js-ready .reveal-scale,
+  html.js-ready .reveal-stagger-group > * {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    visibility: visible !important;
+  }
+
+  .btn-whatsapp,
+  .hero-glow {
+    animation: none !important;
+  }
+}
