@@ -3,31 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Explore complete live stock inventory. Browse premium reconditioned vehicles featuring transparent auction grade sheets.">
-  <meta name="keywords" content="Japanese cars stock, reconditioned cars inventory, verified auction sheet">
-  <meta name="author" content="Automobile Dealership">
+  <meta name="description" content="Explore complete live stock inventory at Roadlink Automobiles. Browse premium reconditioned vehicles featuring transparent auction grade sheets in Dhaka.">
+  <meta name="keywords" content="Japanese cars stock, reconditioned cars inventory, verified auction sheet, Roadlink Automobiles, Dhaka">
+  <meta name="author" content="Roadlink Automobiles">
   <meta name="robots" content="index,follow">
   <meta name="theme-color" content="#1B365D">
   
-  <title>Available Stock | Premium Vehicles Inventory</title>
+  <title>Available Stock | Roadlink Automobiles</title>
   
   <!-- Canonical URL -->
   <link rel="canonical" href="https://your-domain.com/stock.html">
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Available Stock | Premium Vehicles Inventory">
-  <meta property="og:description" content="Explore complete live stock inventory. Browse premium reconditioned vehicles featuring transparent auction grade sheets.">
+  <meta property="og:title" content="Available Stock | Roadlink Automobiles">
+  <meta property="og:description" content="Explore complete live stock inventory at Roadlink Automobiles. Browse premium reconditioned vehicles featuring transparent auction grade sheets in Dhaka.">
   <meta property="og:url" content="https://your-domain.com/stock.html">
-  <meta property="og:site_name" content="Automobile Dealership">
+  <meta property="og:site_name" content="Roadlink Automobiles">
   <meta property="og:image" content="https://your-domain.com/assets/og-image.jpg">
-  <meta property="og:image:alt" content="Complete Premium Reconditioned Vehicles Stock">
+  <meta property="og:image:alt" content="Complete Roadlink Automobiles Reconditioned Vehicles Stock">
   <meta property="og:locale" content="en_US">
   
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Available Stock | Premium Vehicles Inventory">
-  <meta name="twitter:description" content="Explore complete live stock inventory. Browse premium reconditioned vehicles featuring transparent auction grade sheets.">
+  <meta name="twitter:title" content="Available Stock | Roadlink Automobiles">
+  <meta name="twitter:description" content="Explore complete live stock inventory at Roadlink Automobiles. Browse premium reconditioned vehicles featuring transparent auction grade sheets in Dhaka.">
   <meta name="twitter:image" content="https://your-domain.com/assets/og-image.jpg">
   
   <!-- Structured Data (JSON-LD) - CollectionPage Schema -->
@@ -52,6 +52,7 @@
   
   <!-- CSS Stylesheet -->
   <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/animations.css">
   <link rel="icon" type="image/png" href="./assets/logo.png">
 </head>
 <body>
@@ -92,7 +93,7 @@
       <div class="hero-bg-wrapper hero-overlay-wrapper">
         <img src="./assets/hero.jpg" alt="Available Premium Japanese Vehicles" class="hero-bg-img" id="stock-banner-img">
       </div>
-      <div class="container hero-container">
+      <div class="container hero-container reveal-slide-up">
         <!-- BREADCRUMBS INTEGRATED -->
         <nav class="breadcrumb-container" aria-label="Breadcrumb">
           <ul class="breadcrumbs">
@@ -136,7 +137,7 @@
     </section>
 
     <!-- SEARCH & FILTERS SECTION -->
-    <section class="filter-section" aria-label="Filter Panel">
+    <section class="filter-section reveal-slide-up delay-1" aria-label="Filter Panel">
       <div class="container">
         
         <div class="filter-header-row">
@@ -245,12 +246,12 @@
     <!-- VEHICLES GRID CONTAINER -->
     <section class="vehicles-section" style="padding-top: 40px; padding-bottom: 40px;" aria-label="Available Vehicles">
       <div class="container">
-        <div class="vehicles-grid" id="vehicles-grid">
+        <div class="vehicles-grid reveal-stagger-group" id="vehicles-grid">
           <!-- Dynamically injected via stock.js -->
         </div>
 
         <!-- LOAD MORE PAGINATION -->
-        <div class="pagination-container" id="pagination-container" style="display: none;">
+        <div class="pagination-container reveal-fade" id="pagination-container" style="display: none;">
           <button class="btn-load-more" id="load-more-btn">Load More Vehicles</button>
         </div>
       </div>
@@ -259,7 +260,7 @@
     <!-- CALL TO ACTION (WHATSAPP) -->
     <section id="whatsapp-cta-section">
       <div class="cta-bg-glow"></div>
-      <div class="container cta-container">
+      <div class="container cta-container reveal-scale">
         <div class="cta-icon-container">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="lucide lucide-message-circle">
             <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
@@ -279,7 +280,7 @@
   </main>
 
   <!-- FOOTER -->
-  <footer id="main-footer">
+  <footer id="main-footer" class="reveal-fade">
     <div class="container footer-top">
       
       <!-- Brand & Socials -->
@@ -359,6 +360,7 @@
   </footer>
 
   <!-- Application JavaScript -->
+  <script type="module" src="./js/animations.js"></script>
   <script type="module" src="./js/stock.js"></script>
 
 </body>
