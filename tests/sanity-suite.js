@@ -3,7 +3,11 @@
  * Supports local dev server or live production Cloudflare Worker targets.
  */
 
-const BASE_URL = (process.env.API_BASE_URL || process.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+let rawUrl = process.env.API_BASE_URL || process.env.VITE_API_BASE_URL || 'http://localhost:3000';
+if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+  rawUrl = 'https://' + rawUrl;
+}
+const BASE_URL = rawUrl.replace(/\/$/, '');
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'Admin@123456';
 

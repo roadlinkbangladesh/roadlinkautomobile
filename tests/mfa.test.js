@@ -2,7 +2,11 @@
  * Automated Test Suite for MFA Login Flow, Session Resilience, & Lockout Policies
  */
 
-const BASE_URL = (process.env.API_BASE_URL || process.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+let rawUrl = process.env.API_BASE_URL || process.env.VITE_API_BASE_URL || 'http://localhost:3000';
+if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+  rawUrl = 'https://' + rawUrl;
+}
+const BASE_URL = rawUrl.replace(/\/$/, '');
 
 async function runMfaTestSuite() {
   console.log('====================================================');
