@@ -1,6 +1,6 @@
 /**
  * Roadlink Automobiles - Modern Website Animations Controller
- * Lightweight, zero-dependency, GPU-accelerated scroll reveal & interaction engine.
+ * High-impact, GPU-accelerated scroll reveal & interaction engine.
  * Adheres to W3C Accessibility, Core Web Vitals (CLS = 0), and graceful degradation.
  */
 
@@ -23,8 +23,8 @@ function getObserver() {
 
   const observerOptions = {
     root: null,
-    rootMargin: '0px 0px -30px 0px',
-    threshold: 0.08
+    rootMargin: '0px 0px -45px 0px',
+    threshold: 0.10
   };
 
   scrollObserver = new IntersectionObserver((entries, obs) => {
@@ -32,7 +32,7 @@ function getObserver() {
       if (entry.isIntersecting) {
         const el = entry.target;
         el.classList.add('is-revealed');
-        // Unobserve to trigger only once (Requirement 2)
+        // Unobserve to trigger entrance only once
         obs.unobserve(el);
       }
     });
@@ -47,17 +47,17 @@ function getObserver() {
  * @param {number} staggerMs 
  * @param {number} maxStaggerMs 
  */
-export function staggerChildren(container, staggerMs = 70, maxStaggerMs = 450) {
+export function staggerChildren(container, staggerMs = 85, maxStaggerMs = 500) {
   if (!container || !container.children) return;
 
   const children = Array.from(container.children);
   children.forEach((child, index) => {
-    // Only stagger elements that have a reveal class or are in a stagger group
     if (
       container.classList.contains('reveal-stagger-group') ||
       child.classList.contains('reveal') ||
       child.classList.contains('reveal-slide-up') ||
-      child.classList.contains('reveal-scale')
+      child.classList.contains('reveal-scale') ||
+      child.classList.contains('reveal-pop')
     ) {
       const delay = Math.min(index * staggerMs, maxStaggerMs);
       child.style.setProperty('--reveal-delay', `${delay}ms`);
@@ -67,11 +67,14 @@ export function staggerChildren(container, staggerMs = 70, maxStaggerMs = 450) {
 
 /**
  * Observes a list or collection of elements for scroll reveal.
+ * Distinguishes between above-the-fold and below-the-fold elements so above-the-fold
+ * content visibly cascades in smoothly rather than appearing abruptly.
  * @param {NodeList|Array|HTMLElement} elements 
  */
 export function observeElements(elements) {
+  if (!elements) return;
+
   if (isReducedMotion) {
-    // If reduced motion is preferred, mark revealed immediately
     if (elements instanceof HTMLElement) {
       elements.classList.add('is-revealed');
     } else if (elements && elements.forEach) {
@@ -81,80 +84,53 @@ export function observeElements(elements) {
   }
 
   const observer = getObserver();
-  if (!observer) return;
-
   const targets = elements instanceof HTMLElement 
     ? [elements] 
     : Array.from(elements || []);
+
+  const visibleNow = [];
+  const belowFold = [];
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
 
   targets.forEach(el => {
     if (!el || !(el instanceof HTMLElement)) return;
     if (el.classList.contains('is-revealed')) return;
 
-    // Check if element is already within the visible viewport on load
     const rect = el.getBoundingClientRect();
-    const isVisibleNow = (
-      rect.top < (window.innerHeight || document.documentElement.clientHeight) &&
-      rect.bottom > 0
-    );
+    const isVisible = rect.top < (viewportHeight - 30) && rect.bottom > 20;
 
-    if (isVisibleNow) {
-      // Immediate reveal for above-the-fold content to prevent initial blank flash
-      requestAnimationFrame(() => {
-        el.classList.add('is-revealed');
-      });
+    if (isVisible) {
+      visibleNow.push(el);
     } else {
-      observer.observe(el);
+      belowFold.push(el);
     }
   });
-}
 
-/**
- * Scans a DOM subtree and binds animation observer to all reveal elements.
- * @param {HTMLElement|Document} root 
- */
-export function initScrollAnimations(root = document) {
-  if (typeof document === 'undefined') return;
-
-  // Mark document as JS-ready to activate CSS transitions
-  document.documentElement.classList.add('js-ready');
-
-  if (isReducedMotion) {
-    // Reveal all elements immediately
-    const all = root.querySelectorAll(
-      '.reveal, .reveal-fade, .reveal-slide-up, .reveal-slide-left, .reveal-slide-right, .reveal-scale, .reveal-stagger-group > *'
-    );
-    all.forEach(el => el.classList.add('is-revealed'));
-    return;
-  }
-
-  // 1. Process Stagger Groups
-  const staggerGroups = root.querySelectorAll('.reveal-stagger-group');
-  staggerGroups.forEach(group => {
-    staggerChildren(group);
-    observeElements(group.children);
+  // Above-the-fold elements get a staged reveal so the user actually observes the motion
+  visibleNow.forEach((el, index) => {
+    setTimeout(() => {
+      el.classList.add('is-revealed');
+    }, 70 + index * 85);
   });
 
-  // 2. Process Individual Reveal Elements
-  const revealElements = root.querySelectorAll(
-    '.reveal, .reveal-fade, .reveal-slide-up, .reveal-slide-left, .reveal-slide-right, .reveal-scale'
-  );
-  observeElements(revealElements);
-
-  // 3. Automated Hero Entrance Sequence
-  initHeroSequence(root);
-
-  // 4. Setup Dynamic Content Watcher
-  initMutationWatcher(root);
+  // Below-the-fold elements are queued into the intersection observer
+  if (observer) {
+    belowFold.forEach(el => observer.observe(el));
+  } else {
+    belowFold.forEach(el => el.classList.add('is-revealed'));
+  }
 }
 
 /**
- * Runs a smooth staggered sequence for hero section components.
+ * Runs a dynamic staggered sequence for hero section components.
  * @param {HTMLElement|Document} root 
  */
-function initHeroSequence(root) {
-  const heroContent = root.getElementById ? root.getElementById('hero-content-box') : null;
+export function initHeroSequence(root = document) {
+  const heroContent = root.getElementById ? root.getElementById('hero-content-box') : document.getElementById('hero-content-box');
   if (!heroContent) return;
+
+  // Ensure content box is visible
+  heroContent.style.opacity = '1';
 
   const heroElements = [
     heroContent.querySelector('.hero-badge'),
@@ -166,10 +142,11 @@ function initHeroSequence(root) {
 
   heroElements.forEach((el, i) => {
     el.classList.add('reveal-slide-up');
-    el.style.setProperty('--reveal-delay', `${60 + i * 70}ms`);
-    requestAnimationFrame(() => {
+    el.style.setProperty('--reveal-delay', `${100 + i * 90}ms`);
+    // Trigger with slight timeout so the animation visibly runs
+    setTimeout(() => {
       el.classList.add('is-revealed');
-    });
+    }, 50);
   });
 }
 
@@ -186,7 +163,8 @@ function initMutationWatcher(root) {
     '#testimonials-grid',
     '#stock-vehicles-grid',
     '.vehicles-grid',
-    '#dyn-contact-list'
+    '#dyn-contact-list',
+    '#related-vehicles-grid'
   ];
 
   const containers = watchedSelectors
@@ -209,11 +187,12 @@ function initMutationWatcher(root) {
               if (
                 !child.classList.contains('reveal') &&
                 !child.classList.contains('reveal-slide-up') &&
-                !child.classList.contains('reveal-scale')
+                !child.classList.contains('reveal-scale') &&
+                !child.classList.contains('reveal-pop')
               ) {
                 child.classList.add('reveal-slide-up');
               }
-              const delay = Math.min(index * 60, 360);
+              const delay = Math.min(index * 85, 450);
               child.style.setProperty('--reveal-delay', `${delay}ms`);
             });
 
@@ -229,12 +208,56 @@ function initMutationWatcher(root) {
   });
 }
 
+/**
+ * Scans a DOM subtree and binds animation observer to all reveal elements.
+ * @param {HTMLElement|Document} root 
+ */
+export function initScrollAnimations(root = document) {
+  if (typeof document === 'undefined') return;
+
+  // Mark document as JS-ready to activate CSS transitions
+  document.documentElement.classList.add('js-ready');
+
+  if (isReducedMotion) {
+    const all = root.querySelectorAll(
+      '.reveal, .reveal-fade, .reveal-slide-up, .reveal-slide-left, .reveal-slide-right, .reveal-scale, .reveal-pop, .reveal-stagger-group > *'
+    );
+    all.forEach(el => el.classList.add('is-revealed'));
+    return;
+  }
+
+  // 1. Process Stagger Groups
+  const staggerGroups = root.querySelectorAll('.reveal-stagger-group');
+  staggerGroups.forEach(group => {
+    staggerChildren(group, 85);
+    observeElements(group.children);
+  });
+
+  // 2. Process Individual Reveal Elements
+  const revealElements = root.querySelectorAll(
+    '.reveal, .reveal-fade, .reveal-slide-up, .reveal-slide-left, .reveal-slide-right, .reveal-scale, .reveal-pop'
+  );
+  observeElements(revealElements);
+
+  // 3. Automated Hero Entrance Sequence
+  initHeroSequence(root);
+
+  // 4. Setup Dynamic Content Watcher
+  initMutationWatcher(root);
+}
+
+// Expose globally for dynamic page controllers
+if (typeof window !== 'undefined') {
+  window.initScrollAnimations = initScrollAnimations;
+  window.triggerHeroSequence = () => initHeroSequence(document);
+  window.observeAnimatedElements = observeElements;
+}
+
 // Auto-initialize on module evaluation
 if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => initScrollAnimations(document));
   } else {
-    // Run immediately if DOM already parsed
     initScrollAnimations(document);
   }
 }

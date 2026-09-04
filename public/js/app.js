@@ -501,6 +501,9 @@ async function loadHeroCarousel() {
     revealed = true;
     if (heroContentBox) heroContentBox.style.opacity = "1";
     if (heroImg) heroImg.style.opacity = "1";
+    if (window.triggerHeroSequence) {
+      window.triggerHeroSequence();
+    }
   };
 
   // Safety fallback: reveal after 300ms if API is slow/offline so content is never stuck hidden
