@@ -449,9 +449,9 @@ html.js-ready .reveal-stagger-group > *.is-revealed {
   animation: badge-float 4s ease-in-out infinite;
 }
 
-/* Hero title subtle emphasis shimmer */
+/* Hero title subtle emphasis shimmer (red-toned) */
 .hero-title span {
-  background: linear-gradient(120deg, var(--primary-red) 0%, #3b82f6 50%, var(--primary-red) 100%);
+  background: linear-gradient(120deg, var(--primary-red) 0%, #ff5258 30%, #ff8a8f 50%, #ff5258 70%, var(--primary-red) 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
