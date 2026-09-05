@@ -449,20 +449,6 @@ html.js-ready .reveal-stagger-group > *.is-revealed {
   animation: badge-float 4s ease-in-out infinite;
 }
 
-/* Hero title subtle emphasis shimmer (red-toned) */
-.hero-title span {
-  background: linear-gradient(120deg, var(--primary-red) 0%, #ff5258 30%, #ff8a8f 50%, #ff5258 70%, var(--primary-red) 100%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: text-shimmer 6s linear infinite;
-}
-
-@keyframes text-shimmer {
-  0% { background-position: 0% center; }
-  100% { background-position: 200% center; }
-}
-
 /* Hero Stats Hover Interactivity */
 .stat-item {
   transition: transform var(--dur-micro) var(--ease-spring),
