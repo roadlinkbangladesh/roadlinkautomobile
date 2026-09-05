@@ -23,7 +23,10 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
       const stockNo = urlParams.get('stock');
 
       if (!stockNo) {
-        showErrorState("No Reference Number", "Please provide a valid vehicle stock reference number in the URL parameter (e.g. ?stock=RL-8821) to view specifications.");
+        showErrorState(
+          "No Reference Number",
+          "Please provide a valid vehicle stock reference number in the URL parameter (e.g. ?stock=RL-8821) to view specifications."
+        );
         return;
       }
 
@@ -31,7 +34,10 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
       currentVehicle = await fetchVehicleByStock(stockNo);
 
       if (!currentVehicle) {
-        showErrorState("Vehicle Not Found", `We couldn't locate any vehicle matching stock number "${stockNo}" in our current verified inventory.`);
+        showErrorState(
+          "Vehicle Not Found",
+          `We couldn't locate any vehicle matching stock number "${stockNo}" in our current verified inventory.`
+        );
         return;
       }
 
@@ -45,7 +51,7 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
       hydrateDescription(currentVehicle);
       hydrateAuctionSheet(currentVehicle);
       hydrateYoutubeEmbed(currentVehicle);
-      
+
       // Hydrate Related Vehicles section
       hydrateRelatedVehicles(currentVehicle);
 
@@ -59,7 +65,10 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
 
     } catch (err) {
       console.error("Critical error displaying vehicle details:", err);
-      showErrorState("System Error", "An unexpected error occurred while compiling vehicle specifications. Please reload or contact Roadlink support.");
+      showErrorState(
+        "System Error",
+        "An unexpected error occurred while compiling vehicle specifications. Please reload or contact Roadlink support."
+      );
     }
   };
 
@@ -76,9 +85,14 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
  */
 async function fetchVehicleByStock(stockNumber) {
   const vehicles = await loadVehiclesAsync();
+
   const match = vehicles.find(
-    car => car.stockNumber && car.stockNumber.toLowerCase() === stockNumber.toLowerCase() && car.published !== false
+    car =>
+      car.stockNumber &&
+      car.stockNumber.toLowerCase() === stockNumber.toLowerCase() &&
+      car.published !== false
   );
+
   return match || null;
 }
 
@@ -88,7 +102,7 @@ async function fetchVehicleByStock(stockNumber) {
 function showErrorState(title, description) {
   document.getElementById('loading-state-overlay').style.display = 'none';
   document.getElementById('vehicle-details-wrapper').style.display = 'none';
-  
+
   const errorOverlay = document.getElementById('error-state-overlay');
   document.getElementById('error-title').textContent = title;
   document.getElementById('error-desc').textContent = description;
@@ -101,16 +115,18 @@ function showErrorState(title, description) {
 function initMobileMenu() {
   const toggleBtn = document.getElementById('mobile-toggle');
   const navMenu = document.getElementById('nav-menu-links');
-  
+
   if (toggleBtn && navMenu) {
     toggleBtn.addEventListener('click', () => {
       const isExpanded = toggleBtn.classList.contains('active');
+
       toggleBtn.classList.toggle('active');
       navMenu.classList.toggle('active');
       toggleBtn.setAttribute('aria-expanded', !isExpanded);
     });
 
     const navLinks = navMenu.querySelectorAll('.nav-link');
+
     navLinks.forEach(link => {
       link.addEventListener('click', () => {
         toggleBtn.classList.remove('active');
@@ -126,22 +142,31 @@ function initMobileMenu() {
  */
 function hydrateSEO(car) {
   const pageTitle = `${car.year} ${car.make} ${car.model} | Stock No: ${car.stockNumber} | Roadlink Automobiles`;
-  const pageDesc = car.shortDescription || `Check out the reconditioned Japanese ${car.year} ${car.make} ${car.model} available at Roadlink Automobiles Dhaka. Verifiable Grade ${car.grade}, genuine ${formatMileage(car.mileage)} mileage.`;
+
+  const pageDesc =
+    car.shortDescription ||
+    `Check out the reconditioned Japanese ${car.year} ${car.make} ${car.model} available at Roadlink Automobiles Dhaka. Verifiable Grade ${car.grade}, genuine ${formatMileage(car.mileage)} mileage.`;
+
   const currentUrl = window.location.href;
   const coverImg = car.coverImage || car.images[0] || '';
 
   // Update DOM Title and description
   document.title = pageTitle;
+
   const descMeta = document.querySelector('meta[name="description"]');
-  if (descMeta) descMeta.setAttribute('content', pageDesc);
+  if (descMeta) {
+    descMeta.setAttribute('content', pageDesc);
+  }
 
   // Update Canonical
   let canonicalLink = document.querySelector('link[rel="canonical"]');
+
   if (!canonicalLink) {
     canonicalLink = document.createElement('link');
     canonicalLink.setAttribute('rel', 'canonical');
     document.head.appendChild(canonicalLink);
   }
+
   canonicalLink.setAttribute('href', currentUrl);
 
   // Update Open Graph (OG) Tags
@@ -155,11 +180,13 @@ function hydrateSEO(car) {
 
   for (const [property, val] of Object.entries(ogMappings)) {
     let metaNode = document.querySelector(`meta[property="${property}"]`);
+
     if (!metaNode) {
       metaNode = document.createElement('meta');
       metaNode.setAttribute('property', property);
       document.head.appendChild(metaNode);
     }
+
     metaNode.setAttribute('content', val);
   }
 
@@ -172,16 +199,19 @@ function hydrateSEO(car) {
 
   for (const [name, val] of Object.entries(twitterMappings)) {
     let metaNode = document.querySelector(`meta[name="${name}"]`);
+
     if (!metaNode) {
       metaNode = document.createElement('meta');
       metaNode.setAttribute('name', name);
       document.head.appendChild(metaNode);
     }
+
     metaNode.setAttribute('content', val);
   }
 
   // Inject Rich JSON-LD Vehicle Schema
   const schemaScript = document.getElementById('vehicle-json-ld');
+
   if (schemaScript) {
     const jsonLdData = {
       "@context": "https://schema.org",
@@ -216,17 +246,26 @@ function hydrateSEO(car) {
       "offers": {
         "@type": "Offer",
         "priceCurrency": "BDT",
-        "price": (car.showPrice !== false && car.show_price !== false) ? car.price : undefined,
+        "price":
+          (car.showPrice !== false && car.show_price !== false)
+            ? car.price
+            : undefined,
         "itemCondition": "https://schema.org/UsedCondition",
-        "availability": car.status === 'available' ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        "availability":
+          car.status === 'available'
+            ? "https://schema.org/InStock"
+            : "https://schema.org/OutOfStock",
         "seller": {
           "@type": "AutoDealer",
           "name": "Roadlink Automobiles",
-          "telephone": getSettings().phone ? formatPhoneNumber(getSettings().phone) : "",
+          "telephone": getSettings().phone
+            ? formatPhoneNumber(getSettings().phone)
+            : "",
           "url": "https://your-domain.com"
         }
       }
     };
+
     schemaScript.textContent = JSON.stringify(jsonLdData, null, 2);
   }
 }
@@ -236,6 +275,7 @@ function hydrateSEO(car) {
  */
 function hydrateBreadcrumbs(car) {
   const activeNode = document.getElementById('breadcrumb-active');
+
   if (activeNode) {
     activeNode.textContent = `${car.year} ${car.make} ${car.model}`;
   }
@@ -250,21 +290,31 @@ function hydrateStickyContactPanel(car) {
 
   // Status Badge
   const badgeContainer = document.getElementById('status-badge-container');
+
   badgeContainer.innerHTML = '';
+
   const badge = document.createElement('span');
   badge.className = `vehicle-badge badge-${car.status}`;
   badge.textContent = car.status.toUpperCase();
+
   badgeContainer.appendChild(badge);
 
   // Title elements
   document.getElementById('panel-vehicle-year').textContent = car.year;
   document.getElementById('panel-vehicle-title').textContent = `${car.make} ${car.model}`;
-  document.getElementById('panel-vehicle-grade').textContent = car.grade ? `Verifiable Grade: ${car.grade}` : 'Auction Grade Available';
+  document.getElementById('panel-vehicle-grade').textContent =
+    car.grade
+      ? `Verifiable Grade: ${car.grade}`
+      : 'Auction Grade Available';
 
   // Pricing
   const isShowPrice = car.showPrice !== false && car.show_price !== false;
-  document.getElementById('panel-vehicle-price').textContent = formatPrice(car.price, false, isShowPrice);
+
+  document.getElementById('panel-vehicle-price').textContent =
+    formatPrice(car.price, false, isShowPrice);
+
   const negotiableBadge = document.getElementById('panel-negotiable');
+
   if (car.negotiable && isShowPrice) {
     negotiableBadge.style.display = 'inline-block';
   } else {
@@ -273,6 +323,7 @@ function hydrateStickyContactPanel(car) {
 
   // Expected Arrival (only for incoming cars)
   const arrivalSection = document.getElementById('panel-arrival-section');
+
   if (car.status === 'incoming' && car.arrivalDate) {
     document.getElementById('panel-arrival-date').textContent = car.arrivalDate;
     arrivalSection.style.display = 'flex';
@@ -281,17 +332,33 @@ function hydrateStickyContactPanel(car) {
   }
 
   // Quick specifications in Sidebar
-  document.getElementById('panel-spec-mileage').textContent = formatMileage(car.mileage);
-  document.getElementById('panel-spec-trans').textContent = car.transmission || '-';
+  document.getElementById('panel-spec-mileage').textContent =
+    formatMileage(car.mileage);
+
+  document.getElementById('panel-spec-trans').textContent =
+    car.transmission || '-';
+
   const fuelEl = document.getElementById('panel-spec-fuel');
-  if (fuelEl) fuelEl.textContent = car.fuel || '-';
+  if (fuelEl) {
+    fuelEl.textContent = car.fuel || '-';
+  }
+
   const driveEl = document.getElementById('panel-spec-drive');
-  if (driveEl) driveEl.textContent = car.drive || car.drivetrain || '-';
-  document.getElementById('panel-spec-engine').textContent = car.engineCC ? `${car.engineCC.toLocaleString()} cc` : '-';
-  document.getElementById('panel-spec-color').textContent = car.exteriorColor || '-';
+  if (driveEl) {
+    driveEl.textContent = car.drive || car.drivetrain || '-';
+  }
+
+  document.getElementById('panel-spec-engine').textContent =
+    car.engineCC
+      ? `${car.engineCC.toLocaleString()} cc`
+      : '-';
+
+  document.getElementById('panel-spec-color').textContent =
+    car.exteriorColor || '-';
 
   // Assembly WhatsApp Message Deep Link
   const whatsappBtn = document.getElementById('panel-btn-whatsapp');
+
   const whatsAppText = `Assalamu Alaikum.
 I am interested in the following vehicle.
 
@@ -303,17 +370,23 @@ Could you please share the auction sheet and current availability?
 Thank you.`;
 
   const settings = getSettings();
-  const rawWa = settings.whatsapp || "";
-  const cleanWa = rawWa ? sanitizePhoneNumber(rawWa) : "";
-  const waUrl = `https://wa.me/${cleanWa}?text=${encodeURIComponent(whatsAppText)}`;
+  const rawWa = settings.whatsapp || '';
+  const cleanWa = rawWa ? sanitizePhoneNumber(rawWa) : '';
+
+  const waUrl =
+    `https://wa.me/${cleanWa}?text=${encodeURIComponent(whatsAppText)}`;
+
   whatsappBtn.setAttribute('href', waUrl);
 
   // Last Updated Date
-  const lastUpdated = car.updatedAt ? new Date(car.updatedAt).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  }) : 'Today';
+  const lastUpdated = car.updatedAt
+    ? new Date(car.updatedAt).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    : 'Today';
+
   document.getElementById('panel-updated-date').textContent = lastUpdated;
 }
 
@@ -323,7 +396,7 @@ Thank you.`;
 function hydrateMainMedia(car) {
   const mainHeroImg = document.getElementById('main-hero-image');
   const coverImageSrc = car.coverImage || car.images[0] || '';
-  
+
   mainHeroImg.src = coverImageSrc;
   mainHeroImg.alt = `${car.year} ${car.make} ${car.model} Cover Photo`;
 
@@ -334,42 +407,75 @@ function hydrateMainMedia(car) {
   // Exterior Gallery rendering
   const extSection = document.getElementById('exterior-gallery-section');
   const extGrid = document.getElementById('exterior-gallery-grid');
+
   extGrid.innerHTML = '';
 
   if (extImages.length > 0) {
     extImages.forEach((imgUrl, idx) => {
       const thumb = document.createElement('div');
-      thumb.className = 'gallery-thumb';
+
+      // Animation class added for dynamically generated gallery thumbnails
+      thumb.className = 'gallery-thumb reveal-scale';
+
       thumb.setAttribute('tabindex', '0');
       thumb.setAttribute('role', 'button');
-      thumb.setAttribute('aria-label', `View exterior photo ${idx + 1}`);
-      thumb.innerHTML = `<img src="${imgUrl}" alt="Exterior view ${idx + 1} of ${car.make} ${car.model}" loading="lazy">`;
-      
+      thumb.setAttribute(
+        'aria-label',
+        `View exterior photo ${idx + 1}`
+      );
+
+      thumb.innerHTML = `
+        <img
+          src="${imgUrl}"
+          alt="Exterior view ${idx + 1} of ${car.make} ${car.model}"
+          loading="lazy"
+        >
+      `;
+
       thumb.addEventListener('click', () => {
         openLightbox(extImages, idx);
       });
+
       thumb.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           openLightbox(extImages, idx);
         }
       });
+
       extGrid.appendChild(thumb);
     });
+
+    // Register dynamically generated thumbnails with existing animation engine
+    if (window.observeAnimatedElements) {
+      window.observeAnimatedElements(extGrid.children);
+    }
+
     extSection.style.display = 'block';
 
     // Bind exterior slider arrows
     const btnExtPrev = document.getElementById('btn-ext-prev');
     const btnExtNext = document.getElementById('btn-ext-next');
+
     if (btnExtPrev && btnExtNext) {
       btnExtPrev.onclick = (e) => {
         e.stopPropagation();
-        extGrid.scrollBy({ left: -extGrid.clientWidth * 0.75, behavior: 'smooth' });
+
+        extGrid.scrollBy({
+          left: -extGrid.clientWidth * 0.75,
+          behavior: 'smooth'
+        });
       };
+
       btnExtNext.onclick = (e) => {
         e.stopPropagation();
-        extGrid.scrollBy({ left: extGrid.clientWidth * 0.75, behavior: 'smooth' });
+
+        extGrid.scrollBy({
+          left: extGrid.clientWidth * 0.75,
+          behavior: 'smooth'
+        });
       };
+
       // Toggle arrow visibility based on image count
       if (extImages.length <= 4) {
         btnExtPrev.style.display = 'none';
@@ -386,42 +492,75 @@ function hydrateMainMedia(car) {
   // Interior Gallery rendering
   const intSection = document.getElementById('interior-gallery-section');
   const intGrid = document.getElementById('interior-gallery-grid');
+
   intGrid.innerHTML = '';
 
   if (intImages.length > 0) {
     intImages.forEach((imgUrl, idx) => {
       const thumb = document.createElement('div');
-      thumb.className = 'gallery-thumb';
+
+      // Animation class added for dynamically generated gallery thumbnails
+      thumb.className = 'gallery-thumb reveal-scale';
+
       thumb.setAttribute('tabindex', '0');
       thumb.setAttribute('role', 'button');
-      thumb.setAttribute('aria-label', `View interior photo ${idx + 1}`);
-      thumb.innerHTML = `<img src="${imgUrl}" alt="Interior view ${idx + 1} of ${car.make} ${car.model}" loading="lazy">`;
-      
+      thumb.setAttribute(
+        'aria-label',
+        `View interior photo ${idx + 1}`
+      );
+
+      thumb.innerHTML = `
+        <img
+          src="${imgUrl}"
+          alt="Interior view ${idx + 1} of ${car.make} ${car.model}"
+          loading="lazy"
+        >
+      `;
+
       thumb.addEventListener('click', () => {
         openLightbox(intImages, idx);
       });
+
       thumb.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           openLightbox(intImages, idx);
         }
       });
+
       intGrid.appendChild(thumb);
     });
+
+    // Register dynamically generated thumbnails with existing animation engine
+    if (window.observeAnimatedElements) {
+      window.observeAnimatedElements(intGrid.children);
+    }
+
     intSection.style.display = 'block';
 
     // Bind interior slider arrows
     const btnIntPrev = document.getElementById('btn-int-prev');
     const btnIntNext = document.getElementById('btn-int-next');
+
     if (btnIntPrev && btnIntNext) {
       btnIntPrev.onclick = (e) => {
         e.stopPropagation();
-        intGrid.scrollBy({ left: -intGrid.clientWidth * 0.75, behavior: 'smooth' });
+
+        intGrid.scrollBy({
+          left: -intGrid.clientWidth * 0.75,
+          behavior: 'smooth'
+        });
       };
+
       btnIntNext.onclick = (e) => {
         e.stopPropagation();
-        intGrid.scrollBy({ left: intGrid.clientWidth * 0.75, behavior: 'smooth' });
+
+        intGrid.scrollBy({
+          left: intGrid.clientWidth * 0.75,
+          behavior: 'smooth'
+        });
       };
+
       // Toggle arrow visibility based on image count
       if (intImages.length <= 4) {
         btnIntPrev.style.display = 'none';
@@ -436,9 +575,12 @@ function hydrateMainMedia(car) {
   }
 
   // Setup main cover click to trigger first exterior photo fullscreen
-  const mainCoverViewport = document.getElementById('hero-cover-viewport');
+  const mainCoverViewport =
+    document.getElementById('hero-cover-viewport');
+
   mainCoverViewport.addEventListener('click', () => {
     const fullList = extImages.concat(intImages);
+
     if (fullList.length > 0) {
       openLightbox(fullList, 0);
     }
@@ -450,6 +592,7 @@ function hydrateMainMedia(car) {
  */
 function hydrateSpecifications(car) {
   const container = document.getElementById('specs-table-grid');
+
   container.innerHTML = '';
 
   const specMapping = [
@@ -459,33 +602,65 @@ function hydrateSpecifications(car) {
     { label: 'Model Series', value: car.model },
     { label: 'Auction Grade', value: car.grade },
     { label: 'Genuine Mileage', value: formatMileage(car.mileage) },
-    { label: 'Engine Capacity', value: car.engineCC ? `${car.engineCC.toLocaleString()} cc` : null },
+    {
+      label: 'Engine Capacity',
+      value: car.engineCC
+        ? `${car.engineCC.toLocaleString()} cc`
+        : null
+    },
     { label: 'Fuel Source', value: car.fuel },
     { label: 'Transmission System', value: car.transmission },
     { label: 'Drive Wheel Config', value: car.drive },
     { label: 'Exterior Color', value: car.exteriorColor },
     { label: 'Interior Upholstery', value: car.interiorColor },
-    { label: 'Seating Capacity', value: car.seats ? `${car.seats} Seats` : null },
-    { label: 'Cab Cabin Doors', value: car.doors ? `${car.doors} Doors` : null },
+    {
+      label: 'Seating Capacity',
+      value: car.seats ? `${car.seats} Seats` : null
+    },
+    {
+      label: 'Cab Cabin Doors',
+      value: car.doors ? `${car.doors} Doors` : null
+    },
     { label: 'Body Style', value: car.bodyType },
     { label: 'Accident History', value: car.accidentHistory },
     { label: 'Chassis Number', value: car.chassisNumber },
     { label: 'Registration', value: car.registration },
-    { label: 'Steering Config', value: car.steering === "RHD" ? "Right Hand Drive (RHD)" : car.steering === "LHD" ? "Left Hand Drive (LHD)" : car.steering }
+    {
+      label: 'Steering Config',
+      value:
+        car.steering === "RHD"
+          ? "Right Hand Drive (RHD)"
+          : car.steering === "LHD"
+            ? "Left Hand Drive (LHD)"
+            : car.steering
+    }
   ];
 
   specMapping.forEach(spec => {
     // Only render if a valid value exists
-    if (spec.value !== undefined && spec.value !== null && spec.value !== '') {
+    if (
+      spec.value !== undefined &&
+      spec.value !== null &&
+      spec.value !== ''
+    ) {
       const row = document.createElement('div');
-      row.className = 'spec-details-row';
+
+      // Animation class added for dynamically generated specification rows
+      row.className = 'spec-details-row reveal-slide-up';
+
       row.innerHTML = `
         <span class="spec-lbl-name">${spec.label}</span>
         <span class="spec-val-content">${spec.value}</span>
       `;
+
       container.appendChild(row);
     }
   });
+
+  // Register dynamically generated specification rows
+  if (window.observeAnimatedElements) {
+    window.observeAnimatedElements(container.children);
+  }
 }
 
 /**
@@ -494,15 +669,25 @@ function hydrateSpecifications(car) {
 function hydrateFeatures(car) {
   const container = document.getElementById('features-tag-cloud');
   const section = document.getElementById('features-section');
+
   container.innerHTML = '';
 
   if (car.features && car.features.length > 0) {
     car.features.forEach(feat => {
       const chip = document.createElement('span');
-      chip.className = 'feature-tag-chip';
+
+      // Animation class added for dynamically generated feature chips
+      chip.className = 'feature-tag-chip reveal-pop';
+
       chip.textContent = feat;
       container.appendChild(chip);
     });
+
+    // Register dynamically generated feature chips
+    if (window.observeAnimatedElements) {
+      window.observeAnimatedElements(container.children);
+    }
+
     section.style.display = 'block';
   } else {
     section.style.display = 'none';
@@ -513,9 +698,12 @@ function hydrateFeatures(car) {
  * Hydrates full narrative description
  */
 function hydrateDescription(car) {
-  const descContainer = document.getElementById('description-text-content');
-  const section = document.getElementById('description-section');
-  
+  const descContainer =
+    document.getElementById('description-text-content');
+
+  const section =
+    document.getElementById('description-section');
+
   if (car.description) {
     descContainer.textContent = car.description;
     section.style.display = 'block';
@@ -530,68 +718,156 @@ function hydrateDescription(car) {
 /**
  * Opens Auction Sheet Modal supporting both images and PDFs without exposing direct storage URLs.
  */
-function openAuctionSheetModal(fileUrl, carTitle, rawSheetUrl = "", format = "") {
+function openAuctionSheetModal(
+  fileUrl,
+  carTitle,
+  rawSheetUrl = "",
+  format = ""
+) {
   closeAuctionSheetModal();
 
-  const isPdf = format === "pdf" ||
-                rawSheetUrl.toLowerCase().endsWith(".pdf") || 
-                rawSheetUrl.toLowerCase().includes(".pdf") || 
-                fileUrl.toLowerCase().includes(".pdf");
+  const isPdf =
+    format === "pdf" ||
+    rawSheetUrl.toLowerCase().endsWith(".pdf") ||
+    rawSheetUrl.toLowerCase().includes(".pdf") ||
+    fileUrl.toLowerCase().includes(".pdf");
 
   const overlay = document.createElement("div");
+
   overlay.className = "auction-sheet-modal-overlay";
   overlay.id = "auction-sheet-modal-overlay";
 
   const contentHtml = `
-    <div class="auction-modal-container" role="dialog" aria-modal="true" aria-labelledby="auction-modal-title">
+    <div
+      class="auction-modal-container"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="auction-modal-title"
+    >
       <div class="auction-modal-header">
-        <h2 id="auction-modal-title">Official Auction Certificate — ${carTitle || "Vehicle"}</h2>
-        <button type="button" class="auction-modal-close-btn" id="btn-close-auction-modal" aria-label="Close modal">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <h2 id="auction-modal-title">
+          Official Auction Certificate — ${carTitle || "Vehicle"}
+        </h2>
+
+        <button
+          type="button"
+          class="auction-modal-close-btn"
+          id="btn-close-auction-modal"
+          aria-label="Close modal"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
         </button>
       </div>
-      <div class="auction-modal-body" id="auction-modal-body" style="position: relative; user-select: none; -webkit-user-select: none;">
+
+      <div
+        class="auction-modal-body"
+        id="auction-modal-body"
+        style="position: relative; user-select: none; -webkit-user-select: none;"
+      >
         <div class="auction-modal-loading" id="auction-modal-loading">
           <div class="auction-modal-spinner"></div>
           <p>Loading auction document...</p>
         </div>
-        <div class="auction-modal-error" id="auction-modal-error" style="display: none;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-red);"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          <p style="font-weight: 600; color: var(--text-dark); margin-top: 8px;">Unable to display document</p>
-          <p style="font-size: 0.85rem; color: var(--text-muted);">The auction document could not be loaded or is temporarily unavailable.</p>
+
+        <div
+          class="auction-modal-error"
+          id="auction-modal-error"
+          style="display: none;"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="44"
+            height="44"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            style="color: var(--primary-red);"
+          >
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+
+          <p style="font-weight: 600; color: var(--text-dark); margin-top: 8px;">
+            Unable to display document
+          </p>
+
+          <p style="font-size: 0.85rem; color: var(--text-muted);">
+            The auction document could not be loaded or is temporarily unavailable.
+          </p>
         </div>
       </div>
     </div>
   `;
 
   overlay.innerHTML = contentHtml;
+
   document.body.appendChild(overlay);
   document.body.style.overflow = "hidden";
 
-  const modalContainer = overlay.querySelector(".auction-modal-container");
-  const modalBody = overlay.querySelector("#auction-modal-body");
-  const loadingEl = overlay.querySelector("#auction-modal-loading");
-  const errorEl = overlay.querySelector("#auction-modal-error");
+  const modalContainer =
+    overlay.querySelector(".auction-modal-container");
+
+  const modalBody =
+    overlay.querySelector("#auction-modal-body");
+
+  const loadingEl =
+    overlay.querySelector("#auction-modal-loading");
+
+  const errorEl =
+    overlay.querySelector("#auction-modal-error");
 
   const showError = () => {
-    if (loadingEl) loadingEl.style.display = "none";
-    if (errorEl) errorEl.style.display = "flex";
+    if (loadingEl) {
+      loadingEl.style.display = "none";
+    }
+
+    if (errorEl) {
+      errorEl.style.display = "flex";
+    }
   };
 
   const hideLoading = () => {
-    if (loadingEl) loadingEl.style.display = "none";
+    if (loadingEl) {
+      loadingEl.style.display = "none";
+    }
   };
 
   // Prevent right-click context menu on modal
   if (modalContainer) {
-    modalContainer.addEventListener("contextmenu", (e) => e.preventDefault());
+    modalContainer.addEventListener(
+      "contextmenu",
+      (e) => e.preventDefault()
+    );
   }
 
   if (isPdf) {
     const iframe = document.createElement("iframe");
-    // Pass toolbar=0&navpanes=0&scrollbar=1 hash to instruct PDF viewers to hide top download/print toolbars
-    iframe.src = `${fileUrl}#toolbar=0&navpanes=0&scrollbar=1`;
-    iframe.title = `Official Japanese Auction Certificate for ${carTitle}`;
+
+    // Pass toolbar=0&navpanes=0&scrollbar=1 hash to instruct PDF viewers
+    // to hide top download/print toolbars
+    iframe.src =
+      `${fileUrl}#toolbar=0&navpanes=0&scrollbar=1`;
+
+    iframe.title =
+      `Official Japanese Auction Certificate for ${carTitle}`;
+
     iframe.style.display = "none";
     iframe.style.width = "100%";
     iframe.style.height = "75vh";
@@ -601,11 +877,14 @@ function openAuctionSheetModal(fileUrl, carTitle, rawSheetUrl = "", format = "")
       hideLoading();
       iframe.style.display = "block";
     };
+
     iframe.onerror = showError;
 
     modalBody.appendChild(iframe);
+
   } else {
     const imgWrapper = document.createElement("div");
+
     imgWrapper.style.position = "relative";
     imgWrapper.style.display = "flex";
     imgWrapper.style.justifyContent = "center";
@@ -617,8 +896,11 @@ function openAuctionSheetModal(fileUrl, carTitle, rawSheetUrl = "", format = "")
     imgWrapper.style.webkitUserSelect = "none";
 
     const img = new Image();
+
     img.src = fileUrl;
-    img.alt = `Official Japanese Auction Certificate for ${carTitle}`;
+    img.alt =
+      `Official Japanese Auction Certificate for ${carTitle}`;
+
     img.style.display = "none";
     img.style.maxWidth = "100%";
     img.style.maxHeight = "75vh";
@@ -628,35 +910,57 @@ function openAuctionSheetModal(fileUrl, carTitle, rawSheetUrl = "", format = "")
     img.style.webkitUserDrag = "none";
 
     // Disable context menu and drag-and-drop on image
-    img.addEventListener("contextmenu", (e) => e.preventDefault());
-    img.addEventListener("dragstart", (e) => e.preventDefault());
+    img.addEventListener(
+      "contextmenu",
+      (e) => e.preventDefault()
+    );
+
+    img.addEventListener(
+      "dragstart",
+      (e) => e.preventDefault()
+    );
 
     img.onload = () => {
       hideLoading();
       img.style.display = "block";
     };
+
     img.onerror = showError;
 
     imgWrapper.appendChild(img);
 
     // Transparent protective shield preventing right-click / drag-saving on image
     const shield = document.createElement("div");
+
     shield.style.position = "absolute";
     shield.style.top = "0";
     shield.style.left = "0";
     shield.style.right = "0";
     shield.style.bottom = "0";
     shield.style.zIndex = "2";
-    shield.addEventListener("contextmenu", (e) => e.preventDefault());
-    shield.addEventListener("dragstart", (e) => e.preventDefault());
+
+    shield.addEventListener(
+      "contextmenu",
+      (e) => e.preventDefault()
+    );
+
+    shield.addEventListener(
+      "dragstart",
+      (e) => e.preventDefault()
+    );
 
     imgWrapper.appendChild(shield);
     modalBody.appendChild(imgWrapper);
   }
 
-  const closeBtn = overlay.querySelector("#btn-close-auction-modal");
+  const closeBtn =
+    overlay.querySelector("#btn-close-auction-modal");
+
   if (closeBtn) {
-    closeBtn.addEventListener("click", closeAuctionSheetModal);
+    closeBtn.addEventListener(
+      "click",
+      closeAuctionSheetModal
+    );
   }
 
   overlay.addEventListener("click", (e) => {
@@ -665,27 +969,49 @@ function openAuctionSheetModal(fileUrl, carTitle, rawSheetUrl = "", format = "")
     }
   });
 
-  // Block keyboard shortcuts for save (Ctrl+S/Cmd+S) and print (Ctrl+P/Cmd+P)
+  // Block keyboard shortcuts for save and print
   const preventSaveAndPrint = (e) => {
     if (e.key === "Escape") {
       closeAuctionSheetModal();
       return;
     }
-    if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S" || e.key === "p" || e.key === "P")) {
+
+    if (
+      (e.ctrlKey || e.metaKey) &&
+      (
+        e.key === "s" ||
+        e.key === "S" ||
+        e.key === "p" ||
+        e.key === "P"
+      )
+    ) {
       e.preventDefault();
       e.stopPropagation();
     }
   };
-  document.addEventListener("keydown", preventSaveAndPrint, true);
+
+  document.addEventListener(
+    "keydown",
+    preventSaveAndPrint,
+    true
+  );
+
   overlay._handleKeydown = preventSaveAndPrint;
 }
 
 function closeAuctionSheetModal() {
-  const overlay = document.getElementById("auction-sheet-modal-overlay");
+  const overlay =
+    document.getElementById("auction-sheet-modal-overlay");
+
   if (overlay) {
     if (overlay._handleKeydown) {
-      document.removeEventListener("keydown", overlay._handleKeydown, true);
+      document.removeEventListener(
+        "keydown",
+        overlay._handleKeydown,
+        true
+      );
     }
+
     overlay.remove();
     document.body.style.overflow = "";
   }
@@ -695,25 +1021,51 @@ function closeAuctionSheetModal() {
  * Hydrates Auction Sheet downloads and visual links
  */
 function hydrateAuctionSheet(car) {
-  const section = document.getElementById('auction-sheet-section');
-  const viewBtn = document.getElementById('btn-view-auction');
-  const downloadBtn = document.getElementById('btn-download-auction');
+  const section =
+    document.getElementById('auction-sheet-section');
+
+  const viewBtn =
+    document.getElementById('btn-view-auction');
+
+  const downloadBtn =
+    document.getElementById('btn-download-auction');
 
   if (car.auctionSheetUrl && car.auctionSheetAvailable) {
-    const fileUrl = getPublicFileUrl(car.auctionSheetUrl);
-    const format = car.auctionSheetFormat || (car.auctionSheetUrl.toLowerCase().includes(".pdf") ? "pdf" : "image");
+    const fileUrl =
+      getPublicFileUrl(car.auctionSheetUrl);
+
+    const format =
+      car.auctionSheetFormat ||
+      (
+        car.auctionSheetUrl.toLowerCase().includes(".pdf")
+          ? "pdf"
+          : "image"
+      );
 
     if (downloadBtn) {
-      downloadBtn.style.display = "none"; // Hide any separate download button for public users
+      downloadBtn.style.display = "none";
     }
 
     if (viewBtn) {
       viewBtn.onclick = (e) => {
         e.preventDefault();
-        openAuctionSheetModal(fileUrl, `${car.year} ${car.make} ${car.model}`, car.auctionSheetUrl, format);
+
+        openAuctionSheetModal(
+          fileUrl,
+          `${car.year} ${car.make} ${car.model}`,
+          car.auctionSheetUrl,
+          format
+        );
       };
     }
+
     section.style.display = 'block';
+
+    // Re-register now-visible dynamic section with animation engine
+    if (window.observeAnimatedElements) {
+      window.observeAnimatedElements(section);
+    }
+
   } else {
     section.style.display = 'none';
   }
@@ -723,23 +1075,53 @@ function hydrateAuctionSheet(car) {
  * Hydrates YouTube video player embed iframe
  */
 function hydrateYoutubeEmbed(car) {
-  const section = document.getElementById('youtube-section');
-  const iframeContainer = document.getElementById('youtube-iframe-container');
+  const section =
+    document.getElementById('youtube-section');
+
+  const iframeContainer =
+    document.getElementById('youtube-iframe-container');
+
   iframeContainer.innerHTML = '';
 
   if (car.youtubeUrl) {
     // Parse video ID from standard or share link
-    const videoId = extractYoutubeId(car.youtubeUrl);
+    const videoId =
+      extractYoutubeId(car.youtubeUrl);
+
     if (videoId) {
-      const iframe = document.createElement('iframe');
-      iframe.src = `https://www.youtube.com/embed/${videoId}`;
-      iframe.title = `YouTube walkaround video of ${car.year} ${car.make} ${car.model}`;
-      iframe.setAttribute('allowfullscreen', 'true');
-      iframe.setAttribute('frameborder', '0');
-      iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
-      
+      const iframe =
+        document.createElement('iframe');
+
+      iframe.src =
+        `https://www.youtube.com/embed/${videoId}`;
+
+      iframe.title =
+        `YouTube walkaround video of ${car.year} ${car.make} ${car.model}`;
+
+      iframe.setAttribute(
+        'allowfullscreen',
+        'true'
+      );
+
+      iframe.setAttribute(
+        'frameborder',
+        '0'
+      );
+
+      iframe.setAttribute(
+        'allow',
+        'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
+      );
+
       iframeContainer.appendChild(iframe);
+
       section.style.display = 'block';
+
+      // Re-register now-visible dynamic section with animation engine
+      if (window.observeAnimatedElements) {
+        window.observeAnimatedElements(section);
+      }
+
     } else {
       section.style.display = 'none';
     }
@@ -749,25 +1131,50 @@ function hydrateYoutubeEmbed(car) {
 }
 
 /**
- * Hydrates Related Vehicles section with same brand (priority 1) or body type (priority 2)
+ * Hydrates Related Vehicles section with same brand (priority 1)
+ * or body type (priority 2)
  */
 function hydrateRelatedVehicles(car) {
-  const section = document.getElementById('related-vehicles-container');
-  const grid = document.getElementById('related-vehicles-grid');
+  const section =
+    document.getElementById('related-vehicles-container');
+
+  const grid =
+    document.getElementById('related-vehicles-grid');
+
   grid.innerHTML = '';
 
   // Filter out current vehicle and unpublished vehicles
-  const otherVehicles = getAllVehicles().filter(v => v.stockNumber !== car.stockNumber && v.published !== false);
+  const otherVehicles =
+    getAllVehicles().filter(
+      v =>
+        v.stockNumber !== car.stockNumber &&
+        v.published !== false
+    );
 
   // Group other vehicles
-  const sameMake = otherVehicles.filter(v => v.make.toLowerCase() === car.make.toLowerCase());
-  const sameBodyType = otherVehicles.filter(v => v.bodyType.toLowerCase() === car.bodyType.toLowerCase());
+  const sameMake =
+    otherVehicles.filter(
+      v =>
+        v.make.toLowerCase() ===
+        car.make.toLowerCase()
+    );
+
+  const sameBodyType =
+    otherVehicles.filter(
+      v =>
+        v.bodyType.toLowerCase() ===
+        car.bodyType.toLowerCase()
+    );
 
   // Merge categories while maintaining unique records
   let matches = [...sameMake];
-  
+
   sameBodyType.forEach(item => {
-    if (!matches.some(m => m.stockNumber === item.stockNumber)) {
+    if (
+      !matches.some(
+        m => m.stockNumber === item.stockNumber
+      )
+    ) {
       matches.push(item);
     }
   });
@@ -778,66 +1185,160 @@ function hydrateRelatedVehicles(car) {
   if (matches.length > 0) {
     matches.forEach(carMatch => {
       const card = document.createElement('div');
+
       card.className = 'vehicle-card';
 
       // Status Badge
       let statusBadge = '';
+
       if (carMatch.status === 'sold') {
-        statusBadge = `<span class="vehicle-badge badge-sold">SOLD</span>`;
+        statusBadge =
+          `<span class="vehicle-badge badge-sold">SOLD</span>`;
       } else if (carMatch.status === 'reserved') {
-        statusBadge = `<span class="vehicle-badge badge-reserved">RESERVED</span>`;
+        statusBadge =
+          `<span class="vehicle-badge badge-reserved">RESERVED</span>`;
       } else if (carMatch.status === 'incoming') {
-        statusBadge = `<span class="vehicle-badge badge-incoming">INCOMING</span>`;
+        statusBadge =
+          `<span class="vehicle-badge badge-incoming">INCOMING</span>`;
       } else {
-        statusBadge = `<span class="vehicle-badge badge-available">AVAILABLE</span>`;
+        statusBadge =
+          `<span class="vehicle-badge badge-available">AVAILABLE</span>`;
       }
 
-      const gradeBadge = carMatch.grade ? `<span class="vehicle-badge auction-grade">Grade ${carMatch.grade}</span>` : '';
+      const gradeBadge =
+        carMatch.grade
+          ? `<span class="vehicle-badge auction-grade">Grade ${carMatch.grade}</span>`
+          : '';
 
       card.innerHTML = `
         <div class="vehicle-img-wrapper">
-          <span class="vehicle-badge badge-category">${carMatch.bodyType.toUpperCase()}</span>
+          <span class="vehicle-badge badge-category">
+            ${carMatch.bodyType.toUpperCase()}
+          </span>
+
           ${statusBadge}
           ${gradeBadge}
-          <img src="${carMatch.coverImage || carMatch.images[0]}" alt="${carMatch.year} ${carMatch.make} ${carMatch.model}" class="vehicle-img" loading="lazy">
+
+          <img
+            src="${carMatch.coverImage || carMatch.images[0]}"
+            alt="${carMatch.year} ${carMatch.make} ${carMatch.model}"
+            class="vehicle-img"
+            loading="lazy"
+          >
         </div>
+
         <div class="vehicle-content">
-          <div class="vehicle-meta-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <span class="vehicle-year-make" style="font-size: 0.85rem; color: var(--primary-red); font-weight: 700; text-transform: uppercase;">${carMatch.year} • ${carMatch.make}</span>
-            <span class="vehicle-stock-no font-mono" style="font-size: 0.75rem; color: var(--text-muted);">Stock: ${carMatch.stockNumber}</span>
+          <div
+            class="vehicle-meta-row"
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;"
+          >
+            <span
+              class="vehicle-year-make"
+              style="font-size: 0.85rem; color: var(--primary-red); font-weight: 700; text-transform: uppercase;"
+            >
+              ${carMatch.year} • ${carMatch.make}
+            </span>
+
+            <span
+              class="vehicle-stock-no font-mono"
+              style="font-size: 0.75rem; color: var(--text-muted);"
+            >
+              Stock: ${carMatch.stockNumber}
+            </span>
           </div>
-          <h3 class="vehicle-title" style="font-size: 1.25rem; margin-bottom: 16px;">${carMatch.model}</h3>
-          
+
+          <h3
+            class="vehicle-title"
+            style="font-size: 1.25rem; margin-bottom: 16px;"
+          >
+            ${carMatch.model}
+          </h3>
+
           <div class="vehicle-specs-grid">
             <div class="spec-item" title="Genuine Mileage">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:16px; height:16px; color:var(--accent-blue);">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4M6 20h12" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                style="width:16px; height:16px; color:var(--accent-blue);"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4M6 20h12"
+                />
               </svg>
+
               <span>${formatMileage(carMatch.mileage)}</span>
             </div>
+
             <div class="spec-item" title="Transmission">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:16px; height:16px; color:var(--accent-blue);">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4V9" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                style="width:16px; height:16px; color:var(--accent-blue);"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 17v-2m3 2v-4m3 4V9"
+                />
               </svg>
+
               <span>${carMatch.transmission}</span>
             </div>
           </div>
-          
-          <div class="vehicle-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
+
+          <div
+            class="vehicle-footer"
+            style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;"
+          >
             <div class="vehicle-price-container">
               <span class="price-label">Price (BDT)</span>
-              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                <span class="vehicle-price">${formatPrice(carMatch.price, false, carMatch.showPrice !== false && carMatch.show_price !== false)}</span>
-                ${carMatch.negotiable && carMatch.showPrice !== false && carMatch.show_price !== false ? `<span class="panel-negotiable-badge" style="font-size: 0.6rem; padding: 2px 5px; margin-top: 1px;">Negotiable</span>` : ''}
+
+              <div
+                style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;"
+              >
+                <span class="vehicle-price">
+                  ${formatPrice(
+                    carMatch.price,
+                    false,
+                    carMatch.showPrice !== false &&
+                    carMatch.show_price !== false
+                  )}
+                </span>
+
+                ${
+                  carMatch.negotiable &&
+                  carMatch.showPrice !== false &&
+                  carMatch.show_price !== false
+                    ? `<span class="panel-negotiable-badge" style="font-size: 0.6rem; padding: 2px 5px; margin-top: 1px;">Negotiable</span>`
+                    : ''
+                }
               </div>
             </div>
-            <a href="vehicle.html?stock=${carMatch.stockNumber}" class="btn-view-details" aria-label="View specifications for ${carMatch.make} ${carMatch.model}">View Details</a>
+
+            <a
+              href="vehicle.html?stock=${carMatch.stockNumber}"
+              class="btn-view-details"
+              aria-label="View specifications for ${carMatch.make} ${carMatch.model}"
+            >
+              View Details
+            </a>
           </div>
         </div>
       `;
+
       grid.appendChild(card);
     });
+
     section.style.display = 'block';
+
   } else {
     section.style.display = 'none';
   }
@@ -847,27 +1348,52 @@ function hydrateRelatedVehicles(car) {
  * Configures the lightbox sliders with swiping capabilities and keyboard binds
  */
 function initLightbox() {
-  const overlay = document.getElementById('lightbox-overlay');
-  const closeBtn = document.getElementById('lightbox-close');
-  const prevBtn = document.getElementById('lightbox-prev');
-  const nextBtn = document.getElementById('lightbox-next');
-  const activeImg = document.getElementById('lightbox-active-image');
-  const counterNode = document.getElementById('lightbox-counter');
+  const overlay =
+    document.getElementById('lightbox-overlay');
 
-  if (!overlay || !closeBtn || !prevBtn || !nextBtn || !activeImg) return;
+  const closeBtn =
+    document.getElementById('lightbox-close');
+
+  const prevBtn =
+    document.getElementById('lightbox-prev');
+
+  const nextBtn =
+    document.getElementById('lightbox-next');
+
+  const activeImg =
+    document.getElementById('lightbox-active-image');
+
+  const counterNode =
+    document.getElementById('lightbox-counter');
+
+  if (
+    !overlay ||
+    !closeBtn ||
+    !prevBtn ||
+    !nextBtn ||
+    !activeImg
+  ) {
+    return;
+  }
 
   // Global triggers inside modules
   window.openLightbox = (imagesList, startIndex) => {
     currentGalleryImages = imagesList;
     currentGalleryIndex = startIndex;
-    
-    activeImg.src = currentGalleryImages[currentGalleryIndex];
-    activeImg.alt = `Fullscreen slide image of ${currentVehicle.make} ${currentVehicle.model}`;
-    counterNode.textContent = `${currentGalleryIndex + 1} / ${currentGalleryImages.length}`;
+
+    activeImg.src =
+      currentGalleryImages[currentGalleryIndex];
+
+    activeImg.alt =
+      `Fullscreen slide image of ${currentVehicle.make} ${currentVehicle.model}`;
+
+    counterNode.textContent =
+      `${currentGalleryIndex + 1} / ${currentGalleryImages.length}`;
 
     overlay.classList.add('open');
     overlay.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden'; // Freeze scrolling
+
+    document.body.style.overflow = 'hidden';
 
     closeBtn.focus();
   };
@@ -875,38 +1401,75 @@ function initLightbox() {
   function closeLightbox() {
     overlay.classList.remove('open');
     overlay.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = ''; // Release scroll block
+
+    document.body.style.overflow = '';
   }
 
   function handleNext() {
-    if (currentGalleryImages.length === 0) return;
-    currentGalleryIndex = (currentGalleryIndex + 1) % currentGalleryImages.length;
-    activeImg.src = currentGalleryImages[currentGalleryIndex];
-    counterNode.textContent = `${currentGalleryIndex + 1} / ${currentGalleryImages.length}`;
+    if (currentGalleryImages.length === 0) {
+      return;
+    }
+
+    currentGalleryIndex =
+      (currentGalleryIndex + 1) %
+      currentGalleryImages.length;
+
+    activeImg.src =
+      currentGalleryImages[currentGalleryIndex];
+
+    counterNode.textContent =
+      `${currentGalleryIndex + 1} / ${currentGalleryImages.length}`;
   }
 
   function handlePrev() {
-    if (currentGalleryImages.length === 0) return;
-    currentGalleryIndex = (currentGalleryIndex - 1 + currentGalleryImages.length) % currentGalleryImages.length;
-    activeImg.src = currentGalleryImages[currentGalleryIndex];
-    counterNode.textContent = `${currentGalleryIndex + 1} / ${currentGalleryImages.length}`;
+    if (currentGalleryImages.length === 0) {
+      return;
+    }
+
+    currentGalleryIndex =
+      (currentGalleryIndex - 1 +
+        currentGalleryImages.length) %
+      currentGalleryImages.length;
+
+    activeImg.src =
+      currentGalleryImages[currentGalleryIndex];
+
+    counterNode.textContent =
+      `${currentGalleryIndex + 1} / ${currentGalleryImages.length}`;
   }
 
-  closeBtn.addEventListener('click', closeLightbox);
-  nextBtn.addEventListener('click', handleNext);
-  prevBtn.addEventListener('click', handlePrev);
+  closeBtn.addEventListener(
+    'click',
+    closeLightbox
+  );
+
+  nextBtn.addEventListener(
+    'click',
+    handleNext
+  );
+
+  prevBtn.addEventListener(
+    'click',
+    handlePrev
+  );
 
   // Close lightbox clicking outside the active image
   overlay.addEventListener('click', (e) => {
-    if (e.target === overlay || e.target === document.getElementById('lightbox-slide-container')) {
+    if (
+      e.target === overlay ||
+      e.target ===
+        document.getElementById('lightbox-slide-container')
+    ) {
       closeLightbox();
     }
   });
 
   // Keyboard navigation binds
   document.addEventListener('keydown', (e) => {
-    if (!overlay.classList.contains('open')) return;
-    
+    if (!overlay.classList.contains('open')) {
+      return;
+    }
+
     if (e.key === 'Escape') {
       closeLightbox();
     } else if (e.key === 'ArrowRight') {
@@ -916,25 +1479,43 @@ function initLightbox() {
     }
   });
 
-  // Mobile swipe support (touch drag start & end bounds)
+  // Mobile swipe support
   let touchStartX = 0;
   let touchEndX = 0;
 
-  overlay.addEventListener('touchstart', (e) => {
-    touchStartX = e.changedTouches[0].screenX;
-  }, { passive: true });
+  overlay.addEventListener(
+    'touchstart',
+    (e) => {
+      touchStartX =
+        e.changedTouches[0].screenX;
+    },
+    { passive: true }
+  );
 
-  overlay.addEventListener('touchend', (e) => {
-    touchEndX = e.changedTouches[0].screenX;
-    handleGestureSwipe();
-  }, { passive: true });
+  overlay.addEventListener(
+    'touchend',
+    (e) => {
+      touchEndX =
+        e.changedTouches[0].screenX;
+
+      handleGestureSwipe();
+    },
+    { passive: true }
+  );
 
   function handleGestureSwipe() {
-    const swipeThreshold = 50; // pixels drag limit
-    if (touchEndX < touchStartX - swipeThreshold) {
-      handleNext(); // Swiped Left
-    } else if (touchEndX > touchStartX + swipeThreshold) {
-      handlePrev(); // Swiped Right
+    const swipeThreshold = 50;
+
+    if (
+      touchEndX <
+      touchStartX - swipeThreshold
+    ) {
+      handleNext();
+    } else if (
+      touchEndX >
+      touchStartX + swipeThreshold
+    ) {
+      handlePrev();
     }
   }
 }
@@ -943,13 +1524,21 @@ function initLightbox() {
  * Initializes and configures modern client social sharing with copy-fallback
  */
 function initShareHandler(car) {
-  const shareBtn = document.getElementById('panel-btn-share');
-  if (!shareBtn) return;
+  const shareBtn =
+    document.getElementById('panel-btn-share');
+
+  if (!shareBtn) {
+    return;
+  }
 
   shareBtn.addEventListener('click', async () => {
     const shareData = {
-      title: `${car.year} ${car.make} ${car.model} | Roadlink Automobiles`,
-      text: `Take a look at this reconditioned Japanese ${car.year} ${car.make} ${car.model} (Stock: ${car.stockNumber}) showing genuine mileage of ${formatMileage(car.mileage)}.`,
+      title:
+        `${car.year} ${car.make} ${car.model} | Roadlink Automobiles`,
+
+      text:
+        `Take a look at this reconditioned Japanese ${car.year} ${car.make} ${car.model} (Stock: ${car.stockNumber}) showing genuine mileage of ${formatMileage(car.mileage)}.`,
+
       url: window.location.href
     };
 
@@ -958,7 +1547,11 @@ function initShareHandler(car) {
         await navigator.share(shareData);
       } catch (err) {
         if (err.name !== 'AbortError') {
-          console.error("Native share failure:", err);
+          console.error(
+            "Native share failure:",
+            err
+          );
+
           fallbackCopyLink();
         }
       }
@@ -968,15 +1561,34 @@ function initShareHandler(car) {
   });
 
   function fallbackCopyLink() {
-    navigator.clipboard.writeText(window.location.href)
+    navigator.clipboard
+      .writeText(window.location.href)
       .then(() => {
         // Simple elegant feedback overlay inside button
         const origText = shareBtn.innerHTML;
+
         shareBtn.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check" style="color:var(--whatsapp-green);"><path d="M20 6 9 17l-5-5"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-check"
+            style="color:var(--whatsapp-green);"
+          >
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+
           Link Copied!
         `;
-        shareBtn.style.borderColor = 'var(--whatsapp-green)';
+
+        shareBtn.style.borderColor =
+          'var(--whatsapp-green)';
 
         setTimeout(() => {
           shareBtn.innerHTML = origText;
@@ -984,7 +1596,10 @@ function initShareHandler(car) {
         }, 2000);
       })
       .catch(err => {
-        console.error("Clipboard copy failed:", err);
+        console.error(
+          "Clipboard copy failed:",
+          err
+        );
       });
   }
 }
@@ -993,20 +1608,49 @@ function initShareHandler(car) {
  * UTILITY HELPERS
  */
 
-function formatPrice(amount, negotiable, showPrice = true) {
-  if (showPrice === false) return 'Contact for Price';
-  if (!amount) return 'Contact for Price';
-  const priceFormatted = `৳ ${amount.toLocaleString()}`;
-  return negotiable ? `${priceFormatted} (Negotiable)` : priceFormatted;
+function formatPrice(
+  amount,
+  negotiable,
+  showPrice = true
+) {
+  if (showPrice === false) {
+    return 'Contact for Price';
+  }
+
+  if (!amount) {
+    return 'Contact for Price';
+  }
+
+  const priceFormatted =
+    `৳ ${amount.toLocaleString()}`;
+
+  return negotiable
+    ? `${priceFormatted} (Negotiable)`
+    : priceFormatted;
 }
 
 function formatMileage(mileage) {
-  if (mileage === undefined || mileage === null) return '-';
+  if (
+    mileage === undefined ||
+    mileage === null
+  ) {
+    return '-';
+  }
+
   return `${mileage.toLocaleString()} km`;
 }
 
 function extractYoutubeId(url) {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
+  const regExp =
+    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+
+  const match =
+    url.match(regExp);
+
+  return (
+    match &&
+    match[2].length === 11
+  )
+    ? match[2]
+    : null;
 }
