@@ -18,7 +18,13 @@ function mapVehicleToHomeFormat(v) {
     make: v.make,
     model: v.model,
     year: v.year,
-    category: v.bodyType && v.bodyType.toLowerCase() === "sedan" ? "sedan" : "suv",
+    category: (() => {
+      const bt = (v.bodyType || "").toLowerCase();
+      if (bt === "sedan") return "sedan";
+      if (bt === "suv" || bt === "crossover") return "suv";
+      if (bt === "mpv") return "mpv";
+      return bt || "other";
+    })(),
     transmission: v.transmission,
     mileage: typeof v.mileage === 'number' ? `${v.mileage.toLocaleString()} km` : (v.mileage || 'N/A'),
     engine: v.engine || (v.engineCC ? `${(v.engineCC / 1000).toFixed(1)}L ${v.fuel || ''}`.trim() : 'N/A'),
