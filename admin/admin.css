@@ -3040,7 +3040,139 @@ button:disabled {
   }
 }
 
+/* Automotive Spell-Checker & Feature Chips UI */
+.spell-suggestion-box {
+  display: none;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  background: rgba(30, 144, 255, 0.08);
+  border: 1px solid rgba(30, 144, 255, 0.25);
+  border-radius: var(--radius-sm, 6px);
+  padding: 6px 10px;
+  color: #1e3a8a;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  animation: fadeIn 0.2s ease-in-out;
+}
 
+.spell-suggestion-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
+.spell-icon {
+  color: var(--primary-blue, #1e90ff);
+  flex-shrink: 0;
+}
 
+.spell-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
 
+.btn-accept-spell {
+  background: var(--primary-blue, #1e90ff);
+  color: #ffffff;
+  border: none;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  transition: background 0.15s ease;
+}
+
+.btn-accept-spell:hover {
+  background: var(--accent-blue, #0d7ceb);
+}
+
+.btn-dismiss-spell {
+  background: transparent;
+  color: #64748b;
+  border: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.btn-dismiss-spell:hover {
+  color: #1e293b;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Feature Quick Chips */
+.features-quick-chips-wrapper {
+  margin-top: 10px;
+  padding: 12px;
+  background: var(--bg-light, #f8fafc);
+  border: 1px dashed var(--border-color, #cbd5e1);
+  border-radius: var(--radius-sm, 6px);
+}
+
+.features-quick-chips-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.features-quick-chips-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--primary-blue, #1e90ff);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.features-quick-chips-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
+}
+
+.features-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.feature-chip-btn {
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  background: #ffffff;
+  color: var(--text-body, #334155);
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.feature-chip-btn:hover {
+  border-color: var(--primary-blue, #1e90ff);
+  color: var(--primary-blue, #1e90ff);
+}
+
+.feature-chip-btn.selected {
+  background: var(--primary-blue, #1e90ff);
+  color: #ffffff;
+  border-color: var(--primary-blue, #1e90ff);
+}
