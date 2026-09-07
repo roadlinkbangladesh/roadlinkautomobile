@@ -1,6 +1,7 @@
 /**
  * Roadlink Automobiles - Automotive Spell Checking, Make-Aware Models & Quick Feature Chips
- * Provides intelligent typo detection and suggestions for vehicle data entry.
+ * Robust, confidence-ranked automotive typo detection engine.
+ * Philosophy: Obvious Typo -> Help the User. Uncertain / Custom Value -> Leave it alone.
  */
 
 // Popular automotive color finishes and base terms
@@ -21,7 +22,7 @@ const OEM_COLORS = [
   // White / Silver / Gray
   "Pearl White", "Super White", "Platinum White Pearl", "Blizzard Pearl",
   "Crystal White Pearl", "Glacier White", "Pure White", "Alabaster White",
-  "Silver Metallic", "Celestial Silver Metallic", "Atomic Silver", "Sonic Silver",
+  "Silver Metallic", "Metallic Silver", "Celestial Silver Metallic", "Atomic Silver", "Sonic Silver",
   "Magnetic Gray Metallic", "Dark Gray Metallic", "Machine Gray Metallic",
   "Graphite Gray", "Charcoal Gray", "Gunmetal Gray Metallic", "Titanium Silver Metallic",
   
@@ -61,11 +62,14 @@ const POPULAR_MAKES = [
   "Hyundai", "Kia", "Ford", "Land Rover", "Jeep", "Porsche", "Volvo"
 ];
 
-// Drive types
+// Drive types (canonical)
 const DRIVE_TYPES = ["2WD", "4WD", "AWD", "FWD", "RHD", "LHD"];
 
-// Fuel types
-const FUEL_TYPES = ["Hybrid", "Petrol", "Octane", "Diesel", "Electric", "Plug-in Hybrid (PHEV)", "CNG", "LPG"];
+// Fuel types (canonical)
+const FUEL_TYPES = [
+  "Hybrid", "Petrol", "Octane", "Diesel", "Electric",
+  "Plug-in Hybrid (PHEV)", "CNG", "LPG"
+];
 
 // Make-Aware Models Dictionary
 const MAKE_MODELS_MAP = {
@@ -146,154 +150,320 @@ export const POPULAR_FEATURE_CHIPS = [
 ];
 
 /**
- * Standard Levenshtein Distance algorithm.
- * Computes the minimum number of single-character edits between two strings.
+ * Lightweight string normalization for comparison.
+ * Collapses whitespace, strips surrounding punctuation, and lowercases.
+ * Normalization is for comparison only; does NOT alter user input.
  */
-function levenshteinDistance(s1, s2) {
-  const a = s1.toLowerCase();
-  const b = s2.toLowerCase();
-  const m = a.length;
-  const n = b.length;
+export function normalizeForCompare(str) {
+  return String(str || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[\-_]/g, " ")
+    .replace(/[^\w\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-  if (m === 0) return n;
-  if (n === 0) return m;
+/**
+ * Damerau-Levenshtein Distance.
+ * Counts insertions, deletions, substitutions, and adjacent transpositions (e.g. "Pruis" <-> "Prius" is 1 edit).
+ */
+export function damerauLevenshteinDistance(s1, s2) {
+  const a = String(s1 || "").toLowerCase();
+  const b = String(s2 || "").toLowerCase();
+  const lenA = a.length;
+  const lenB = b.length;
 
+  if (lenA === 0) return lenB;
+  if (lenB === 0) return lenA;
+
+  // Initialize matrix
   const d = [];
-  for (let i = 0; i <= m; i++) {
-    d[i] = [i];
+  for (let i = 0; i <= lenA; i++) {
+    d[i] = new Array(lenB + 1).fill(0);
+    d[i][0] = i;
   }
-  for (let j = 0; j <= n; j++) {
+  for (let j = 0; j <= lenB; j++) {
     d[0][j] = j;
   }
 
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
+  for (let i = 1; i <= lenA; i++) {
+    for (let j = 1; j <= lenB; j++) {
       const cost = a[i - 1] === b[j - 1] ? 0 : 1;
       d[i][j] = Math.min(
         d[i - 1][j] + 1,       // deletion
         d[i][j - 1] + 1,       // insertion
         d[i - 1][j - 1] + cost // substitution
       );
+
+      // Transposition check
+      if (
+        i > 1 &&
+        j > 1 &&
+        a[i - 1] === b[j - 2] &&
+        a[i - 2] === b[j - 1]
+      ) {
+        d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+      }
     }
   }
 
-  return d[m][n];
+  return d[lenA][lenB];
 }
 
 /**
- * Finds if a word has a close match in a dictionary.
+ * Resolves a make string (case-insensitive, normalized) to a canonical Make name.
  */
-function findClosestWord(word, dictionary) {
-  const w = word.trim();
-  if (!w || w.length < 3) return null;
-
-  const wLower = w.toLowerCase();
-  let bestCandidate = null;
-  let minDistance = 999;
-
-  for (const dictWord of dictionary) {
-    const dLower = dictWord.toLowerCase();
-    if (wLower === dLower) {
-      return null; // Already correctly spelled
+export function resolveCanonicalMake(makeInput) {
+  const norm = normalizeForCompare(makeInput);
+  if (!norm) return null;
+  for (const make of POPULAR_MAKES) {
+    if (normalizeForCompare(make) === norm) {
+      return make;
     }
+  }
+  return null;
+}
 
-    const dist = levenshteinDistance(wLower, dLower);
-    const maxAllowedDist = w.length <= 4 ? 1 : (w.length <= 7 ? 1 : 2);
+/**
+ * Evaluates a list of dictionary candidates against an input string.
+ * Ranks all candidates by distance and similarity, enforces minimum confidence,
+ * and performs an ambiguity separation check (separation >= 1 between best and 2nd best).
+ *
+ * @param {string} input - User input string
+ * @param {string[]} candidates - Array of canonical candidate strings
+ * @param {object} options - Policy thresholds
+ * @returns {string|null} - Best candidate or null if ambiguous / low confidence / identical
+ */
+function rankAndSelectCandidate(input, candidates, options = {}) {
+  const raw = String(input || "").trim();
+  const normInput = normalizeForCompare(raw);
+  if (!normInput || normInput.length < (options.minInputLen || 3)) {
+    return null;
+  }
 
-    if (dist <= maxAllowedDist && dist < minDistance) {
-      minDistance = dist;
-      bestCandidate = dictWord;
+  // Exact match (case-insensitive / normalized) -> No suggestion needed
+  for (const cand of candidates) {
+    if (normalizeForCompare(cand) === normInput) {
+      return null;
     }
   }
 
-  return bestCandidate;
+  const scored = [];
+
+  for (const cand of candidates) {
+    const normCand = normalizeForCompare(cand);
+    const dist = damerauLevenshteinDistance(normInput, normCand);
+    const maxLen = Math.max(normInput.length, normCand.length);
+    const similarity = 1 - (dist / maxLen);
+
+    // Length-adaptive maximum distance ceiling (based on either input or candidate length)
+    const effectiveLen = Math.max(normInput.length, normCand.length);
+    let maxAllowedDist = 1;
+    if (options.field === "drive") {
+      maxAllowedDist = 1;
+    } else if (effectiveLen >= 10) {
+      maxAllowedDist = options.maxDist10Plus || 2;
+    } else if (effectiveLen >= 6) {
+      maxAllowedDist = options.maxDist6Plus || 2;
+    } else if (effectiveLen >= 4) {
+      maxAllowedDist = options.maxDist4Plus || 1;
+    } else {
+      maxAllowedDist = 1;
+    }
+
+    // Min similarity floor
+    const minSimFloor = options.minSimilarity || 0.65;
+
+    if (dist <= maxAllowedDist && similarity >= minSimFloor) {
+      scored.push({
+        candidate: cand,
+        dist,
+        similarity,
+        lenDiff: Math.abs(normInput.length - normCand.length)
+      });
+    }
+  }
+
+  if (scored.length === 0) {
+    return null;
+  }
+
+  // Sort: lowest distance first, then highest similarity, then minimal length difference
+  scored.sort((a, b) => {
+    if (a.dist !== b.dist) return a.dist - b.dist;
+    if (b.similarity !== a.similarity) return b.similarity - a.similarity;
+    return a.lenDiff - b.lenDiff;
+  });
+
+  const best = scored[0];
+
+  // Ambiguity check: If 2nd candidate has identical distance or is nearly equally close,
+  // do NOT guess. A suggestion requires clear separation.
+  if (scored.length > 1) {
+    const second = scored[1];
+    const distGap = second.dist - best.dist;
+    const simGap = best.similarity - second.similarity;
+
+    // Zero distance gap means identical edit distance to two different candidates (e.g. "Cat" -> "Car" or "Cap")
+    if (distGap === 0) {
+      return null;
+    }
+    // For short inputs (<= 5 chars), require at least 0.15 similarity gap if distance difference is 1
+    if (normInput.length <= 5 && distGap < 2 && simGap < 0.15) {
+      return null;
+    }
+  }
+
+  return best.candidate;
+}
+
+/**
+ * Checks a single word against COLOR_KEYWORDS using conservative ranking.
+ */
+function rankColorKeyword(word) {
+  const norm = normalizeForCompare(word);
+  if (!norm || norm.length < 4) return null;
+
+  for (const kw of COLOR_KEYWORDS) {
+    if (normalizeForCompare(kw) === norm) return null; // already correct
+  }
+
+  // Find best candidate from COLOR_KEYWORDS
+  return rankAndSelectCandidate(word, COLOR_KEYWORDS, {
+    field: "colorKeyword",
+    minInputLen: 4,
+    maxDist4Plus: 1,
+    maxDist6Plus: 1,
+    maxDist10Plus: 2,
+    minSimilarity: 0.72
+  });
 }
 
 /**
  * Checks a full phrase against automotive vocabulary.
  * Returns suggested correction or null.
+ *
+ * @param {string} fieldName - Field identifier e.g. "make", "model", "exteriorColor"
+ * @param {string} text - The input text to check
+ * @param {object} context - Additional form context e.g. { make: "Toyota" }
+ * @returns {string|null} - Canonical suggestion or null
  */
 export function checkAutomotiveSpell(fieldName, text, context = {}) {
-  const raw = (text || "").trim();
-  if (!raw || raw.length < 3) return null;
+  const raw = String(text || "").trim();
+  const norm = normalizeForCompare(raw);
+  if (!norm || norm.length < 2) return null;
 
+  // 1. MAKE
+  if (fieldName === "make") {
+    return rankAndSelectCandidate(raw, POPULAR_MAKES, {
+      field: "make",
+      minInputLen: 4,
+      maxDist4Plus: 1,
+      maxDist6Plus: 2,
+      maxDist10Plus: 2,
+      minSimilarity: 0.72
+    });
+  }
+
+  // 2. MODEL (Make-Aware)
+  if (fieldName === "model") {
+    const canonicalMake = resolveCanonicalMake(context.make);
+
+    let candidates = [];
+    if (canonicalMake && MAKE_MODELS_MAP[canonicalMake]) {
+      // STRICT MAKE-AWARE: Only evaluate models of the selected make
+      candidates = MAKE_MODELS_MAP[canonicalMake];
+    } else if (!context.make || context.make.trim().length === 0) {
+      // If no make is provided, evaluate across all known models
+      const all = [];
+      for (const key of Object.keys(MAKE_MODELS_MAP)) {
+        all.push(...MAKE_MODELS_MAP[key]);
+      }
+      candidates = Array.from(new Set(all));
+    } else {
+      // An unknown / custom Make was entered (e.g. "Lucid", "Rivian", or custom brand).
+      // DO NOT search unrelated Toyota/Honda models! Leave the user's input alone.
+      return null;
+    }
+
+    return rankAndSelectCandidate(raw, candidates, {
+      field: "model",
+      minInputLen: 3,
+      maxDist4Plus: 1,
+      maxDist6Plus: 2,
+      maxDist10Plus: 2,
+      minSimilarity: 0.68
+    });
+  }
+
+  // 3. EXTERIOR / INTERIOR COLOR
   if (fieldName === "exteriorColor" || fieldName === "interiorColor") {
     const dict = fieldName === "exteriorColor" ? OEM_COLORS : INTERIOR_COLORS;
 
-    // 1. Full phrase check against OEM colors
-    for (const oem of dict) {
-      if (raw.toLowerCase() === oem.toLowerCase()) {
-        return null; // Perfect match
-      }
-      const dist = levenshteinDistance(raw.toLowerCase(), oem.toLowerCase());
-      const allowed = raw.length > 8 ? 2 : 1;
-      if (dist > 0 && dist <= allowed) {
-        return oem;
-      }
-    }
-
-    // 2. Word-by-word check against color keywords
-    const words = raw.split(/\s+/);
-    let hasCorrection = false;
-    const correctedWords = words.map(w => {
-      const cleanW = w.replace(/[^a-zA-Z]/g, "");
-      const match = findClosestWord(cleanW, COLOR_KEYWORDS);
-      if (match) {
-        hasCorrection = true;
-        return match;
-      }
-      return w;
+    // A. First evaluate full-phrase against OEM colors (ranks all candidates)
+    const oemMatch = rankAndSelectCandidate(raw, dict, {
+      field: "colorFull",
+      minInputLen: 4,
+      maxDist4Plus: 1,
+      maxDist6Plus: 2,
+      maxDist10Plus: 2,
+      minSimilarity: 0.75
     });
 
-    if (hasCorrection) {
-      return correctedWords.join(" ");
+    if (oemMatch) {
+      return oemMatch;
     }
-  } else if (fieldName === "make") {
-    for (const make of POPULAR_MAKES) {
-      if (raw.toLowerCase() === make.toLowerCase()) return null;
-      const dist = levenshteinDistance(raw.toLowerCase(), make.toLowerCase());
-      if (dist > 0 && dist <= (raw.length > 5 ? 2 : 1)) {
-        return make;
-      }
-    }
-  } else if (fieldName === "model") {
-    // Model Option A: Make-Aware check
-    const currentMake = (context.make || "").trim();
-    let modelCandidates = [];
-    if (currentMake && MAKE_MODELS_MAP[currentMake]) {
-      modelCandidates = MAKE_MODELS_MAP[currentMake];
-    } else {
-      // Look up across all models if make not specifically matched
-      for (const key of Object.keys(MAKE_MODELS_MAP)) {
-        modelCandidates.push(...MAKE_MODELS_MAP[key]);
+
+    // B. Word-by-word conservative check on color keywords
+    // Only corrects clear single-word typos in multi-word custom colors
+    // e.g. "Sonic Blue Pear" -> "Sonic Blue Pearl", "Metalic Black" -> "Metallic Black"
+    // Leaves unknown phrases like "Custom Pearl" or "Special Edition" intact!
+    const words = raw.split(/\s+/);
+    if (words.length >= 1) {
+      let correctedAny = false;
+      const correctedWords = words.map(w => {
+        const kwMatch = rankColorKeyword(w);
+        if (kwMatch) {
+          correctedAny = true;
+          return kwMatch;
+        }
+        return w;
+      });
+
+      if (correctedAny) {
+        return correctedWords.join(" ");
       }
     }
 
-    for (const model of modelCandidates) {
-      if (raw.toLowerCase() === model.toLowerCase()) return null;
-      const dist = levenshteinDistance(raw.toLowerCase(), model.toLowerCase());
-      // For model typos e.g. "Prus" (dist 1), "Pruis" (dist 1), "Harer" (dist 2)
-      const allowed = raw.length <= 4 ? 1 : 2;
-      if (dist > 0 && dist <= allowed) {
-        return model;
-      }
-    }
-  } else if (fieldName === "fuel") {
-    for (const fuel of FUEL_TYPES) {
-      if (raw.toLowerCase() === fuel.toLowerCase()) return null;
-      const dist = levenshteinDistance(raw.toLowerCase(), fuel.toLowerCase());
-      if (dist > 0 && dist <= 2) {
-        return fuel;
-      }
-    }
-  } else if (fieldName === "drive") {
-    for (const drive of DRIVE_TYPES) {
-      if (raw.toLowerCase() === drive.toLowerCase()) return null;
-      const dist = levenshteinDistance(raw.toLowerCase(), drive.toLowerCase());
-      if (dist > 0 && dist <= 1) {
-        return drive;
-      }
-    }
+    return null;
+  }
+
+  // 4. FUEL
+  if (fieldName === "fuel") {
+    return rankAndSelectCandidate(raw, FUEL_TYPES, {
+      field: "fuel",
+      minInputLen: 3,
+      maxDist4Plus: 1,
+      maxDist6Plus: 1,
+      maxDist10Plus: 2,
+      minSimilarity: 0.72
+    });
+  }
+
+  // 5. DRIVE
+  if (fieldName === "drive") {
+    // Very short acronyms (2WD, 4WD, AWD, etc.):
+    // Input must be at least 3 characters. For drive acronyms, length difference cannot exceed 1.
+    // e.g. "4WDD" -> "4WD", but incomplete "2W" -> null
+    return rankAndSelectCandidate(raw, DRIVE_TYPES, {
+      field: "drive",
+      minInputLen: 3,
+      maxDist4Plus: 1,
+      maxDist6Plus: 1,
+      maxDist10Plus: 1,
+      minSimilarity: 0.75
+    });
   }
 
   return null;
@@ -301,24 +471,28 @@ export function checkAutomotiveSpell(fieldName, text, context = {}) {
 
 /**
  * Updates the Model datalist suggestions according to the selected Make.
+ * Resolves Make case-insensitively and avoids unrelated models.
  */
 export function updateModelDatalist(makeValue) {
   const modelDatalist = document.getElementById("datalist-models");
   if (!modelDatalist) return;
 
   modelDatalist.innerHTML = "";
-  const make = (makeValue || "").trim();
+  const canonicalMake = resolveCanonicalMake(makeValue);
+
   let models = [];
-  if (make && MAKE_MODELS_MAP[make]) {
-    models = MAKE_MODELS_MAP[make];
-  } else {
-    // If make is empty or custom, populate popular top models
+  if (canonicalMake && MAKE_MODELS_MAP[canonicalMake]) {
+    models = MAKE_MODELS_MAP[canonicalMake];
+  } else if (!makeValue || makeValue.trim().length === 0) {
+    // Top models across all makes when empty
     for (const key of Object.keys(MAKE_MODELS_MAP)) {
       models.push(...MAKE_MODELS_MAP[key]);
     }
+  } else {
+    // User entered an unrecognized or custom Make - do not pollute with unrelated models
+    models = [];
   }
 
-  // Deduplicate and append
   const uniqueModels = Array.from(new Set(models));
   uniqueModels.forEach(m => {
     const opt = document.createElement("option");
@@ -329,47 +503,33 @@ export function updateModelDatalist(makeValue) {
 
 /**
  * Initializes Quick-Add Feature Chips (Option 2 for Features)
+ * Guarded against duplicate initialization.
  */
 function initFeaturesQuickChips() {
   const featuresInput = document.getElementById("v-features");
   if (!featuresInput) return;
 
   const parent = featuresInput.parentNode;
-  if (parent.querySelector(".features-quick-chips-wrapper")) return; // Already initialized
+  if (parent.querySelector(".features-quick-chips-wrapper")) {
+    return; // Already initialized, guard against duplicate wrappers
+  }
 
   const wrapper = document.createElement("div");
   wrapper.className = "features-quick-chips-wrapper";
-  wrapper.style.cssText = `
-    margin-top: 10px;
-    padding: 12px;
-    background: var(--bg-light, #f8fafc);
-    border: 1px dashed var(--border-color, #cbd5e1);
-    border-radius: var(--radius-sm, 6px);
-  `;
 
   const header = document.createElement("div");
-  header.style.cssText = `
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-  `;
+  header.className = "features-quick-chips-header";
   header.innerHTML = `
-    <span style="font-size: 0.78rem; font-weight: 700; color: var(--primary-blue, #1e90ff); text-transform: uppercase; letter-spacing: 0.05em; display: inline-flex; align-items: center; gap: 4px;">
+    <span class="features-quick-chips-title">
       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
       Quick-Add Popular Features (Click to toggle)
     </span>
-    <span style="font-size: 0.75rem; color: var(--text-muted, #64748b);">Clicking automatically appends to input</span>
+    <span class="features-quick-chips-sub">Clicking automatically appends to input</span>
   `;
   wrapper.appendChild(header);
 
   const chipsContainer = document.createElement("div");
   chipsContainer.className = "features-chips-container";
-  chipsContainer.style.cssText = `
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  `;
 
   // Function to sync chip selected state with current features text
   const syncChipsState = () => {
@@ -382,14 +542,8 @@ function initFeaturesQuickChips() {
       const featureName = btn.getAttribute("data-feature");
       const isSelected = currentTokens.includes(featureName.toLowerCase());
       if (isSelected) {
-        btn.style.background = "var(--primary-blue, #1e90ff)";
-        btn.style.color = "#ffffff";
-        btn.style.borderColor = "var(--primary-blue, #1e90ff)";
         btn.classList.add("selected");
       } else {
-        btn.style.background = "#ffffff";
-        btn.style.color = "var(--text-body, #334155)";
-        btn.style.borderColor = "var(--border-color, #cbd5e1)";
         btn.classList.remove("selected");
       }
     });
@@ -400,20 +554,6 @@ function initFeaturesQuickChips() {
     chip.type = "button";
     chip.className = "feature-chip-btn";
     chip.setAttribute("data-feature", feature);
-    chip.style.cssText = `
-      padding: 4px 10px;
-      font-size: 0.78rem;
-      font-weight: 500;
-      background: #ffffff;
-      border: 1px solid var(--border-color, #cbd5e1);
-      border-radius: 20px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      transition: all 0.15s ease;
-      white-space: nowrap;
-    `;
     chip.textContent = `+ ${feature}`;
 
     chip.addEventListener("click", (e) => {
@@ -450,10 +590,19 @@ function initFeaturesQuickChips() {
   featuresInput.addEventListener("change", syncChipsState);
 }
 
+// Global flag to guard against multiple calls to initAutomotiveSpellChecker()
+let spellCheckerInitialized = false;
+
 /**
  * Attaches the spell-checker and suggestion UI to the target vehicle form fields.
+ * Safe against repeated execution in modal / navigation lifecycles.
  */
 export function initAutomotiveSpellChecker() {
+  if (spellCheckerInitialized) {
+    return;
+  }
+  spellCheckerInitialized = true;
+
   const fieldsToCheck = [
     { id: "v-ext-color", name: "exteriorColor", listId: "datalist-ext-colors", suggestions: OEM_COLORS },
     { id: "v-int-color", name: "interiorColor", listId: "datalist-int-colors", suggestions: INTERIOR_COLORS },
@@ -480,49 +629,65 @@ export function initAutomotiveSpellChecker() {
       input.setAttribute("list", cfg.listId);
     }
 
-    // 2. Prepare container for suggestion pill
+    // 2. Prepare container for suggestion pill (re-use existing if present)
     let suggestionBox = input.parentNode.querySelector(`.spell-suggestion-box[data-for="${cfg.id}"]`);
     if (!suggestionBox) {
       suggestionBox = document.createElement("div");
       suggestionBox.className = "spell-suggestion-box";
       suggestionBox.setAttribute("data-for", cfg.id);
-      suggestionBox.style.cssText = `
-        display: none;
-        margin-top: 6px;
-        font-size: 0.8rem;
-        background: rgba(30, 144, 255, 0.08);
-        border: 1px solid rgba(30, 144, 255, 0.25);
-        border-radius: var(--radius-sm, 6px);
-        padding: 6px 10px;
-        color: #1e3a8a;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        animation: fadeIn 0.2s ease-in-out;
-      `;
       input.parentNode.appendChild(suggestionBox);
     }
 
-    // Handler to run spellcheck
+    // Per-input state: track dismissed values and active debounce token to eliminate stale results
+    let dismissedValue = null;
+    let latestCheckToken = 0;
+    let debounceTimer = null;
+
     const runCheck = () => {
-      const val = input.value;
+      const currentVal = input.value;
+      const currentToken = ++latestCheckToken;
+
+      // Stale check: if input is empty or has changed, hide suggestion
+      if (!currentVal || currentVal.trim().length === 0) {
+        suggestionBox.style.display = "none";
+        return;
+      }
+
+      // Dismiss check: if user dismissed suggestion for this exact input string, do not show again
+      if (dismissedValue && dismissedValue === currentVal.trim()) {
+        suggestionBox.style.display = "none";
+        return;
+      }
+
       const makeInput = document.getElementById("v-make");
       const context = {
         make: makeInput ? makeInput.value : ""
       };
-      const suggestion = checkAutomotiveSpell(cfg.name, val, context);
 
-      if (suggestion && suggestion.toLowerCase() !== val.trim().toLowerCase()) {
+      const suggestion = checkAutomotiveSpell(cfg.name, currentVal, context);
+
+      // Verify token hasn't become stale during execution
+      if (currentToken !== latestCheckToken) {
+        return;
+      }
+
+      // Verify input hasn't changed since check was requested
+      if (input.value !== currentVal) {
+        return;
+      }
+
+      if (suggestion && normalizeForCompare(suggestion) !== normalizeForCompare(currentVal)) {
+        // Safe DOM insertion: escape text to prevent any XSS vulnerability
         suggestionBox.innerHTML = `
-          <div style="display: flex; align-items: center; gap: 6px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-blue, #1e90ff); flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          <div class="spell-suggestion-content">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spell-icon"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
             <span>Did you mean <strong>${escapeHtml(suggestion)}</strong>?</span>
           </div>
-          <div style="display: flex; gap: 4px; flex-shrink: 0;">
-            <button type="button" class="btn-accept-spell" style="background: var(--primary-blue, #1e90ff); color: #ffffff; border: none; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 2px;">
+          <div class="spell-actions">
+            <button type="button" class="btn-accept-spell">
               Accept
             </button>
-            <button type="button" class="btn-dismiss-spell" style="background: transparent; color: #64748b; border: none; padding: 2px 4px; border-radius: 4px; font-size: 0.75rem; cursor: pointer;" title="Dismiss">
+            <button type="button" class="btn-dismiss-spell" title="Dismiss suggestion">
               ✕
             </button>
           </div>
@@ -537,13 +702,16 @@ export function initAutomotiveSpellChecker() {
             e.preventDefault();
             input.value = suggestion;
             suggestionBox.style.display = "none";
+            dismissedValue = null; // Clear dismissal for newly accepted value
             input.dispatchEvent(new Event("input", { bubbles: true }));
             input.dispatchEvent(new Event("change", { bubbles: true }));
           };
         }
+
         if (btnDismiss) {
           btnDismiss.onclick = (e) => {
             e.preventDefault();
+            dismissedValue = currentVal.trim();
             suggestionBox.style.display = "none";
           };
         }
@@ -552,29 +720,41 @@ export function initAutomotiveSpellChecker() {
       }
     };
 
-    // Attach listeners
+    // Blur listener: triggers immediately when user finishes editing field
     input.addEventListener("blur", runCheck);
-    let debounceTimer;
+
+    // Input listener: debounced typing check
     input.addEventListener("input", () => {
       clearTimeout(debounceTimer);
+      // Reset dismissal state if input text changed away from dismissed string
+      if (dismissedValue && dismissedValue !== input.value.trim()) {
+        dismissedValue = null;
+      }
+
       if (!input.value || input.value.trim().length === 0) {
+        latestCheckToken++;
         suggestionBox.style.display = "none";
         return;
       }
-      debounceTimer = setTimeout(runCheck, 500);
+
+      debounceTimer = setTimeout(runCheck, 400);
     });
   });
 
   // Make change listener: dynamically updates the model datalist when Make changes
   const makeInput = document.getElementById("v-make");
   if (makeInput) {
-    makeInput.addEventListener("input", () => {
+    const onMakeChange = () => {
       updateModelDatalist(makeInput.value);
-    });
-    makeInput.addEventListener("change", () => {
-      updateModelDatalist(makeInput.value);
-    });
-    // Initial call
+      // Re-evaluate model if model already has text
+      const modelInput = document.getElementById("v-model");
+      if (modelInput && modelInput.value) {
+        modelInput.dispatchEvent(new Event("blur"));
+      }
+    };
+
+    makeInput.addEventListener("input", onMakeChange);
+    makeInput.addEventListener("change", onMakeChange);
     updateModelDatalist(makeInput.value);
   }
 
