@@ -19,12 +19,13 @@ function mapVehicleToHomeFormat(v) {
     model: v.model,
     year: v.year,
     category: (() => {
-      const bt = (v.bodyType || "").toLowerCase();
+      const bt = (v.bodyType || "").toLowerCase().trim();
       if (bt === "sedan") return "sedan";
       if (bt === "suv" || bt === "crossover") return "suv";
       if (bt === "mpv") return "mpv";
       return bt || "other";
     })(),
+    bodyType: v.bodyType || "N/A",
     transmission: v.transmission,
     mileage: typeof v.mileage === 'number' ? `${v.mileage.toLocaleString()} km` : (v.mileage || 'N/A'),
     engine: v.engine || (v.engineCC ? `${(v.engineCC / 1000).toFixed(1)}L ${v.fuel || ''}`.trim() : 'N/A'),
@@ -176,8 +177,8 @@ function renderVehicles(category = 'all') {
     const card = document.createElement('div');
     card.className = 'vehicle-card';
     
-    // Capitalize category tag
-    const categoryLabel = car.category.toUpperCase();
+    // Capitalize category tag, preferring specific bodyType (e.g. Crossover, MPV)
+    const categoryLabel = ((car.bodyType && car.bodyType !== 'N/A') ? car.bodyType : car.category).toUpperCase();
  
     card.innerHTML = `
       <a href="vehicle.html?stock=${car.stockNumber}" class="vehicle-img-link" aria-label="View specifications for ${car.make} ${car.model}" style="display: block; text-decoration: none; color: inherit;">
