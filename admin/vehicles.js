@@ -9,6 +9,7 @@ import { $ } from "./utils.js";
 import { hasPermission } from "./auth.js";
 import { initDashboard } from "./dashboard.js";
 import { initVehicleTable, renderVehicleTable, populateMakeFilter, state as tableState, saveState as saveTableState } from "./vehicle-table.js";
+import { initAutomotiveSpellChecker, resetAutomotiveSpellSuggestions } from "./spell-checker.js";
 
 // Currently active vehicle ID (null for adding, ID string for editing)
 let currentVehicleId = null;
@@ -112,6 +113,9 @@ export function bindVehicleEvents() {
     vehicleForm.removeEventListener("submit", handleFormSubmit);
     vehicleForm.addEventListener("submit", handleFormSubmit);
   }
+
+  // Initialize Automotive Spell Checking & Autocomplete
+  initAutomotiveSpellChecker();
 
   const copySelect = $("copy-vehicle-select");
   if (copySelect) {
@@ -397,6 +401,7 @@ export function openVehicleModal(vehicleId = null) {
   form.querySelectorAll("input, select, textarea").forEach(el => {
     el.style.borderColor = "var(--border-color)";
   });
+  resetAutomotiveSpellSuggestions();
 
   if (vehicleId) {
     // Edit mode
@@ -619,6 +624,7 @@ export function closeVehicleModal() {
   currentVehicleId = null;
   activeExteriorImages = [];
   activeInteriorImages = [];
+  resetAutomotiveSpellSuggestions();
 }
 
 /**
