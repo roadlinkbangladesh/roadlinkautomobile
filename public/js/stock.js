@@ -14,7 +14,7 @@ let currentLimit = 9;
 const LIMIT_INCREMENT = 9;
 
 /**
- * Synchronizes the visibility of the visitor's "Show Sold Vehicles" controls
+ * Synchronizes the visibility of the visitor's "Hide Sold Vehicles" controls
  * based on the global administrator setting from System Settings.
  */
 function syncSoldVehiclesGlobalConfig() {
@@ -22,15 +22,15 @@ function syncSoldVehiclesGlobalConfig() {
   const globalShowSold = Boolean(settings?.showSoldVehicles ?? settings?.show_sold_vehicles ?? true);
 
   const soldToggleWrapper = document.querySelector('.sold-toggle-wrapper');
-  const showSoldToggle = document.getElementById('toggle-show-sold');
+  const hideSoldToggle = document.getElementById('toggle-hide-sold');
   const statusSelect = document.getElementById('filter-status');
 
   if (!globalShowSold) {
     if (soldToggleWrapper) {
       soldToggleWrapper.style.display = 'none';
     }
-    if (showSoldToggle) {
-      showSoldToggle.checked = false;
+    if (hideSoldToggle) {
+      hideSoldToggle.checked = true;
     }
     if (statusSelect) {
       const soldOption = statusSelect.querySelector('option[value="Sold"]');
@@ -74,11 +74,14 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
       await fetchPublicSettings();
       const globalShowSold = syncSoldVehiclesGlobalConfig();
 
-      const showSold = globalShowSold && (document.getElementById("toggle-show-sold")?.checked || false);
+      // Sold vehicles are loaded when globalShowSold is true.
+      // The hide toggle defaults to unchecked (showing sold vehicles).
+      const hideSold = document.getElementById("toggle-hide-sold")?.checked || false;
+      const includeSold = globalShowSold && !hideSold;
       
       allVehicles = (
           await loadVehiclesAsync({
-              includeSold: showSold
+              includeSold: globalShowSold // Always load if permitted by global setting so toggling is instant
           })
       ).filter(v => v.published !== false);
       populateDynamicFilters(); // Dynamically populates Make, Body Type, and Fuel filters
@@ -226,36 +229,24 @@ function setupEventListeners() {
     });
   });
 
-  // Track change on "Show Sold Vehicles" checkbox
-  const showSoldToggle = document.getElementById('toggle-show-sold');
-  if (showSoldToggle) {
-    showSoldToggle.addEventListener('change', async () => {
+  // Track change on "Hide Sold Vehicles" checkbox
+  const hideSoldToggle = document.getElementById('toggle-hide-sold');
+  if (hideSoldToggle) {
+    hideSoldToggle.addEventListener('change', async () => {
       const globalShowSold = syncSoldVehiclesGlobalConfig();
       if (!globalShowSold) {
-        showSoldToggle.checked = false;
+        hideSoldToggle.checked = true;
         return;
       }
 
       const statusSelect = document.getElementById('filter-status');
   
-      // If user unchecks Show Sold, but Status selection was "Sold", reset Status back to "All"
-      if (statusSelect && !showSoldToggle.checked && statusSelect.value === 'Sold') {
+      // If user checks "Hide Sold Vehicles", but Status selection was "Sold", reset Status back to "All"
+      if (statusSelect && hideSoldToggle.checked && statusSelect.value === 'Sold') {
         statusSelect.value = 'All';
       }
   
-      try {
-        allVehicles = (
-          await loadVehiclesAsync({
-            includeSold: showSoldToggle.checked
-          })
-        ).filter(v => v.published !== false);
-  
-        populateDynamicFilters();
-        applyFiltersAndRender(true);
-  
-      } catch (error) {
-        console.error("Failed to reload inventory:", error);
-      }
+      applyFiltersAndRender(true);
     });
   }
   form.addEventListener('submit', (e) => {
@@ -269,9 +260,9 @@ function setupEventListeners() {
     resetBtn.addEventListener('click', () => {
       form.reset();
       
-      // Also uncheck the standalone Show Sold Vehicles checkbox
-      if (showSoldToggle) {
-        showSoldToggle.checked = false;
+      // Also uncheck the "Hide Sold Vehicles" checkbox so sold vehicles remain visible by default
+      if (hideSoldToggle) {
+        hideSoldToggle.checked = false;
       }
       
       syncSoldVehiclesGlobalConfig();
@@ -307,19 +298,23 @@ function applyFiltersAndRender(resetPagination = false) {
   const statusVal = document.getElementById('filter-status')?.value || 'All';
   const sortByVal = document.getElementById('filter-sort')?.value || 'newest';
 
-  // Toggle/Sync "Show Sold Vehicles" checkbox automatically if user clicks "Sold" in the dropdown status filter
-  const showSoldToggle = document.getElementById('toggle-show-sold');
-  if (statusVal === 'Sold' && showSoldToggle && !showSoldToggle.checked && globalShowSold) {
-    showSoldToggle.checked = true;
+  // Toggle/Sync "Hide Sold Vehicles" checkbox automatically:
+  // If user selects "Sold" in the status dropdown, uncheck "Hide Sold Vehicles" so sold cars show.
+  const hideSoldToggle = document.getElementById('toggle-hide-sold');
+  if (statusVal === 'Sold' && hideSoldToggle && hideSoldToggle.checked && globalShowSold) {
+    hideSoldToggle.checked = false;
   }
 
-  const showSold = globalShowSold && (showSoldToggle?.checked || statusVal === 'Sold');
+  // Sold vehicles are shown if permitted globally AND the visitor has NOT checked "Hide Sold Vehicles"
+  // (Or if the visitor explicitly filtered for Status = 'Sold', show them)
+  const hideSold = hideSoldToggle ? hideSoldToggle.checked : false;
+  const showSold = globalShowSold && (!hideSold || statusVal === 'Sold');
 
   // Apply filters
   filteredVehicles = allVehicles.filter(car => {
     const status = car.status.toLowerCase();
 
-    // 0. Hide Sold vehicles if global setting disables them OR visitor toggle is off
+    // 0. Hide Sold vehicles if global setting disables them OR visitor checked "Hide Sold Vehicles"
     if (!globalShowSold || !showSold) {
       if (status === 'sold') {
         return false;
@@ -633,9 +628,9 @@ function renderEmptyState(container) {
       const form = document.getElementById('filter-form');
       if (form) form.reset();
       
-      const showSoldToggle = document.getElementById('toggle-show-sold');
-      if (showSoldToggle) {
-        showSoldToggle.checked = false;
+      const hideSoldToggle = document.getElementById('toggle-hide-sold');
+      if (hideSoldToggle) {
+        hideSoldToggle.checked = false;
       }
       
       applyFiltersAndRender(true);
