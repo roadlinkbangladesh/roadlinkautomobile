@@ -2407,7 +2407,8 @@ section {
 
 @media (max-width: 768px) {
   .filter-section {
-    position: static;
+    position: relative;
+    z-index: 950;
     padding: 16px 0;
   }
   
