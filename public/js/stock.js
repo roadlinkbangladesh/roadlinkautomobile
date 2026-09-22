@@ -73,8 +73,13 @@ if (typeof window !== "undefined" && typeof document !== "undefined") {
     try {
       await fetchPublicSettings();
       const globalShowSold = syncSoldVehiclesGlobalConfig();
-
-      const showSold = globalShowSold && (document.getElementById("toggle-show-sold")?.checked || false);
+      const showSoldToggle = document.getElementById("toggle-show-sold");
+      
+      if (showSoldToggle) {
+        showSoldToggle.checked = globalShowSold;
+      }
+      
+      const showSold = globalShowSold;
       
       allVehicles = (
           await loadVehiclesAsync({
