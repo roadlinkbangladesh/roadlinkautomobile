@@ -2412,6 +2412,11 @@ section {
     padding: 16px 0;
   }
   
+  .filter-section:has(#filter-form.mobile-open) {
+    transform: none !important;
+    filter: none !important;
+  }
+  
   .filter-mobile-buttons {
     display: flex !important;
     gap: 8px;
@@ -2463,7 +2468,7 @@ section {
     width: 100vw;
     height: 100vh;
     background-color: rgba(11, 18, 32, 0.7);
-    z-index: 10000;
+    z-index: 10001;
     align-items: center;
     justify-content: center;
     padding: 16px;
