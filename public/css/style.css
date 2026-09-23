@@ -2455,6 +2455,37 @@ section {
     width: 16px;
     height: 16px;
   }
+
+  .filter-mobile-close-btn {
+  display: none;
+}
+
+#filter-form.mobile-open .filter-mobile-close-btn {
+  display: flex;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  width: calc(100vw - 32px);
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--bg-white);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--primary-blue);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 10002;
+  box-shadow: var(--shadow-sm);
+}
+
+.filter-mobile-close-btn svg {
+  width: 18px;
+  height: 18px;
+}
   
   #filter-form {
     display: none; /* hidden by default on mobile */
@@ -2471,7 +2502,7 @@ section {
   z-index: 10001;
   align-items: flex-start;
   justify-content: flex-start;
-  padding: 88px 16px 24px;
+  padding: 80px 16px 24px;
   overflow-y: auto;
   backdrop-filter: blur(4px);
 }
