@@ -203,22 +203,16 @@ function populateDynamicFilters() {
 function setupFilters() {
   // Toggle filters on Mobile
   const filterToggleBtn = document.getElementById('filter-mobile-toggle');
-const filterCloseBtn = document.getElementById('filter-mobile-close');
-const filterForm = document.getElementById('filter-form');
-
-if (filterToggleBtn && filterForm) {
-  filterToggleBtn.addEventListener('click', () => {
-    filterForm.classList.add('mobile-open');
-    filterToggleBtn.setAttribute('aria-expanded', 'true');
-  });
-}
-
-if (filterCloseBtn && filterForm) {
-  filterCloseBtn.addEventListener('click', () => {
-    filterForm.classList.remove('mobile-open');
-    filterToggleBtn?.setAttribute('aria-expanded', 'false');
-  });
-}
+  const filterForm = document.getElementById('filter-form');
+  
+  if (filterToggleBtn && filterForm) {
+    filterToggleBtn.addEventListener('click', () => {
+      filterForm.classList.toggle('mobile-open');
+      const isOpen = filterForm.classList.contains('mobile-open');
+      filterToggleBtn.setAttribute('aria-expanded', isOpen);
+      filterToggleBtn.querySelector('.toggle-text').textContent = isOpen ? 'Hide Filters' : 'Show Filters';
+    });
+  }
 }
 
 /**
@@ -662,4 +656,4 @@ function showErrorMessage() {
       <a href="https://wa.me/${cleanWa}" class="btn btn-primary">Contact Support</a>
     </div>
   `;
-      }
+    }
