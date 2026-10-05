@@ -160,83 +160,99 @@
         </button>
 
         <form id="filter-form">
-          <div class="filter-panel-grid">
-            
-            <!-- Search Box Group -->
-            <div class="filter-group">
-              <label for="search-input" class="filter-label">Search Vehicle</label>
-              <div class="filter-input-wrapper">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          <div class="filter-modal-content">
+            <div class="filter-modal-header">
+              <h3>Filter Inventory</h3>
+              <button type="button" class="filter-close-btn" id="filter-modal-close" aria-label="Hide filters">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
-                <input type="text" id="search-input" class="filter-control filter-input-search" placeholder="Search Make or Model...">
+              </button>
+            </div>
+
+            <div class="filter-panel-grid">
+              
+              <!-- Search Box Group -->
+              <div class="filter-group">
+                <label for="search-input" class="filter-label">Search Vehicle</label>
+                <div class="filter-input-wrapper">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input type="text" id="search-input" class="filter-control filter-input-search" placeholder="Search Make or Model...">
+                </div>
               </div>
+
+              <!-- Make Dropdown -->
+              <div class="filter-group">
+                <label for="filter-make" class="filter-label">Make</label>
+                <select id="filter-make" class="filter-control filter-control-select">
+                  <option value="All">All Makes</option>
+                </select>
+              </div>
+
+              <!-- Body Type Dropdown -->
+              <div class="filter-group">
+                <label for="filter-body-type" class="filter-label">Body Type</label>
+                <select id="filter-body-type" class="filter-control filter-control-select">
+                  <option value="All">All Types</option>
+                </select>
+              </div>
+
+              <!-- Fuel Type Dropdown -->
+              <div class="filter-group">
+                <label for="filter-fuel-type" class="filter-label">Fuel Type</label>
+                <select id="filter-fuel-type" class="filter-control filter-control-select">
+                  <option value="All">All Fuels</option>
+                </select>
+              </div>
+
+              <!-- Transmission Dropdown -->
+              <div class="filter-group">
+                <label for="filter-transmission" class="filter-label">Transmission</label>
+                <select id="filter-transmission" class="filter-control filter-control-select">
+                  <option value="All">All Transmissions</option>
+                  <option value="Automatic">Automatic</option>
+                  <option value="Manual">Manual</option>
+                </select>
+              </div>
+
+              <!-- Status Dropdown -->
+              <div class="filter-group">
+                <label for="filter-status" class="filter-label">Status</label>
+                <select id="filter-status" class="filter-control filter-control-select">
+                  <option value="All">All Status</option>
+                  <option value="Available">Available</option>
+                  <option value="Incoming">Incoming</option>
+                  <option value="Reserved">Reserved</option>
+                  <option value="Sold">Sold</option>
+                </select>
+              </div>
+
+              <!-- Sort By Dropdown -->
+              <div class="filter-group">
+                <label for="filter-sort" class="filter-label">Sort By</label>
+                <select id="filter-sort" class="filter-control filter-control-select">
+                  <option value="newest" selected>Newest Listed</option>
+                  <option value="oldest">Oldest Listed</option>
+                  <option value="price-asc">Price: Low → High</option>
+                  <option value="price-desc">Price: High → Low</option>
+                  <option value="mileage-asc">Mileage: Low → High</option>
+                  <option value="mileage-desc">Mileage: High → Low</option>
+                </select>
+              </div>
+
+              <!-- Reset Filters Button -->
+              <div class="filter-group">
+                <button type="button" id="reset-filters-btn" class="btn-reset-filter">Reset Filters</button>
+              </div>
+
             </div>
 
-            <!-- Make Dropdown -->
-            <div class="filter-group">
-              <label for="filter-make" class="filter-label">Make</label>
-              <select id="filter-make" class="filter-control filter-control-select">
-                <option value="All">All Makes</option>
-              </select>
+            <div class="filter-modal-footer">
+              <button type="button" id="filter-modal-apply-btn" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px 16px;">Hide Filters</button>
             </div>
-
-            <!-- Body Type Dropdown -->
-            <div class="filter-group">
-              <label for="filter-body-type" class="filter-label">Body Type</label>
-              <select id="filter-body-type" class="filter-control filter-control-select">
-                <option value="All">All Types</option>
-              </select>
-            </div>
-
-            <!-- Fuel Type Dropdown -->
-            <div class="filter-group">
-              <label for="filter-fuel-type" class="filter-label">Fuel Type</label>
-              <select id="filter-fuel-type" class="filter-control filter-control-select">
-                <option value="All">All Fuels</option>
-              </select>
-            </div>
-
-            <!-- Transmission Dropdown -->
-            <div class="filter-group">
-              <label for="filter-transmission" class="filter-label">Transmission</label>
-              <select id="filter-transmission" class="filter-control filter-control-select">
-                <option value="All">All Transmissions</option>
-                <option value="Automatic">Automatic</option>
-                <option value="Manual">Manual</option>
-              </select>
-            </div>
-
-            <!-- Status Dropdown -->
-            <div class="filter-group">
-              <label for="filter-status" class="filter-label">Status</label>
-              <select id="filter-status" class="filter-control filter-control-select">
-                <option value="All">All Status</option>
-                <option value="Available">Available</option>
-                <option value="Incoming">Incoming</option>
-                <option value="Reserved">Reserved</option>
-                <option value="Sold">Sold</option>
-              </select>
-            </div>
-
-            <!-- Sort By Dropdown -->
-            <div class="filter-group">
-              <label for="filter-sort" class="filter-label">Sort By</label>
-              <select id="filter-sort" class="filter-control filter-control-select">
-                <option value="newest" selected>Newest Listed</option>
-                <option value="oldest">Oldest Listed</option>
-                <option value="price-asc">Price: Low → High</option>
-                <option value="price-desc">Price: High → Low</option>
-                <option value="mileage-asc">Mileage: Low → High</option>
-                <option value="mileage-desc">Mileage: High → Low</option>
-              </select>
-            </div>
-
-            <!-- Reset Filters Button -->
-            <div class="filter-group">
-              <button type="button" id="reset-filters-btn" class="btn-reset-filter">Reset Filters</button>
-            </div>
-
           </div>
         </form>
 
