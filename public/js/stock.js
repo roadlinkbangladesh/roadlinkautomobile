@@ -204,15 +204,71 @@ function setupFilters() {
   // Toggle filters on Mobile
   const filterToggleBtn = document.getElementById('filter-mobile-toggle');
   const filterForm = document.getElementById('filter-form');
+  const filterCloseBtn = document.getElementById('filter-modal-close');
+  const filterApplyBtn = document.getElementById('filter-modal-apply-btn');
   
+  const closeMobileFilters = () => {
+    if (!filterForm) return;
+    filterForm.classList.remove('mobile-open');
+    if (filterToggleBtn) {
+      filterToggleBtn.setAttribute('aria-expanded', 'false');
+      const toggleText = filterToggleBtn.querySelector('.toggle-text');
+      if (toggleText) toggleText.textContent = 'Show Filters';
+    }
+  };
+
+  const openMobileFilters = () => {
+    if (!filterForm) return;
+    filterForm.classList.add('mobile-open');
+    if (filterToggleBtn) {
+      filterToggleBtn.setAttribute('aria-expanded', 'true');
+      const toggleText = filterToggleBtn.querySelector('.toggle-text');
+      if (toggleText) toggleText.textContent = 'Hide Filters';
+    }
+  };
+
   if (filterToggleBtn && filterForm) {
     filterToggleBtn.addEventListener('click', () => {
-      filterForm.classList.toggle('mobile-open');
       const isOpen = filterForm.classList.contains('mobile-open');
-      filterToggleBtn.setAttribute('aria-expanded', isOpen);
-      filterToggleBtn.querySelector('.toggle-text').textContent = isOpen ? 'Hide Filters' : 'Show Filters';
+      if (isOpen) {
+        closeMobileFilters();
+      } else {
+        openMobileFilters();
+      }
     });
   }
+
+  // Close via modal header close button
+  if (filterCloseBtn) {
+    filterCloseBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeMobileFilters();
+    });
+  }
+
+  // Close via modal footer apply/hide button
+  if (filterApplyBtn) {
+    filterApplyBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeMobileFilters();
+    });
+  }
+
+  // Close when clicking the backdrop (outside .filter-modal-content)
+  if (filterForm) {
+    filterForm.addEventListener('click', (e) => {
+      if (e.target === filterForm) {
+        closeMobileFilters();
+      }
+    });
+  }
+
+  // Close on Escape key press
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && filterForm && filterForm.classList.contains('mobile-open')) {
+      closeMobileFilters();
+    }
+  });
 }
 
 /**
