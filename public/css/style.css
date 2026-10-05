@@ -2078,6 +2078,15 @@ section {
   font-weight: 500;
 }
 
+.filter-modal-header,
+.filter-modal-footer {
+  display: none;
+}
+
+.filter-modal-content {
+  display: contents;
+}
+
 .filter-mobile-buttons {
   display: none;
 }
@@ -2486,6 +2495,7 @@ section {
     padding: 24px;
     box-shadow: var(--shadow-lg);
     animation: filterModalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+    overflow-y: auto;
   }
 
   @keyframes filterModalSlideUp {
