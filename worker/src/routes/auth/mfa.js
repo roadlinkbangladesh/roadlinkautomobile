@@ -9,7 +9,7 @@ import {
 } from "../../utils/response.js";
 import { authenticate, isStrictlyLessPrivileged } from "../../utils/auth.js";
 import { verifyPassword } from "../../utils/password.js";
-import { createToken, verifyToken } from "../../utils/jwt.js";
+import { createToken, verifyToken, validateJwtSecret } from "../../utils/jwt.js";
 import { JWT } from "../../config/constants.js";
 import { logAudit, getRequestMeta } from "../../utils/audit.js";
 import { platformConfig } from "../../services/platform-config.js";
@@ -20,7 +20,9 @@ import {
     decryptMfaSecret,
     generateRecoveryCodes,
     hashRecoveryCode,
-    buildOtpAuthUrl
+    verifyRecoveryCode,
+    buildOtpAuthUrl,
+    getMfaEncryptionSecret
 } from "../../utils/mfa.js";
 
 /**
@@ -31,7 +33,41 @@ export async function verifyMfaLogin(request, env) {
     const { ipAddress, userAgent } = getRequestMeta(request);
     const clientIp = ipAddress || "127.0.0.1";
 
+    let mfaEncryptionKey;
     try {
+        validateJwtSecret(env?.JWT_SECRET);
+        mfaEncryptionKey = getMfaEncryptionSecret(env);
+    } catch {
+        return serverError("Security configuration error: JWT_SECRET or MFA encryption secret is not configured properly.");
+    }
+
+    try {
+        const nowMs = Date.now();
+        const nowIso = new Date(nowMs).toISOString();
+
+        // Check IP lockout state
+        const config = await platformConfig.getConfig(env);
+        const maxIpAttempts = config.max_ip_failed_attempts || 15;
+        const ipLockoutMinutes = config.ip_lockout_duration_minutes || config.lockout_duration_minutes || 15;
+        const ipLockoutMs = ipLockoutMinutes * 60 * 1000;
+
+        const maxAccountAttempts = config.max_failed_login_attempts || 5;
+        const accountLockoutMinutes = config.account_lockout_duration_minutes || config.lockout_duration_minutes || 15;
+        const accountLockoutMs = accountLockoutMinutes * 60 * 1000;
+
+        const ipRecord = await env.DB
+            .prepare(`SELECT failed_attempts, locked_until FROM login_security WHERE ip_address = ?`)
+            .bind(clientIp)
+            .first();
+
+        if (ipRecord && ipRecord.locked_until) {
+            const lockedUntilTime = new Date(ipRecord.locked_until).getTime();
+            if (lockedUntilTime > nowMs) {
+                const remainingSeconds = Math.max(1, Math.ceil((lockedUntilTime - nowMs) / 1000));
+                return tooManyRequests("Too many unsuccessful attempts. Please try again later.", remainingSeconds);
+            }
+        }
+
         const body = await request.json().catch(() => ({}));
         let mfaToken = body.mfa_token;
 
@@ -64,7 +100,7 @@ export async function verifyMfaLogin(request, env) {
             .prepare(`
                 SELECT u.id, u.username, u.display_name, u.role_id, r.name as role_name,
                        r.is_system_role, r.system_role_key, u.is_active, u.mfa_enabled,
-                       u.mfa_secret_encrypted, u.must_change_password, u.token_version,
+                       u.mfa_secret_encrypted, u.mfa_last_used_at, u.must_change_password, u.token_version,
                        u.failed_login_attempts, u.locked_until
                 FROM users u
                 LEFT JOIN roles r ON u.role_id = r.id
@@ -86,83 +122,151 @@ export async function verifyMfaLogin(request, env) {
         }
 
         // Check locked until
-        if (user.locked_until && new Date(user.locked_until).getTime() > Date.now()) {
+        if (user.locked_until && new Date(user.locked_until).getTime() > nowMs) {
             return forbidden("Account is temporarily locked due to too many failed attempts. Please try again later.", { code: "ACCOUNT_LOCKED" });
         }
 
         if (user.mfa_enabled !== 1 || !user.mfa_secret_encrypted) {
-            return badRequest("Multi-Factor Authentication is not enabled for this account.", { code: "MFA_NOT_ENABLED" });
+            return unauthorized("Your MFA verification session has expired. Please sign in again.", { code: "MFA_CHALLENGE_EXPIRED" });
         }
 
         let isVerified = false;
         let authMethod = "totp";
 
         if (code) {
-            const plainSecret = await decryptMfaSecret(user.mfa_secret_encrypted, env.JWT_SECRET);
+            const plainSecret = await decryptMfaSecret(user.mfa_secret_encrypted, mfaEncryptionKey);
             if (!plainSecret) {
                 return serverError("Failed to decrypt MFA credentials.");
             }
-            isVerified = await verifyTotpCode(plainSecret, code, 1);
+            // Verify TOTP code with replay protection against user.mfa_last_used_at
+            isVerified = await verifyTotpCode(plainSecret, code, 1, user.mfa_last_used_at);
+
+            if (isVerified) {
+                // Atomically consume pre-auth challenge and increment token_version
+                const updateChallengeRes = await env.DB
+                    .prepare(`
+                        UPDATE users
+                        SET mfa_last_used_at = ?,
+                            last_login_at = ?,
+                            token_version = token_version + 1,
+                            failed_login_attempts = 0,
+                            locked_until = NULL,
+                            updated_at = ?
+                        WHERE id = ? AND token_version = ? AND is_active = 1
+                    `)
+                    .bind(nowIso, nowIso, nowIso, user.id, tokenVersion)
+                    .run();
+
+                if (updateChallengeRes?.meta?.changes !== 1) {
+                    return unauthorized("Your MFA verification session has expired. Please sign in again.", { code: "MFA_CHALLENGE_EXPIRED" });
+                }
+            }
         } else if (recoveryCode) {
             authMethod = "recovery_code";
-            const hashedInput = await hashRecoveryCode(recoveryCode);
-
-            const match = await env.DB
+            
+            // Retrieve unused recovery codes for this user
+            const candidates = await env.DB
                 .prepare(`
-                    SELECT id FROM mfa_recovery_codes
-                    WHERE user_id = ? AND code_hash = ? AND is_used = 0
-                    LIMIT 1
+                    SELECT id, code_hash FROM mfa_recovery_codes
+                    WHERE user_id = ? AND is_used = 0
                 `)
-                .bind(user.id, hashedInput)
-                .first();
+                .bind(user.id)
+                .all();
 
-            if (match) {
-                isVerified = true;
-                const nowIso = new Date().toISOString();
-                await env.DB
-                    .prepare(`UPDATE mfa_recovery_codes SET is_used = 1, used_at = ? WHERE id = ?`)
-                    .bind(nowIso, match.id)
-                    .run();
+            let matchingId = null;
+            for (const row of (candidates.results || [])) {
+                if (await verifyRecoveryCode(recoveryCode, row.code_hash)) {
+                    matchingId = row.id;
+                    break;
+                }
+            }
+
+            if (matchingId) {
+                // Atomically consume recovery code AND increment token_version in a single batch
+                const batchRes = await env.DB.batch([
+                    env.DB.prepare(`
+                        UPDATE mfa_recovery_codes
+                        SET is_used = 1, used_at = ?
+                        WHERE id = ? AND user_id = ? AND is_used = 0
+                    `).bind(nowIso, matchingId, user.id),
+                    env.DB.prepare(`
+                        UPDATE users
+                        SET mfa_last_used_at = ?,
+                            last_login_at = ?,
+                            token_version = token_version + 1,
+                            failed_login_attempts = 0,
+                            locked_until = NULL,
+                            updated_at = ?
+                        WHERE id = ? AND token_version = ? AND is_active = 1
+                    `).bind(nowIso, nowIso, nowIso, user.id, tokenVersion)
+                ]);
+
+                if (batchRes?.[0]?.meta?.changes === 1 && batchRes?.[1]?.meta?.changes === 1) {
+                    isVerified = true;
+                } else {
+                    isVerified = false;
+                }
             }
         }
 
         if (!isVerified) {
-            const nowMs = Date.now();
-            const nowIso = new Date(nowMs).toISOString();
+            const ipLockedUntilIso = new Date(nowMs + ipLockoutMs).toISOString();
+            const accountLockedUntilIso = new Date(nowMs + accountLockoutMs).toISOString();
 
-            // Fetch lockout rules from platform config
-            const config = await platformConfig.getConfig(env);
-            const maxAccountAttempts = config.max_failed_login_attempts || 5;
-            const accountLockoutMinutes = config.account_lockout_duration_minutes || config.lockout_duration_minutes || 15;
-            const accountLockoutMs = accountLockoutMinutes * 60 * 1000;
+            // Update IP lockout counter atomically
+            await env.DB.prepare(`
+                INSERT INTO login_security (ip_address, failed_attempts, last_attempt_at, locked_until)
+                VALUES (?, 1, ?, CASE WHEN 1 >= ? THEN ? ELSE NULL END)
+                ON CONFLICT(ip_address) DO UPDATE SET
+                    failed_attempts = CASE
+                        WHEN login_security.locked_until IS NOT NULL AND login_security.locked_until <= excluded.last_attempt_at THEN 1
+                        ELSE login_security.failed_attempts + 1
+                    END,
+                    last_attempt_at = excluded.last_attempt_at,
+                    locked_until = CASE
+                        WHEN (CASE WHEN login_security.locked_until IS NOT NULL AND login_security.locked_until <= excluded.last_attempt_at THEN 1 ELSE login_security.failed_attempts + 1 END) >= ? THEN ?
+                        ELSE NULL
+                    END
+            `).bind(clientIp, nowIso, maxIpAttempts, ipLockedUntilIso, maxIpAttempts, ipLockedUntilIso).run();
 
-            const currentAccountAttempts = user.failed_login_attempts || 0;
-            const newAccountAttempts = currentAccountAttempts + 1;
-            const accountWillLock = newAccountAttempts >= maxAccountAttempts;
-            const accountLockedUntilIso = accountWillLock ? new Date(nowMs + accountLockoutMs).toISOString() : null;
-
+            // Atomic conditional update of user failed attempts
             await env.DB.prepare(`
                 UPDATE users
-                SET failed_login_attempts = ?,
+                SET failed_login_attempts = CASE
+                        WHEN locked_until IS NOT NULL AND locked_until <= ? THEN 1
+                        ELSE failed_login_attempts + 1
+                    END,
                     last_failed_login_at = ?,
-                    locked_until = ?,
+                    locked_until = CASE
+                        WHEN (CASE WHEN locked_until IS NOT NULL AND locked_until <= ? THEN 1 ELSE failed_login_attempts + 1 END) >= ? THEN ?
+                        ELSE NULL
+                    END,
                     updated_at = ?
                 WHERE id = ?
-            `).bind(newAccountAttempts, nowIso, accountLockedUntilIso, nowIso, user.id).run();
+            `).bind(nowIso, nowIso, nowIso, maxAccountAttempts, accountLockedUntilIso, nowIso, user.id).run();
 
-            if (accountWillLock) {
+            const updatedUser = await env.DB.prepare(`SELECT failed_login_attempts, locked_until FROM users WHERE id = ?`).bind(user.id).first();
+            const accountWillLock = Boolean(updatedUser?.locked_until && new Date(updatedUser.locked_until).getTime() > nowMs);
+            const finalAccountAttempts = updatedUser?.failed_login_attempts || 0;
+
+            const updatedIp = await env.DB.prepare(`SELECT failed_attempts, locked_until FROM login_security WHERE ip_address = ?`).bind(clientIp).first();
+            const ipWillLock = Boolean(updatedIp?.locked_until && new Date(updatedIp.locked_until).getTime() > nowMs);
+
+            if (accountWillLock || ipWillLock) {
                 await logAudit(env, {
                     actingUserId: user.id,
                     actingUsername: user.username,
                     action: "login.lockout.account",
                     resourceType: "auth",
                     status: "FAILURE",
-                    reason: `Account locked for ${accountLockoutMinutes} minutes after ${newAccountAttempts} failed attempts (MFA)`,
+                    reason: `Account/IP locked out after failed MFA attempts`,
                     ipAddress: clientIp,
                     userAgent
                 });
 
-                return forbidden("Account is temporarily locked due to too many failed attempts. Please try again later.", { code: "ACCOUNT_LOCKED" });
+                const lockMs = ipWillLock ? ipLockoutMs : accountLockoutMs;
+                const retryAfter = Math.max(1, Math.ceil(lockMs / 1000));
+                return tooManyRequests("Too many unsuccessful sign-in attempts. Please try again later.", retryAfter);
             }
 
             await logAudit(env, {
@@ -171,24 +275,27 @@ export async function verifyMfaLogin(request, env) {
                 action: "auth.mfa.verify.failed",
                 resourceType: "auth",
                 status: "FAILURE",
-                reason: `Invalid TOTP code or recovery code (attempt ${newAccountAttempts}/${maxAccountAttempts})`,
+                reason: `Invalid TOTP code or recovery code (attempt ${finalAccountAttempts}/${maxAccountAttempts})`,
                 ipAddress: clientIp,
                 userAgent
             });
 
             return badRequest("Invalid verification code or recovery code.", {
                 code: "INVALID_MFA_CODE",
-                attempts_remaining: Math.max(0, maxAccountAttempts - newAccountAttempts)
+                attempts_remaining: Math.max(0, maxAccountAttempts - finalAccountAttempts)
             });
         }
 
-        // MFA verification succeeded -> update last used, reset failed attempts, and increment token_version to consume pre-auth token
-        const nextTokenVersion = (user.token_version ?? 1) + 1;
-        const nowIso = new Date().toISOString();
-        await env.DB
-            .prepare(`UPDATE users SET mfa_last_used_at = ?, last_login_at = ?, token_version = ?, failed_login_attempts = 0, locked_until = NULL, updated_at = ? WHERE id = ?`)
-            .bind(nowIso, nowIso, nextTokenVersion, nowIso, user.id)
-            .run();
+        // On successful MFA verification, reset IP failure record
+        await env.DB.prepare(`
+            UPDATE login_security
+            SET failed_attempts = 0,
+                last_attempt_at = ?,
+                locked_until = NULL
+            WHERE ip_address = ?
+        `).bind(nowIso, clientIp).run();
+
+        const nextTokenVersion = tokenVersion + 1;
 
         // Fetch permissions
         const permissionsQuery = await env.DB
@@ -288,10 +395,18 @@ export async function setupMfa(request, env) {
 
     const { ipAddress, userAgent } = getRequestMeta(request);
 
+    let mfaEncryptionKey;
+    try {
+        validateJwtSecret(env?.JWT_SECRET);
+        mfaEncryptionKey = getMfaEncryptionSecret(env);
+    } catch {
+        return serverError("Security configuration error: JWT_SECRET or MFA encryption secret is not configured properly.");
+    }
+
     try {
         // Generate new 160-bit secret
         const plainSecret = generateMfaSecret();
-        const encryptedSecret = await encryptMfaSecret(plainSecret, env.JWT_SECRET);
+        const encryptedSecret = await encryptMfaSecret(plainSecret, mfaEncryptionKey);
 
         // Issue a temporary setup context token containing the encrypted secret
         // Do NOT permanently store in DB until verification!
@@ -345,6 +460,14 @@ export async function enableMfa(request, env) {
 
     const { ipAddress, userAgent } = getRequestMeta(request);
 
+    let mfaEncryptionKey;
+    try {
+        validateJwtSecret(env?.JWT_SECRET);
+        mfaEncryptionKey = getMfaEncryptionSecret(env);
+    } catch {
+        return serverError("Security configuration error: JWT_SECRET or MFA encryption secret is not configured properly.");
+    }
+
     try {
         const body = await request.json().catch(() => ({}));
         const code = body.code ? String(body.code).trim() : null;
@@ -353,41 +476,31 @@ export async function enableMfa(request, env) {
             return badRequest("6-digit verification code is required.");
         }
 
-        // Retrieve encrypted secret from temporary setup token or user record
+        // Retrieve encrypted secret from temporary setup token
         let encryptedSecret = null;
-        
-        // 1. Try reading setup token from request header or body
-        const authHeader = request.headers.get("Authorization");
         let decodedToken = null;
-        if (authHeader && authHeader.startsWith("Bearer ")) {
-            const rawToken = authHeader.substring(7).trim();
-            decodedToken = await verifyToken(rawToken, env.JWT_SECRET);
-            if (decodedToken?.encrypted_secret) {
+        
+        // 1. Try reading setup token from body or Authorization header
+        const rawSetupToken = body.setup_token || (request.headers.get("Authorization")?.startsWith("Bearer ") ? request.headers.get("Authorization").substring(7).trim() : null);
+
+        if (rawSetupToken) {
+            decodedToken = await verifyToken(rawSetupToken, env.JWT_SECRET);
+            if (
+                decodedToken &&
+                decodedToken.encrypted_secret &&
+                decodedToken.scope === "mfa_setup_pending" &&
+                decodedToken.id === auth.user.id &&
+                (decodedToken.token_version ?? 1) === (auth.user.token_version ?? 1)
+            ) {
                 encryptedSecret = decodedToken.encrypted_secret;
             }
         }
 
-        if (!encryptedSecret && body.setup_token) {
-            const decodedBodyToken = await verifyToken(body.setup_token, env.JWT_SECRET);
-            if (decodedBodyToken?.encrypted_secret) {
-                encryptedSecret = decodedBodyToken.encrypted_secret;
-            }
-        }
-
-        // 2. Fallback to existing user record (if voluntary setup already initiated)
         if (!encryptedSecret) {
-            const userRec = await env.DB
-                .prepare(`SELECT mfa_secret_encrypted FROM users WHERE id = ? LIMIT 1`)
-                .bind(auth.user.id)
-                .first();
-            encryptedSecret = userRec?.mfa_secret_encrypted;
+            return badRequest("MFA setup session has expired or is invalid. Please initiate MFA setup again.");
         }
 
-        if (!encryptedSecret) {
-            return badRequest("MFA setup session has expired or has not been initiated. Please start MFA setup again.");
-        }
-
-        const plainSecret = await decryptMfaSecret(encryptedSecret, env.JWT_SECRET);
+        const plainSecret = await decryptMfaSecret(encryptedSecret, mfaEncryptionKey);
         if (!plainSecret) {
             return serverError("Failed to decrypt MFA setup secret.");
         }
@@ -410,34 +523,32 @@ export async function enableMfa(request, env) {
         // Generate 8 recovery codes
         const plainRecoveryCodes = generateRecoveryCodes(8);
 
-        // Delete any existing recovery codes for user
-        await env.DB
-            .prepare(`DELETE FROM mfa_recovery_codes WHERE user_id = ?`)
-            .bind(auth.user.id)
-            .run();
-
-        // Store hashed recovery codes
+        // Prepare atomic batch execution
         const nowIso = new Date().toISOString();
+        const statements = [
+            env.DB.prepare(`DELETE FROM mfa_recovery_codes WHERE user_id = ?`).bind(auth.user.id)
+        ];
+
         for (const rawCode of plainRecoveryCodes) {
             const hashed = await hashRecoveryCode(rawCode);
-            await env.DB
-                .prepare(`
+            statements.push(
+                env.DB.prepare(`
                     INSERT INTO mfa_recovery_codes (user_id, code_hash, is_used, created_at)
                     VALUES (?, ?, 0, ?)
-                `)
-                .bind(auth.user.id, hashed, nowIso)
-                .run();
+                `).bind(auth.user.id, hashed, nowIso)
+            );
         }
 
-        // Update user state: NOW permanently store secret and enable MFA!
-        await env.DB
-            .prepare(`
+        // Atomically update user state: store encrypted secret, enable MFA, and increment token_version to invalidate pre-MFA sessions!
+        statements.push(
+            env.DB.prepare(`
                 UPDATE users
-                SET mfa_secret_encrypted = ?, mfa_enabled = 1, mfa_enrolled_at = ?, mfa_last_used_at = ?, updated_at = ?
+                SET mfa_secret_encrypted = ?, mfa_enabled = 1, mfa_enrolled_at = ?, mfa_last_used_at = ?, token_version = token_version + 1, updated_at = ?
                 WHERE id = ?
-            `)
-            .bind(encryptedSecret, nowIso, nowIso, nowIso, auth.user.id)
-            .run();
+            `).bind(encryptedSecret, nowIso, nowIso, nowIso, auth.user.id)
+        );
+
+        await env.DB.batch(statements);
 
         await logAudit(env, {
             actingUserId: auth.user.id,
@@ -474,7 +585,21 @@ export async function enableMfa(request, env) {
             });
         }
 
+        // Issue fresh session token with the incremented token_version
+        const nextTokenVersion = (auth.user.token_version ?? 1) + 1;
+        const freshToken = await createToken(
+            {
+                id: auth.user.id,
+                username: auth.user.username,
+                role_id: auth.user.role_id,
+                token_version: nextTokenVersion
+            },
+            env.JWT_SECRET,
+            JWT.SESSION_EXPIRES_IN
+        );
+
         return success({
+            token: freshToken,
             mfa_enrolled: true,
             recovery_codes: plainRecoveryCodes,
             message: "Multi-Factor Authentication has been successfully enabled."
@@ -496,6 +621,14 @@ export async function disableMfa(request, env) {
 
     const { ipAddress, userAgent } = getRequestMeta(request);
 
+    let mfaEncryptionKey;
+    try {
+        validateJwtSecret(env?.JWT_SECRET);
+        mfaEncryptionKey = getMfaEncryptionSecret(env);
+    } catch {
+        return serverError("Security configuration error: JWT_SECRET or MFA encryption secret is not configured properly.");
+    }
+
     try {
         const body = await request.json().catch(() => ({}));
         const password = body.password;
@@ -511,12 +644,23 @@ export async function disableMfa(request, env) {
         }
 
         const user = await env.DB
-            .prepare(`SELECT password_hash, mfa_enabled, mfa_secret_encrypted FROM users WHERE id = ? LIMIT 1`)
+            .prepare(`
+                SELECT u.password_hash, u.mfa_enabled, u.mfa_secret_encrypted, u.token_version, u.mfa_enforced,
+                       r.mfa_required as role_mfa_required
+                FROM users u
+                LEFT JOIN roles r ON u.role_id = r.id
+                WHERE u.id = ?
+                LIMIT 1
+            `)
             .bind(auth.user.id)
             .first();
 
         if (!user || user.mfa_enabled !== 1) {
             return badRequest("MFA is not enabled on this account.");
+        }
+
+        if (user.role_mfa_required === 1 || user.mfa_enforced === 1) {
+            return forbidden("Multi-Factor Authentication is required for your role or account and cannot be disabled.");
         }
 
         // Verify password
@@ -537,17 +681,22 @@ export async function disableMfa(request, env) {
 
         let isCodeValid = false;
         if (code) {
-            const plainSecret = await decryptMfaSecret(user.mfa_secret_encrypted, env.JWT_SECRET);
+            const plainSecret = await decryptMfaSecret(user.mfa_secret_encrypted, mfaEncryptionKey);
             if (plainSecret) {
                 isCodeValid = await verifyTotpCode(plainSecret, code, 1);
             }
         } else if (recoveryCode) {
-            const hashed = await hashRecoveryCode(recoveryCode);
-            const match = await env.DB
-                .prepare(`SELECT id FROM mfa_recovery_codes WHERE user_id = ? AND code_hash = ? AND is_used = 0 LIMIT 1`)
-                .bind(auth.user.id, hashed)
-                .first();
-            if (match) isCodeValid = true;
+            const candidates = await env.DB
+                .prepare(`SELECT id, code_hash FROM mfa_recovery_codes WHERE user_id = ? AND is_used = 0`)
+                .bind(auth.user.id)
+                .all();
+
+            for (const row of (candidates.results || [])) {
+                if (await verifyRecoveryCode(recoveryCode, row.code_hash)) {
+                    isCodeValid = true;
+                    break;
+                }
+            }
         }
 
         if (!isCodeValid) {
@@ -564,21 +713,17 @@ export async function disableMfa(request, env) {
             return badRequest("Invalid verification code or recovery code.");
         }
 
-        // Disable MFA
+        // Disable MFA atomically: clear settings, delete recovery codes, and increment token_version to invalidate all existing sessions!
         const nowIso = new Date().toISOString();
-        await env.DB
-            .prepare(`
+        const statements = [
+            env.DB.prepare(`DELETE FROM mfa_recovery_codes WHERE user_id = ?`).bind(auth.user.id),
+            env.DB.prepare(`
                 UPDATE users
-                SET mfa_enabled = 0, mfa_secret_encrypted = NULL, mfa_enrolled_at = NULL, updated_at = ?
+                SET mfa_enabled = 0, mfa_secret_encrypted = NULL, mfa_enrolled_at = NULL, token_version = token_version + 1, updated_at = ?
                 WHERE id = ?
-            `)
-            .bind(nowIso, auth.user.id)
-            .run();
-
-        await env.DB
-            .prepare(`DELETE FROM mfa_recovery_codes WHERE user_id = ?`)
-            .bind(auth.user.id)
-            .run();
+            `).bind(nowIso, auth.user.id)
+        ];
+        await env.DB.batch(statements);
 
         await logAudit(env, {
             actingUserId: auth.user.id,
@@ -591,11 +736,131 @@ export async function disableMfa(request, env) {
             userAgent
         });
 
-        return success(null, "Multi-Factor Authentication disabled successfully.");
+        const nextTokenVersion = (user.token_version ?? 1) + 1;
+        const freshToken = await createToken(
+            {
+                id: auth.user.id,
+                username: auth.user.username,
+                role_id: auth.user.role_id,
+                token_version: nextTokenVersion
+            },
+            env.JWT_SECRET,
+            JWT.SESSION_EXPIRES_IN
+        );
+
+        return success({ token: freshToken }, "Multi-Factor Authentication disabled successfully.");
 
     } catch (error) {
         console.error("Disable MFA error:", error);
         return serverError("Failed to disable MFA.");
+    }
+}
+
+/**
+ * POST /api/v1/auth/mfa/recovery-codes/regenerate
+ * Regenerate recovery codes for user with MFA enabled
+ */
+export async function regenerateRecoveryCodes(request, env) {
+    const auth = await authenticate(request, env);
+    if (auth.errorResponse) return auth.errorResponse;
+
+    const { ipAddress, userAgent } = getRequestMeta(request);
+
+    try {
+        validateJwtSecret(env?.JWT_SECRET);
+    } catch {
+        return serverError("Security configuration error: JWT_SECRET is not configured properly.");
+    }
+
+    try {
+        const body = await request.json().catch(() => ({}));
+        const password = body.password;
+
+        if (!password) {
+            return badRequest("Current password is required to regenerate recovery codes.");
+        }
+
+        const user = await env.DB
+            .prepare(`SELECT password_hash, mfa_enabled, token_version FROM users WHERE id = ? LIMIT 1`)
+            .bind(auth.user.id)
+            .first();
+
+        if (!user || user.mfa_enabled !== 1) {
+            return badRequest("MFA is not enabled on this account.");
+        }
+
+        const isPasswordValid = await verifyPassword(password, user.password_hash);
+        if (!isPasswordValid) {
+            await logAudit(env, {
+                actingUserId: auth.user.id,
+                actingUsername: auth.user.username,
+                action: "auth.mfa.recovery_regenerate_failed",
+                resourceType: "user",
+                status: "FAILURE",
+                reason: "Incorrect password supplied during recovery code regeneration",
+                ipAddress,
+                userAgent
+            });
+            return badRequest("Incorrect password.");
+        }
+
+        // Generate 8 new recovery codes
+        const plainRecoveryCodes = generateRecoveryCodes(8);
+        const nowIso = new Date().toISOString();
+
+        const statements = [
+            env.DB.prepare(`DELETE FROM mfa_recovery_codes WHERE user_id = ?`).bind(auth.user.id)
+        ];
+
+        for (const rawCode of plainRecoveryCodes) {
+            const hashed = await hashRecoveryCode(rawCode);
+            statements.push(
+                env.DB.prepare(`
+                    INSERT INTO mfa_recovery_codes (user_id, code_hash, is_used, created_at)
+                    VALUES (?, ?, 0, ?)
+                `).bind(auth.user.id, hashed, nowIso)
+            );
+        }
+
+        // Invalidate prior sessions when recovery codes are regenerated (security best practice)
+        statements.push(
+            env.DB.prepare(`UPDATE users SET token_version = token_version + 1, updated_at = ? WHERE id = ?`).bind(nowIso, auth.user.id)
+        );
+
+        await env.DB.batch(statements);
+
+        const nextTokenVersion = (user.token_version ?? 1) + 1;
+        const freshToken = await createToken(
+            {
+                id: auth.user.id,
+                username: auth.user.username,
+                role_id: auth.user.role_id,
+                token_version: nextTokenVersion
+            },
+            env.JWT_SECRET,
+            JWT.SESSION_EXPIRES_IN
+        );
+
+        await logAudit(env, {
+            actingUserId: auth.user.id,
+            actingUsername: auth.user.username,
+            action: "auth.mfa.recovery_codes_regenerated",
+            resourceType: "user",
+            resourceId: String(auth.user.id),
+            status: "SUCCESS",
+            ipAddress,
+            userAgent
+        });
+
+        return success({
+            recovery_codes: plainRecoveryCodes,
+            token: freshToken,
+            message: "Recovery codes regenerated successfully. Existing sessions have been updated."
+        });
+
+    } catch (error) {
+        console.error("Regenerate recovery codes error:", error);
+        return serverError("Failed to regenerate recovery codes.");
     }
 }
 
@@ -612,6 +877,10 @@ export async function resetUserMfa(request, env, ctx, params) {
     const targetId = parseInt(params.id);
     if (isNaN(targetId)) {
         return badRequest("Invalid user ID.");
+    }
+
+    if (targetId === auth.user.id) {
+        return badRequest("You cannot administratively reset your own MFA. Please use the MFA settings page.");
     }
 
     try {
@@ -713,6 +982,10 @@ export async function enforceUserMfa(request, env, ctx, params) {
         return badRequest("Invalid user ID.");
     }
 
+    if (targetId === auth.user.id) {
+        return badRequest("You cannot administratively enforce MFA on your own account.");
+    }
+
     try {
         const targetUser = await env.DB
             .prepare(`SELECT id, username, role_id, mfa_enabled FROM users WHERE id = ? LIMIT 1`)
@@ -743,11 +1016,11 @@ export async function enforceUserMfa(request, env, ctx, params) {
         const nowIso = new Date().toISOString();
 
         try {
-            await env.DB.prepare(`UPDATE users SET mfa_enforced = 1, updated_at = ? WHERE id = ?`).bind(nowIso, targetId).run();
+            await env.DB.prepare(`UPDATE users SET mfa_enforced = 1, token_version = token_version + 1, updated_at = ? WHERE id = ?`).bind(nowIso, targetId).run();
         } catch (e) {
             try {
                 await env.DB.prepare(`ALTER TABLE users ADD COLUMN mfa_enforced INTEGER DEFAULT 0`).run();
-                await env.DB.prepare(`UPDATE users SET mfa_enforced = 1, updated_at = ? WHERE id = ?`).bind(nowIso, targetId).run();
+                await env.DB.prepare(`UPDATE users SET mfa_enforced = 1, token_version = token_version + 1, updated_at = ? WHERE id = ?`).bind(nowIso, targetId).run();
             } catch (err) {
                 console.error("Failed to enforce MFA column:", err);
             }

@@ -1,6 +1,6 @@
 import { badRequest, unauthorized, forbidden, tooManyRequests, serverError, success } from "../../utils/response.js";
 import { verifyPassword } from "../../utils/password.js";
-import { createToken, verifyToken } from "../../utils/jwt.js";
+import { createToken, verifyToken, validateJwtSecret } from "../../utils/jwt.js";
 import { JWT } from "../../config/constants.js";
 import { logAudit, getRequestMeta } from "../../utils/audit.js";
 import { platformConfig } from "../../services/platform-config.js";
@@ -12,6 +12,12 @@ const DUMMY_HASH = "pbkdf2$sha-256$100000$32$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAA
 export async function login(request, env) {
     const { ipAddress, userAgent } = getRequestMeta(request);
     const clientIp = ipAddress || "unknown_ip";
+
+    try {
+        validateJwtSecret(env?.JWT_SECRET);
+    } catch {
+        return serverError("Security configuration error: JWT_SECRET is not configured properly.");
+    }
 
     try {
         const body = await request.json();
@@ -150,20 +156,25 @@ export async function login(request, env) {
 
         // Failure handling (either user non-existent or password wrong)
         if (!user || !validPassword) {
-            // Update IP failure counter
-            const currentIpAttempts = (ipRecord && !isIpLockExpired) ? (ipRecord.failed_attempts || 0) : 0;
-            const newIpAttempts = currentIpAttempts + 1;
-            const ipWillLock = newIpAttempts >= maxIpAttempts;
-            const ipLockedUntilIso = ipWillLock ? new Date(nowMs + ipLockoutMs).toISOString() : null;
-
+            // Update IP failure counter atomically
+            const ipLockedUntilIso = new Date(nowMs + ipLockoutMs).toISOString();
             await env.DB.prepare(`
                 INSERT INTO login_security (ip_address, failed_attempts, last_attempt_at, locked_until)
-                VALUES (?, ?, ?, ?)
+                VALUES (?, 1, ?, CASE WHEN 1 >= ? THEN ? ELSE NULL END)
                 ON CONFLICT(ip_address) DO UPDATE SET
-                    failed_attempts = excluded.failed_attempts,
+                    failed_attempts = CASE
+                        WHEN login_security.locked_until IS NOT NULL AND login_security.locked_until <= excluded.last_attempt_at THEN 1
+                        ELSE login_security.failed_attempts + 1
+                    END,
                     last_attempt_at = excluded.last_attempt_at,
-                    locked_until = excluded.locked_until
-            `).bind(clientIp, newIpAttempts, nowIso, ipLockedUntilIso).run();
+                    locked_until = CASE
+                        WHEN (CASE WHEN login_security.locked_until IS NOT NULL AND login_security.locked_until <= excluded.last_attempt_at THEN 1 ELSE login_security.failed_attempts + 1 END) >= ? THEN ?
+                        ELSE NULL
+                    END
+            `).bind(clientIp, nowIso, maxIpAttempts, ipLockedUntilIso, maxIpAttempts, ipLockedUntilIso).run();
+
+            const updatedIp = await env.DB.prepare(`SELECT failed_attempts, locked_until FROM login_security WHERE ip_address = ?`).bind(clientIp).first();
+            const ipWillLock = Boolean(updatedIp?.locked_until && new Date(updatedIp.locked_until).getTime() > nowMs);
 
             if (ipWillLock) {
                 await logAudit(env, {
@@ -171,28 +182,36 @@ export async function login(request, env) {
                     action: "login.lockout.ip",
                     resourceType: "auth",
                     status: "FAILURE",
-                    reason: `IP locked for ${ipLockoutMinutes} minutes after ${newIpAttempts} failed attempts`,
+                    reason: `IP locked for ${ipLockoutMinutes} minutes after ${updatedIp.failed_attempts} failed attempts`,
                     ipAddress: clientIp,
                     userAgent
                 });
             }
 
-            // Update Account failure counter if user exists
+            // Update Account failure counter atomically if user exists
             let accountWillLock = false;
+            let finalAccountAttempts = 0;
             if (user) {
-                const currentAccountAttempts = (!isAccountLockExpired) ? (user.failed_login_attempts || 0) : 0;
-                const newAccountAttempts = currentAccountAttempts + 1;
-                accountWillLock = newAccountAttempts >= maxAccountAttempts;
-                const accountLockedUntilIso = accountWillLock ? new Date(nowMs + accountLockoutMs).toISOString() : null;
+                const accountLockedUntilIso = new Date(nowMs + accountLockoutMs).toISOString();
 
                 await env.DB.prepare(`
                     UPDATE users
-                    SET failed_login_attempts = ?,
+                    SET failed_login_attempts = CASE
+                            WHEN locked_until IS NOT NULL AND locked_until <= ? THEN 1
+                            ELSE failed_login_attempts + 1
+                        END,
                         last_failed_login_at = ?,
-                        locked_until = ?,
+                        locked_until = CASE
+                            WHEN (CASE WHEN locked_until IS NOT NULL AND locked_until <= ? THEN 1 ELSE failed_login_attempts + 1 END) >= ? THEN ?
+                            ELSE NULL
+                        END,
                         updated_at = ?
                     WHERE id = ?
-                `).bind(newAccountAttempts, nowIso, accountLockedUntilIso, nowIso, user.id).run();
+                `).bind(nowIso, nowIso, nowIso, maxAccountAttempts, accountLockedUntilIso, nowIso, user.id).run();
+
+                const updatedUser = await env.DB.prepare(`SELECT failed_login_attempts, locked_until FROM users WHERE id = ?`).bind(user.id).first();
+                accountWillLock = Boolean(updatedUser?.locked_until && new Date(updatedUser.locked_until).getTime() > nowMs);
+                finalAccountAttempts = updatedUser?.failed_login_attempts || 0;
 
                 if (accountWillLock) {
                     await logAudit(env, {
@@ -202,7 +221,7 @@ export async function login(request, env) {
                         action: "login.lockout.account",
                         resourceType: "auth",
                         status: "FAILURE",
-                        reason: `Account locked for ${accountLockoutMinutes} minutes after ${newAccountAttempts} failed attempts`,
+                        reason: `Account locked for ${accountLockoutMinutes} minutes after ${finalAccountAttempts} failed attempts`,
                         ipAddress: clientIp,
                         userAgent
                     });
