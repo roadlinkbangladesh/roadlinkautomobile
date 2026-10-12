@@ -206,15 +206,17 @@ Authenticates credentials and returns a JWT token or MFA pending state.
 ### 4.2 Verify MFA Login Step
 `POST /api/v1/auth/mfa/verify`
 
-Submits 6-digit TOTP code or emergency backup code during MFA step.
+Submits 6-digit TOTP code or emergency single-use backup recovery code during MFA step.
 
 #### Request Body
 ```json
 {
-  "mfaToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "code": "123456"
+  "mfa_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "code": "123456",
+  "recovery_code": "A7K9X-2P4MY"
 }
 ```
+*Note: Either `code` (6-digit TOTP) or `recovery_code` (single-use PBKDF2-hashed backup code) must be provided.*
 
 ---
 
@@ -238,9 +240,10 @@ Terminates the user's active session, increments the user's database `token_vers
 
 ### 4.4 MFA Setup & Enrolment
 * `GET /api/v1/auth/mfa/status` — Get current user MFA status
-* `POST /api/v1/auth/mfa/setup` — Generate TOTP secret, QR code URI, and single-use backup codes
-* `POST /api/v1/auth/mfa/enable` — Confirm enrolment with 6-digit TOTP code
-* `POST /api/v1/auth/mfa/disable` — Disable MFA (requires password confirmation)
+* `POST /api/v1/auth/mfa/setup` — Generate TOTP secret, QR code URI, and temporary setup context token
+* `POST /api/v1/auth/mfa/enable` — Confirm enrolment with 6-digit TOTP code and setup token; issues 8 PBKDF2-hashed single-use recovery codes
+* `POST /api/v1/auth/mfa/disable` — Disable MFA (requires password and code/recovery code verification; blocked if role mandates MFA)
+* `POST /api/v1/auth/mfa/recovery-codes/regenerate` — Regenerate 8 single-use PBKDF2-hashed recovery codes (requires password verification; invalidates existing sessions)
 
 ---
 
