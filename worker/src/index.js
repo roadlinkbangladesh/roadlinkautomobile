@@ -8,6 +8,7 @@ import {
     setupMfa,
     enableMfa,
     disableMfa,
+    regenerateRecoveryCodes,
     resetUserMfa,
     enforceUserMfa
 } from "./routes/auth/mfa.js";
@@ -124,6 +125,8 @@ const routes = {
     [`POST:${API.AUTH}/mfa/enable`]: enableMfa,
     [`POST:${API.AUTH}/mfa/disable`]: disableMfa,
     [`DELETE:${API.AUTH}/mfa/disable`]: disableMfa,
+    [`POST:${API.AUTH}/mfa/recovery-codes/regenerate`]: regenerateRecoveryCodes,
+    [`POST:${API.AUTH}/mfa/recovery-codes`]: regenerateRecoveryCodes,
 
     // Settings
     [`GET:${API.ADMIN}/settings`]: getSettings,
@@ -205,7 +208,7 @@ export default {
 
         // Handle CORS preflight requests
         if (request.method === "OPTIONS") {
-            return preflight(env);
+            return preflight(request, env);
         }
         
         try {
