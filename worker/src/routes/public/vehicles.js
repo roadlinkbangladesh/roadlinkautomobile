@@ -1,6 +1,7 @@
 import { success, notFound, serverError, applySecurityHeaders } from "../../utils/response.js";
 import { VehicleService, VehicleServiceError } from "../../services/vehicle-service.js";
 import { getStorageBucket } from "../../utils/storage.js";
+import { ALLOWED_ORIGINS } from "../../config/constants.js";
 
 /**
  * GET /api/v1/public/vehicles - Public Vehicle Inventory Listing
@@ -130,9 +131,7 @@ export async function getPublicVehicleAuctionSheet(request, env, ctx, params) {
     // Route-specific Content-Security-Policy allowing authorized portal framing
     const frameAncestors = new Set([
       "'self'",
-      "https://roadlinkautomobiles.com",
-      "https://www.roadlinkautomobiles.com",
-      "https://admin.roadlinkautomobiles.com"
+      ...ALLOWED_ORIGINS
     ]);
 
     const reqOrigin = request.headers.get("Origin");
