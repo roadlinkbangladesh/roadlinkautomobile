@@ -1,10 +1,6 @@
-import { HTTP_STATUS } from "../config/constants.js";
+import { HTTP_STATUS, ALLOWED_ORIGINS } from "../config/constants.js";
 
-export const ALLOWED_ORIGINS = new Set([
-  "https://roadlinkautomobiles.com",
-  "https://www.roadlinkautomobiles.com",
-  "https://admin.roadlinkautomobiles.com",
-]);
+export { ALLOWED_ORIGINS };
 
 export function isAllowedOrigin(origin, env = null) {
   if (!origin || typeof origin !== "string" || origin === "null") {
@@ -13,12 +9,9 @@ export function isAllowedOrigin(origin, env = null) {
   if (ALLOWED_ORIGINS.has(origin)) {
     return true;
   }
-  // Match explicit environment variable overrides if provided
+  // Match explicit environment variable overrides if provided (exact domain matches only; no wildcards)
   const envAllowed = env?.ALLOWED_ORIGINS || (typeof process !== "undefined" ? process.env?.ALLOWED_ORIGINS : null);
   if (envAllowed && typeof envAllowed === "string") {
-    if (envAllowed.trim() === "*") {
-      return true;
-    }
     const customList = envAllowed.split(",").map(o => o.trim()).filter(Boolean);
     if (customList.includes(origin)) {
       return true;
