@@ -24,6 +24,19 @@ export const API = Object.freeze({
     PUBLIC: "/api/v1/public"
 });
 
+export const CORS = Object.freeze({
+    ALLOWED_ORIGINS: Object.freeze([
+        "https://roadlinkautomobiles.com",
+        "https://www.roadlinkautomobiles.com",
+        "https://admin.roadlinkautomobiles.com"
+    ]),
+    ALLOWED_METHODS: "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+    ALLOWED_HEADERS: "Content-Type, Authorization, X-Requested-With, Accept, Origin",
+    MAX_AGE: 86400
+});
+
+export const ALLOWED_ORIGINS = Object.freeze(new Set(CORS.ALLOWED_ORIGINS));
+
 export const USER_ROLES = Object.freeze({
     ADMIN: "admin",
     MANAGER: "manager"
