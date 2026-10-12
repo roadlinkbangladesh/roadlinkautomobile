@@ -3,6 +3,8 @@
  * Standard: RFC 6238 (TOTP) / RFC 4226 (HOTP) / RFC 4648 (Base32)
  */
 
+import { hashPassword, verifyPassword } from "./password.js";
+
 const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 /**
@@ -103,17 +105,30 @@ export async function generateTotpCode(base32Secret, timeSlice) {
 
 /**
  * Verifies a 6-digit TOTP code against a Base32 secret with ±tolerance time steps (default ±1 step = 30s)
+ * Supports replay prevention when lastUsedIso timestamp is provided.
  */
-export async function verifyTotpCode(base32Secret, inputCode, tolerance = 1) {
+export async function verifyTotpCode(base32Secret, inputCode, tolerance = 1, lastUsedIso = null) {
     if (!base32Secret || !inputCode) return false;
     const cleanCode = String(inputCode).trim().replace(/\s+/g, "");
     if (!/^\d{6}$/.test(cleanCode)) return false;
 
     const currentSlice = Math.floor(Date.now() / 1000 / 30);
+    let lastUsedSlice = null;
+    if (lastUsedIso) {
+        const parsedMs = new Date(lastUsedIso).getTime();
+        if (!isNaN(parsedMs)) {
+            lastUsedSlice = Math.floor(parsedMs / 1000 / 30);
+        }
+    }
 
     for (let offset = -tolerance; offset <= tolerance; offset++) {
+        const slice = currentSlice + offset;
+        if (lastUsedSlice !== null && slice <= lastUsedSlice) {
+            // Replay protection: skip time steps that have already been consumed
+            continue;
+        }
         try {
-            const expectedCode = await generateTotpCode(base32Secret, currentSlice + offset);
+            const expectedCode = await generateTotpCode(base32Secret, slice);
             if (expectedCode === cleanCode) {
                 return true;
             }
@@ -126,20 +141,51 @@ export async function verifyTotpCode(base32Secret, inputCode, tolerance = 1) {
 }
 
 /**
- * Derives a 256-bit AES-GCM encryption key from JWT_SECRET
+ * Validates encryption secret key to fail closed if missing, empty, or insecure
  */
-async function getEncryptionKey(jwtSecret) {
+export function validateEncryptionSecret(secret) {
+    if (!secret || typeof secret !== "string") {
+        throw new Error("MFA encryption secret is missing or invalid. Encryption operations cannot continue.");
+    }
+    const trimmed = secret.trim();
+    if (trimmed.length < 32) {
+        throw new Error("MFA encryption secret is insecure: minimum 32 characters required.");
+    }
+    const INSECURE_PATTERNS = [
+        "12345678901234567890123456789012",
+        "default-mfa-encryption-secret-key",
+        "changethiskeytoasecure32charactersecret",
+        "your-secure-mfa-encryption-secret-32"
+    ];
+    if (INSECURE_PATTERNS.includes(trimmed.toLowerCase())) {
+        throw new Error("MFA encryption secret is set to an unsafe placeholder or default secret.");
+    }
+    return trimmed;
+}
+
+/**
+ * Derives valid MFA encryption secret from environment (MFA_ENCRYPTION_KEY or fallback to JWT_SECRET)
+ */
+export function getMfaEncryptionSecret(env) {
+    const key = env?.MFA_ENCRYPTION_KEY || env?.JWT_SECRET;
+    return validateEncryptionSecret(key);
+}
+
+/**
+ * Derives a 256-bit AES-GCM encryption key from a securely validated secret
+ */
+async function getEncryptionKey(secret) {
+    const validSecret = validateEncryptionSecret(secret);
     const enc = new TextEncoder();
-    const secretStr = jwtSecret || "roadlink-mfa-default-secret-key-2026";
-    const digest = await crypto.subtle.digest("SHA-256", enc.encode(secretStr));
+    const digest = await crypto.subtle.digest("SHA-256", enc.encode(validSecret));
     return await crypto.subtle.importKey("raw", digest, { name: "AES-GCM" }, false, ["encrypt", "decrypt"]);
 }
 
 /**
  * Encrypts plain Base32 secret string using AES-256-GCM
  */
-export async function encryptMfaSecret(plainSecret, jwtSecret) {
-    const key = await getEncryptionKey(jwtSecret);
+export async function encryptMfaSecret(plainSecret, secret) {
+    const key = await getEncryptionKey(secret);
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const encoded = new TextEncoder().encode(plainSecret);
 
@@ -158,7 +204,7 @@ export async function encryptMfaSecret(plainSecret, jwtSecret) {
 /**
  * Decrypts AES-256-GCM encrypted MFA secret string
  */
-export async function decryptMfaSecret(encryptedStr, jwtSecret) {
+export async function decryptMfaSecret(encryptedStr, secret) {
     if (!encryptedStr || !encryptedStr.includes(":")) return null;
     try {
         const [ivHex, cipherHex] = encryptedStr.split(":");
@@ -168,7 +214,7 @@ export async function decryptMfaSecret(encryptedStr, jwtSecret) {
         const iv = new Uint8Array(ivMatches.map(byte => parseInt(byte, 16)));
         const cipher = new Uint8Array(cipherMatches.map(byte => parseInt(byte, 16)));
 
-        const key = await getEncryptionKey(jwtSecret);
+        const key = await getEncryptionKey(secret);
         const decrypted = await crypto.subtle.decrypt(
             { name: "AES-GCM", iv },
             key,
@@ -176,40 +222,51 @@ export async function decryptMfaSecret(encryptedStr, jwtSecret) {
         );
 
         return new TextDecoder().decode(decrypted);
-    } catch (err) {
-        console.error("Failed to decrypt MFA secret:", err);
+    } catch {
         return null;
     }
 }
 
 /**
- * Generates single-use 10-character recovery codes (e.g. A7K9-2P4M)
+ * Generates single-use 10-character recovery codes (e.g. A7K9X-2P4MY)
  */
 export function generateRecoveryCodes(count = 8) {
     const codes = [];
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
     for (let i = 0; i < count; i++) {
-        const bytes = new Uint8Array(8);
+        const bytes = new Uint8Array(10);
         crypto.getRandomValues(bytes);
         let code = "";
-        for (let j = 0; j < 8; j++) {
+        for (let j = 0; j < 10; j++) {
             code += chars[bytes[j] % chars.length];
         }
-        codes.push(`${code.slice(0, 4)}-${code.slice(4)}`);
+        codes.push(`${code.slice(0, 5)}-${code.slice(5)}`);
     }
 
     return codes;
 }
 
 /**
- * Hashes a recovery code for secure database storage (PBKDF2 or SHA-256)
+ * Hashes a recovery code for secure database storage using PBKDF2-HMAC-SHA256
  */
 export async function hashRecoveryCode(code) {
     const cleanCode = String(code).toUpperCase().trim().replace(/[^A-Z0-9]/g, "");
-    const enc = new TextEncoder();
-    const digest = await crypto.subtle.digest("SHA-256", enc.encode(`ROADLINK_RECOVERY_SALT_${cleanCode}`));
-    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+    if (!cleanCode) throw new Error("Invalid recovery code");
+    return await hashPassword(cleanCode);
+}
+
+/**
+ * Verifies a plain recovery code against a stored PBKDF2 hash
+ */
+export async function verifyRecoveryCode(code, storedHash) {
+    if (!code || !storedHash || typeof storedHash !== "string") return false;
+    const cleanCode = String(code).toUpperCase().trim().replace(/[^A-Z0-9]/g, "");
+    if (!cleanCode) return false;
+    if (!storedHash.startsWith("pbkdf2$")) {
+        return false;
+    }
+    return await verifyPassword(cleanCode, storedHash);
 }
 
 /**

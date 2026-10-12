@@ -1,5 +1,5 @@
-import { unauthorized, forbidden } from "./response.js";
-import { verifyToken } from "./jwt.js";
+import { unauthorized, forbidden, serverError } from "./response.js";
+import { verifyToken, validateJwtSecret } from "./jwt.js";
 import { logAudit, getRequestMeta } from "./audit.js";
 
 /**
@@ -45,6 +45,12 @@ export async function authenticate(request, env, reqPerm = null, changePassRoute
 
     const authHeader = request.headers.get("Authorization");
     const { ipAddress, userAgent } = getRequestMeta(request);
+
+    try {
+        validateJwtSecret(env?.JWT_SECRET);
+    } catch {
+        return { errorResponse: serverError("Security configuration error: JWT_SECRET is not configured properly.") };
+    }
 
     if (!authHeader?.startsWith("Bearer ")) {
         return { errorResponse: unauthorized("Authentication required.") };

@@ -1,33 +1,50 @@
 import { HTTP_STATUS } from "../config/constants.js";
 
-export const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "X-Content-Type-Options": "nosniff",
-  "Referrer-Policy": "strict-origin-when-cross-origin"
-};
-
-const ALLOWED_ORIGINS = new Set([
+export const ALLOWED_ORIGINS = new Set([
   "https://roadlinkautomobiles.com",
   "https://www.roadlinkautomobiles.com",
   "https://admin.roadlinkautomobiles.com",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000"
 ]);
 
-export function getCorsHeaders(request) {
-  const origin = request.headers.get("Origin");
+export function isAllowedOrigin(origin, env = null) {
+  if (!origin || typeof origin !== "string" || origin === "null") {
+    return false;
+  }
+  if (ALLOWED_ORIGINS.has(origin)) {
+    return true;
+  }
+  const envAllowed = env?.ALLOWED_ORIGINS || (typeof process !== "undefined" ? process.env?.ALLOWED_ORIGINS : null);
+  if (envAllowed && typeof envAllowed === "string") {
+    const customList = envAllowed.split(",").map(o => o.trim()).filter(Boolean);
+    if (customList.includes(origin)) {
+      return true;
+    }
+  }
+  if (/^https:\/\/[a-z0-9-]+\.run\.app$/i.test(origin)) {
+    return true;
+  }
+  return false;
+}
 
-  const allowOrigin =
-    origin && ALLOWED_ORIGINS.has(origin)
-      ? origin
-      : "null";
+export const CORS_HEADERS = {
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
+};
 
-  return {
-    "Access-Control-Allow-Origin": allowOrigin,
+export function getCorsHeaders(request, env = null) {
+  const origin = request ? request.headers.get("Origin") : null;
+  const isAllowed = isAllowedOrigin(origin, env);
+
+  const headers = {
     "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Vary": "Origin",
-    "Content-Security-Policy": "default-src 'self' 'unsafe-inline' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src * 'self' data: blob:; object-src 'none'; base-uri 'self';",
+    "Content-Security-Policy": "default-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https: data: blob:; object-src 'none'; base-uri 'self';",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
@@ -35,12 +52,18 @@ export function getCorsHeaders(request) {
     "Pragma": "no-cache",
     "Expires": "0"
   };
+
+  if (isAllowed) {
+    headers["Access-Control-Allow-Origin"] = origin;
+  }
+
+  return headers;
 }
 
 /**
  * Injects security and CORS headers into custom Response headers objects
  */
-export function applySecurityHeaders(customHeaders = {}, request = null) {
+export function applySecurityHeaders(customHeaders = {}, request = null, env = null) {
   const headers = customHeaders instanceof Headers ? customHeaders : new Headers(customHeaders);
 
   if (!headers.has("X-Content-Type-Options")) {
@@ -54,11 +77,14 @@ export function applySecurityHeaders(customHeaders = {}, request = null) {
   }
 
   const origin = request ? request.headers.get("Origin") : null;
-  if (origin && origin !== "null") {
+  if (isAllowedOrigin(origin, env)) {
     headers.set("Access-Control-Allow-Origin", origin);
     headers.set("Vary", "Origin");
-  } else if (!headers.has("Access-Control-Allow-Origin")) {
-    headers.set("Access-Control-Allow-Origin", "*");
+    headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+    headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  } else if (origin) {
+    // Untrusted Origin: do NOT reflect arbitrary origins
+    headers.delete("Access-Control-Allow-Origin");
   }
 
   return headers;
@@ -243,9 +269,31 @@ export function serverError(message = "Internal server error.") {
 /**
  * CORS preflight response
  */
-export function preflight() {
+export function preflight(requestOrEnv = null, env = null) {
+    let request = null;
+    let actualEnv = env;
+    if (requestOrEnv && typeof requestOrEnv.headers?.get === "function") {
+        request = requestOrEnv;
+    } else if (requestOrEnv && !env) {
+        actualEnv = requestOrEnv;
+    }
+    const origin = request ? request.headers.get("Origin") : null;
+    const isAllowed = isAllowedOrigin(origin, actualEnv);
+
+    const headers = {
+        "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Max-Age": "86400",
+        "Vary": "Origin",
+        "X-Content-Type-Options": "nosniff"
+    };
+
+    if (isAllowed) {
+        headers["Access-Control-Allow-Origin"] = origin;
+    }
+
     return new Response(null, {
-        status: 204,
-        headers: CORS_HEADERS
+        status: isAllowed ? 204 : 403,
+        headers
     });
 }

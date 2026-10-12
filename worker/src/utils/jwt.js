@@ -24,11 +24,32 @@ function base64UrlDecode(text) {
 
 }
 
+export function validateJwtSecret(secret) {
+    if (!secret || typeof secret !== "string") {
+        throw new Error("JWT_SECRET is missing, empty, or invalid. Authentication operations cannot continue.");
+    }
+    const trimmed = secret.trim();
+    if (trimmed.length < 32) {
+        throw new Error("JWT_SECRET is insecure: minimum 32 characters required.");
+    }
+    const INSECURE_PATTERNS = [
+        "12345678901234567890123456789012",
+        "default-jwt-secret-key-change-me",
+        "changethiskeytoasecure32charactersecret",
+        "your-secure-jwt-secret-minimum-32-chars-long"
+    ];
+    if (INSECURE_PATTERNS.includes(trimmed.toLowerCase())) {
+        throw new Error("JWT_SECRET is set to an unsafe placeholder or default secret.");
+    }
+    return trimmed;
+}
+
 async function importKey(secret) {
+    const validSecret = validateJwtSecret(secret);
 
     return crypto.subtle.importKey(
         "raw",
-        new TextEncoder().encode(secret),
+        new TextEncoder().encode(validSecret),
         {
             name: "HMAC",
             hash: "SHA-256"
@@ -36,7 +57,6 @@ async function importKey(secret) {
         false,
         ["sign", "verify"]
     );
-
 }
 
 async function sign(data, secret) {
@@ -109,9 +129,12 @@ async function verify(data, signature, secret) {
 
 export async function verifyToken(token, secret) {
     try {
-        if (!token) {
+        if (!token || typeof token !== "string") {
             return null;
         }
+
+        // Validate key before processing
+        const validSecret = validateJwtSecret(secret);
 
         const parts = token.split(".");
 
@@ -119,27 +142,38 @@ export async function verifyToken(token, secret) {
             return null;
         }
 
-        const [header, payload, signature] = parts;
+        const [headerB64, payloadB64, signature] = parts;
+
+        // Decode and enforce expected header algorithm (HS256)
+        const headerJson = new TextDecoder().decode(base64UrlDecode(headerB64));
+        const header = JSON.parse(headerJson);
+        if (!header || header.alg !== "HS256") {
+            return null;
+        }
+        if (header.typ && header.typ.toUpperCase() !== "JWT") {
+            return null;
+        }
 
         const valid = await verify(
-            `${header}.${payload}`,
+            `${headerB64}.${payloadB64}`,
             signature,
-            secret
+            validSecret
         );
 
         if (!valid) {
             return null;
         }
 
-        const data = JSON.parse(
-            new TextDecoder().decode(
-                base64UrlDecode(payload)
-            )
-        );
+        const payloadJson = new TextDecoder().decode(base64UrlDecode(payloadB64));
+        const data = JSON.parse(payloadJson);
 
         const now = Math.floor(Date.now() / 1000);
 
-        if (data.exp < now) {
+        if (typeof data.exp !== "number" || data.exp < now) {
+            return null;
+        }
+
+        if (typeof data.nbf === "number" && data.nbf > now) {
             return null;
         }
 
