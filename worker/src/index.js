@@ -1,4 +1,4 @@
-import { preflight, notFound, serverError } from "./utils/response.js";
+import { preflight, notFound, serverError, attachCorsHeaders } from "./utils/response.js";
 import { logger } from "./utils/logger.js";
 import { API } from "./config/constants.js";
 import { login, logout } from "./routes/auth/login.js";
@@ -257,14 +257,15 @@ export default {
             logger.request(request, "Incoming request");
             
             if (!handler) {
-                return notFound();
+                return attachCorsHeaders(notFound(), request, env);
             }
 
-            return await handler(request, env, ctx, params);
+            const response = await handler(request, env, ctx, params);
+            return attachCorsHeaders(response, request, env);
 
         } catch (error) {
             logger.requestError(request, error);
-            return serverError();
+            return attachCorsHeaders(serverError(), request, env);
         }
     }
 };
